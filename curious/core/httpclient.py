@@ -1234,7 +1234,7 @@ class HTTPClient(object):
 
         :param channel_id: The channel ID to delete.
         """
-        url = Endpoints.CHANNEL_BASE.format(channel_id)
+        url = Endpoints.CHANNEL_BASE.format(channel_id=channel_id)
 
         data = await self.delete(url, bucket="channels:{}".format(channel_id))
         return data
@@ -1768,7 +1768,7 @@ class HTTPClient(object):
         :param guild_id: The guild ID of the guild to search. 
         :param params: Params to search with.
         """
-        url = (self.GUILD_BASE + "/messages/search").format(guild_id=guild_id)
+        url = (Endpoints.GUILD_BASE + "/messages/search").format(guild_id=guild_id)
 
         data = await self.get(url, bucket="search:{}".format(guild_id), params=params)
         return data
