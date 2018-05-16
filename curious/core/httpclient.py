@@ -957,6 +957,18 @@ class HTTPClient(object):
         data = await self.get(url, bucket="bans:{}".format(guild_id))
         return data
 
+    async def get_ban(self, guild_id: int, user_id: int):
+        """
+        Gets a ban from a guild.
+
+        :param guild_id: The guild to get a ban from.
+        :param user_id: The user ID to get the ban of.
+        """
+        url = Endpoints.GUILD_BAN_USER.format(guild_id=guild_id, user_id=user_id)
+
+        data = await self.get(url, bucket="bans:{}".format(guild_id))
+        return data
+
     async def kick_member(self, guild_id: int, member_id: int):
         """
         Kicks a member from a guild.
