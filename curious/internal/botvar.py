@@ -73,7 +73,6 @@ class BotVar(object):
             return bot._bot_locals[self]
         except KeyError:
             if self._default is not self._NO_DEFAULT:
-                self.set(self._default)
                 return self._default
 
             raise LookupError(self)
