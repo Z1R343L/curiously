@@ -18,19 +18,19 @@ Wrappers for Guild objects.
 
 .. currentmodule:: curious.dataclasses.guild
 """
+import sys
+from math import ceil
+
 import abc
+import collections
 import copy
 import datetime
 import enum
-import sys
+import multio
 import typing
 from dataclasses import dataclass
-from math import ceil
 from os import PathLike
 from types import MappingProxyType
-
-import collections
-import multio
 
 from curious.core import current_bot
 from curious.core.httpclient import Endpoints
@@ -39,7 +39,8 @@ from curious.dataclasses import channel as dt_channel, emoji as dt_emoji, invite
     search as dt_search, user as dt_user, voice_state as dt_vs, webhook as dt_webhook
 from curious.dataclasses.bases import Dataclass
 from curious.dataclasses.presence import Presence, Status
-from curious.exc import CuriousError, HTTPException, HierarchyError, PermissionsError
+from curious.exc import CuriousError, ErrorCode, HTTPException, HierarchyError, NotFound, \
+    PermissionsError
 from curious.util import AsyncIteratorWrapper, base64ify, deprecated
 
 default_var = typing.TypeVar("T")
@@ -512,6 +513,35 @@ class GuildBanContainer(object):
             ban = GuildBan(reason=ban.get("reason", None), user=user)
             yield ban
 
+    async def get(self, user: 'typing.Union[dt_user.User, int]') -> GuildBan:
+        """
+        Gets a :class:`.GuildBan` for the specified user.
+
+        :param user: The :class:`.User` (or int user ID) to get the ban for.
+        :return: A :class:`.GuildBan` for the user, or None if this user is not banned.
+        """
+        self._guild.me.guild_permissions.raise_for_permission("ban_members")
+
+        bot = current_bot.get()
+        try:
+            if isinstance(user, dt_user.User):
+                user_id = user.id
+            else:
+                user_id = user
+
+            ban = await bot.http.get_ban(self._guild.id, user_id)
+        except NotFound as e:
+            if e.error_code != ErrorCode.UNKNOWN_BAN:
+                raise
+
+            return None
+
+        if not isinstance(user, dt_user.User):
+            user = dt_user.User(**ban.get("user", {}))
+
+        ban = GuildBan(reason=ban.get("reason", None), victim=user)
+        return ban
+
     async def add(self, victim: 'typing.Union[dt_user.User, dt_member.Member]', *,
                   delete_message_days: int, reason: str = None) -> GuildBan:
         """
@@ -568,7 +598,7 @@ class GuildBanContainer(object):
 
     async def ban(self, *args, **kwargs) -> 'GuildBan':
         """
-        Shortcut for :meth:`.GuildBanWrapper.add`.
+        Shortcut for :meth:`.GuildBanContainer.add`.
         """
         return await self.add(*args, **kwargs)
 
@@ -607,7 +637,7 @@ class GuildBanContainer(object):
 
     async def unban(self, *args, **kwargs) -> None:
         """
-        Shortcut for :meth:`.GuildBanWrapper.remove`.
+        Shortcut for :meth:`.GuildBanContainer.remove`.
         """
         return await self.remove(*args, **kwargs)
 
