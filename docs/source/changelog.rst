@@ -29,6 +29,12 @@ This document displays the differences between each release of curious.
  - Remove :attr:`.WidgetMember.game` and :attr:`.WidgetMember.status`, and turn them into
    :attr:`.WidgetMember.presence`.
 
+ - Add :class:`.BotVar`.
+
+ - Split converters into global converters and bot-local converters.
+
+ - Add :meth:`.GuildBanContainer.get` to get a single :class:`.GuildBan`.
+
 0.7.7 (Released 2018-04-04)
 ---------------------------
 
