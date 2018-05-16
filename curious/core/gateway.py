@@ -18,20 +18,20 @@ Websocket gateway code.
 
 .. currentmodule:: curious.core.gateway
 """
-import enum
-import json
-import logging
 import sys
 import time
 import zlib
 from collections import Counter
-from dataclasses import dataclass  # use a 3.6 backport if available
-from typing import Any, AsyncContextManager, AsyncGenerator, List, Union
 
+import enum
+import json
+import logging
 import multio
 from async_generator import asynccontextmanager
+from dataclasses import dataclass  # use a 3.6 backport if available
 from lomond.errors import WebSocketClosed, WebSocketClosing
-from lomond.events import Binary, Closed, Connected, Connecting, Text
+from lomond.events import Binary, Closed, Closing, Connected, Connecting, Text
+from typing import Any, AsyncContextManager, AsyncGenerator, List, Union
 
 from curious.core._ws_wrapper import BasicWebsocketWrapper
 from curious.util import safe_generator
@@ -44,7 +44,7 @@ class GatewayOp(enum.IntEnum):
     DISPATCH = 0
     HEARTBEAT = 1
     IDENTIFY = 2
-    PRESENCE = 3
+    STATUS = 3
     VOICE_STATE = 4
     VOICE_PING = 5
     RESUME = 6
@@ -268,7 +268,7 @@ class GatewayHandler(object):
         :param afk: If the account is to be marked as AFK.
         """
         payload = {
-            "op": GatewayOp.PRESENCE,
+            "op": GatewayOp.STATUS,
             "d": {}
         }
         if status is not None:
@@ -286,6 +286,8 @@ class GatewayHandler(object):
 
         if afk is not None:
             payload["d"].update(afk=afk, since=int(time.time() * 1000))
+        else:
+            payload["d"].update(afk=False, since=None)
 
         return await self.send(payload)
 
@@ -315,9 +317,10 @@ class GatewayHandler(object):
         Returns an async generator used to iterate over the events received by this websocket.
         """
         async for event in self.websocket:
-            if isinstance(event, Closed):
+            if isinstance(event, (Closed, Closing)):
                 await self._stop_heartbeat_events()
-                self.logger.info("The websocket has closed")
+                self.logger.info("The websocket has closed with code %s: %s", event.code,
+                                 event.reason)
                 yield "websocket_closed",
 
             elif isinstance(event, Connecting):
