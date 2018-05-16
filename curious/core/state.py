@@ -448,13 +448,13 @@ class State(object):
 
         yield "member_update", old_member, member,
 
-    async def handle_presences_replace(self, gw: 'gateway.GatewayHandler', event_data):
+    async def handle_presences_replace(self, event_data):
         """
         Called when presences are replaced.
         """
         # would be useful to have a yield from for async generators...
         for presence in event_data:
-            gen = self.handle_presence_update(gw, presence)
+            gen = self.handle_presence_update(presence)
             async for y in gen:
                 yield y
 
