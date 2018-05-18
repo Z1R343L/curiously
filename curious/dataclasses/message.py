@@ -251,19 +251,34 @@ class Message(Dataclass):
         :param mentions: The mentions to resolve; a list of dicts or ints.
         :param type_: The type of mention to resolve: ``channel``, ``role``, or ``member``.
         """
+        bot = current_bot.get()
         final_mentions = []
         for mention in mentions:
             obb = None
             if type_ == "member":
-                id = int(mention["id"])
-                obb = self.guild.members.get(id)
+                uid = int(mention["id"])
+
+                if not self.guild_id:
+                    cache_finder = bot.state._users.get
+                else:
+                    cache_finder = self.guild.members.get
+
+                obb = cache_finder(uid)
+
                 if obb is None:
                     obb = current_bot.get().state.make_user(mention)
                     # always check for a decache
-                    current_bot.get().state._check_decache_user(id)
+                    current_bot.get().state._check_decache_user(uid)
+
             elif type_ == "role":
+                if not self.guild_id:
+                    return []
+
                 obb = self.guild.roles.get(int(mention))
             elif type_ == "channel":
+                if not self.guild_id:
+                    return []
+
                 obb = self.guild.channels.get(int(mention))
 
             if obb is not None:
