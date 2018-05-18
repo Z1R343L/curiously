@@ -1292,18 +1292,25 @@ class Guild(Dataclass):
         await current_bot.get().http.edit_role_positions(to_send)
 
     async def change_voice_state(self, member: 'dt_member.Member', *,
-                                 deaf: bool = None, mute: bool = None):
+                                 deaf: bool = None, mute: bool = None,
+                                 channel: 'dt_channel.Channel' = None):
         """
         Changes the voice state of a member.
 
         :param member: The :class:`.Member` to change the voice state of.
         :param deaf: Should this member be deafened?
         :param mute: Should this member be muted?
+        :param channel: The channel to move this member to.
         """
         if member.voice is None:
             raise CuriousError("Cannot change voice state of member not in voice")
 
-        await current_bot.get().http.edit_member_voice_state(self.id, member.id, deaf=deaf, mute=mute)
+
+        channel_id = channel.id if channel is not None else None
+        await current_bot.get().http.edit_member_voice_state(self.id,
+                                                             member.id,
+                                                             deaf=deaf, mute=mute,
+                                                             channel_id=channel_id)
         return member.voice
 
     async def modify_guild(self, *, afk_channel: 'dt_channel.Channel' = None,
