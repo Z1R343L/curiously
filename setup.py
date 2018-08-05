@@ -4,7 +4,7 @@ from pathlib import Path
 from setuptools import setup
 
 install_requires = [
-        "lomond==0.1.13",
+        "lomond>=0.3.0",
         "pylru==1.0.9",
         "oauthlib>=2.0.2,<2.1.0",
         "pytz>=2017.3",
