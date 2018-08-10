@@ -134,6 +134,9 @@ class CommandsManager(object):
         #: A dictionary mapping of <plugin name> -> <plugin> object.
         self.plugins = {}
 
+        #: A dictionary mapping of <plugin> -> <dict of commands> object for cache purposes.
+        self._plugin_command_cache = {}
+
         #: A dictionary of stand-alone commands, i.e. commands not associated with a plugin.
         self.commands = {}
 
@@ -189,6 +192,15 @@ class CommandsManager(object):
         if module is not None:
             self._module_plugins[module].append(instance)
 
+        commands = instance._get_commands()
+        table = {}
+        for command in commands:
+            table[command.cmd_name] = command
+            for alias in command.cmd_aliases:
+                table[alias] = command
+
+        self._plugin_command_cache[instance] = table
+
         return instance
 
     async def unload_plugin(self, klass: typing.Union[Plugin, str]):
@@ -212,24 +224,20 @@ class CommandsManager(object):
                 await multio.asynclib.cancel_task_group(p.task_group)
 
             await p.unload()
+            self._plugin_command_cache.pop(getattr(p, "plugin_name", type(p).__name__))
 
         return p
 
-    def _lookup_command(self, name: str):
+    def lookup_command(self, name: str):
         """
         Does a lookup in plugin and standalone commands.
         """
         if name in self.commands:
             return self.commands[name]
 
-        for plugin in self.plugins.values():
-            cmds = plugin._get_commands()
-
-            try:
-                return next(filter(lambda cmd: not cmd.cmd_subcommand and
-                                   (cmd.cmd_name == name or name in cmd.cmd_aliases), cmds))
-            except StopIteration:
-                continue
+        for plugin, commands in self._plugin_command_cache.items():
+            if name in commands:
+                return commands[name]
 
     def get_command(self, command_name: str):
         """
@@ -240,7 +248,7 @@ class CommandsManager(object):
         """
         # do an immediate lookup for the first token
         sp = command_name.split(" ")
-        command = self._lookup_command(sp[0])
+        command = self.lookup_command(sp[0])
 
         if command is None:
             return None
@@ -265,6 +273,9 @@ class CommandsManager(object):
             raise ValueError("Commands must be decorated with the command decorator")
 
         self.commands[command.cmd_name] = command
+        for alias in command.cmd_aliases:
+            self.commands[alias] = command
+
         return command
 
     def remove_command(self, command):
@@ -322,7 +333,11 @@ class CommandsManager(object):
 
         for plugin in self._module_plugins[module]:
             await plugin.unload()
-            self.plugins.pop(getattr(plugin, "plugin_name", type(plugin).__name__))
+            if plugin.task_group is not None:
+                multio.asynclib.cancel_task_group(plugin.task_group)
+
+            name = getattr(plugin, "plugin_name", type(plugin).__name__)
+            self.plugins.pop(name)
 
         del sys.modules[import_path]
         del self._module_plugins[module]
