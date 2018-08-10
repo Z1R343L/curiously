@@ -108,7 +108,8 @@ class CommandsManager(object):
     """
 
     def __init__(self, client: 'md_client.Client', *,
-                 message_check=None, command_prefix: str = None):
+                 message_check=None, command_prefix: str = None,
+                 context_klass: typing.Type[Context] = Context):
         """
         :param client: The :class:`.Client` to use with this manager.
         :param message_check: The message check function for this manager.
@@ -135,6 +136,9 @@ class CommandsManager(object):
 
         #: A dictionary of stand-alone commands, i.e. commands not associated with a plugin.
         self.commands = {}
+
+        #: The context class for this context.
+        self.context_class = context_klass
 
         #: The current ratelimiter.
         self.ratelimiter = RateLimiter()
@@ -372,7 +376,7 @@ class CommandsManager(object):
         command_word, tokens = matched
 
         # step 2, create the new commands context
-        ctx = Context(event_context=ctx, message=message)
+        ctx = self.context_class(event_context=ctx, message=message)
         ctx.command_name = command_word
         ctx.tokens = tokens
         ctx.manager = self
