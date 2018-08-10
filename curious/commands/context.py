@@ -301,9 +301,11 @@ class Context(object):
                     to_invoke = command
                     break
 
+        ev_ctx = self._make_reraise_ctx("command_error")
         if to_invoke is not None:
-            ev_ctx = self._make_reraise_ctx("command_error")
             try:
                 return await self.invoke(to_invoke)
             except CommandsError as e:
                 await self.manager.client.events.fire_event("command_error", self, e, ctx=ev_ctx)
+        else:
+            await self.manager.client.events.fire_event("command_not_found", self, ctx=ev_ctx)
