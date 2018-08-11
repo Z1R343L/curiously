@@ -64,6 +64,15 @@ async def _get_command_list(ctx: Context, command, *, include_root: bool = True)
     return l
 
 
+async def _get_command_list_from_plugin(ctx: Context, plugin):
+    """
+    Gets the command list from a plugin.
+    """
+    cmds = plugin._get_commands()
+    subcommands = [await _get_command_list(ctx, i) for i in cmds]
+    return [i for sublist in subcommands for i in sublist]
+
+
 async def help_for_all(ctx: Context):
     """
     Gets the content of help for all.
@@ -134,24 +143,33 @@ async def help_for_one(ctx: Context, command):
     """
     Gets the content of help for one command.
     """
-    # get the command from the manager
-    cfunc = ctx.manager.get_command(command)
-    if cfunc is None:
-        return f"No such command: **`{command}`**"
+    # try and find a plugin
+    plugin = ctx.manager.plugins.get(command)
+    if plugin is not None:
+        description = inspect.getdoc(plugin)
+        subcommands = await _get_command_list_from_plugin(ctx, plugin)
+        preamble = f"**Plugin {command}:**\n\n"
+    else:
+        # get the command from the manager
+        cfunc = ctx.manager.get_command(command)
+        if cfunc is None:
+            return f"No such command: **`{command}`**"
 
-    usage = get_usage(cfunc, invoked_as=command)
+        usage = get_usage(cfunc, invoked_as=command)
+        preamble = f"`{usage}`\n\n"
+        subcommands = await _get_command_list(ctx, cfunc, include_root=False)
 
-    subcommands = await _get_command_list(ctx, cfunc, include_root=False)
-    subcommands_fmtted = " | ".join(f"`{x}`" for x in subcommands)
+        description = inspect.getdoc(cfunc)
 
-    description = inspect.getdoc(cfunc)
     if description is None:
         description = "No description."
 
+
     if subcommands:
-        return f"`{usage}`\n\n{description}\n\n**Subcommands:** {subcommands_fmtted}"
+        subcommands_fmtted = " | ".join(f"`{x}`" for x in subcommands)
+        return f"{preamble}{description}\n\n**Subcommands:** {subcommands_fmtted}"
     else:
-        return f"`{usage}`\n\n{description}"
+        return f"{preamble}{description}"
 
 
 async def help_command(ctx: Context, *, command: str = None):
