@@ -59,15 +59,19 @@ from curious.dataclasses.guild import ContentFilterLevel, Guild, GuildChannelWra
     GuildEmojiWrapper, GuildRoleWrapper, MFALevel, NotificationLevel, VerificationLevel
 from curious.dataclasses.invite import Invite, InviteChannel, InviteGuild, InviteMetadata
 from curious.dataclasses.member import Member
-from curious.dataclasses.message import Message
-from curious.dataclasses.presence import Game, Presence, Status
+from curious.dataclasses.message import Message, MessageType
+from curious.dataclasses.presence import Game, Presence, Status, GameType
+from curious.dataclasses.permissions import Permissions, Overwrite
 from curious.dataclasses.reaction import Reaction
 from curious.dataclasses.role import Role
 from curious.dataclasses.search import SearchQuery, SearchResults
-from curious.dataclasses.user import User
+from curious.dataclasses.user import User, AvatarUrl
 from curious.dataclasses.voice_state import VoiceState
 from curious.dataclasses.webhook import Webhook
 from curious.dataclasses.widget import Widget, WidgetChannel, WidgetGuild, WidgetMember
+
+from curious.exc import ErrorCode, CuriousError, Forbidden, NotFound, Unauthorized, \
+    HierarchyError, PermissionsError, HTTPException
 
 # for asks
 # import multio
