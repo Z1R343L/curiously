@@ -7,7 +7,7 @@ multidict>=2.1.6<2.2.0
 git+https://github.com/theelous3/multio.git#egg=multio
 async_generator~=1.9  # asynccontextmanager for 3.6
 sphinx_py3doc_enhanced_theme
-sphinx>=1.6.6,<1.7.0
+sphinx>=1.7.0,<1.8
 git+https://github.com/python-trio/sphinxcontrib-trio.git#egg=sphinxcontrib-trio
 sphinx-autodoc-typehints==1.2.3
 setuptools>=38.0.0  # lol
