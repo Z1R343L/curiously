@@ -207,6 +207,21 @@ class Message(Dataclass):
 
         return emojis
 
+    @property
+    def url(self) -> str:
+        """
+        Gets the URL for this message.
+        """
+        if self.guild_id is None:
+            guild_id = "@me"
+        else:
+            guild_id = self.guild_id
+
+        return f"https://discordapp.com/channels/" \
+               f"{guild_id}/" \
+               f"{self.channel_id}/" \
+               f"{self.id}"
+
     async def clean_content(self) -> str:
         """
         Gets the cleaned content for this message.
