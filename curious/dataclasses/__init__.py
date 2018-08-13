@@ -25,6 +25,8 @@ stateful,  as in they store state which allows the user to edit them as appropri
     :toctree: dataclasses
 
     appinfo
+    attachment
+    auditlog
     bases
     channel
     embed
