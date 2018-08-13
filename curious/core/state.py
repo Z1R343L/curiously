@@ -498,11 +498,12 @@ class State(object):
         # so we must ensure we only update, not add a member
         if user_id in guild._members:
             guild._members[user_id] = member
-        yield "member_update", old_member, member,
+
+        yield "presence_update", old_member, member,
 
     async def handle_presences_replace(self, gw: 'gateway.GatewayHandler', event_data: dict):
         # TODO
-        print("P_R", event_data)
+        pass
 
     async def handle_guild_members_chunk(self, gw: 'gateway.GatewayHandler', event_data: dict):
         """
@@ -1050,7 +1051,7 @@ class State(object):
             # thinking
             role = guild._roles[role_id]
 
-        yield "role_create", role
+        yield "guild_role_create", role
 
     async def handle_guild_role_update(self, gw: 'gateway.GatewayHandler', event_data: dict):
         """
@@ -1086,7 +1087,7 @@ class State(object):
         role.managed = event_data.get("managed")
         role.permissions = Permissions(event_data.get("permissions", 0))
 
-        yield "role_update", old_role, role,
+        yield "guild_role_update", old_role, role,
 
     async def handle_guild_role_delete(self, gw: 'gateway.GatewayHandler', event_data: dict):
         """
@@ -1109,7 +1110,7 @@ class State(object):
             except ValueError:
                 continue
 
-        yield "role_delete", role,
+        yield "guild_role_delete", role,
 
     async def handle_typing_start(self, gw: 'gateway.GatewayHandler', event_data: dict):
         """
