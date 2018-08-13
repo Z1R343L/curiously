@@ -90,6 +90,16 @@ State events
 
     Called when the emojis update in a guild.
 
+.. py:function:: guild_member_update(ctx: EventContext, old_member: Member, \
+    new_member: Member)
+    :async:
+
+    Called when a guild member updates. This could be from roles or nick changing.
+
+.. py:function:: presence_update(ctx: EventContext, old_member: Member, new_member: Member)
+
+    Called when a guild member has a presence update.
+
 .. py:function:: user_settings_update(ctx: EventContext, \
     old_settings: UserSettings, new_settings: UserSettings)
     :async:
@@ -120,13 +130,6 @@ State events
     :async:
 
     Called when a relationship is removed.
-
-.. py:function:: guild_member_update(ctx: EventContext, old_member: Member, \
-    new_member: Member)
-    :async:
-
-    Called when a guild member updates. This could be from typing, roles/nick
-    updating, or game changing.
 
 .. py:function:: user_typing(ctx: EventContext, channel: Channel, user: \
     User)
@@ -290,18 +293,18 @@ State events
 
     Called when a user is removed from a group.
 
-.. py:function:: role_create(ctx: EventContext, role: Role)
+.. py:function:: guild_role_create(ctx: EventContext, role: Role)
     :async:
 
     Called when a role is created.
 
-.. py:function:: role_update(ctx: EventContext, old_role: Role, \
+.. py:function:: guild_role_update(ctx: EventContext, old_role: Role, \
     new_role: Role)
     :async:
 
     Called when a role is updated.
 
-.. py:function:: role_delete(ctx: EventContext, role: Role)
+.. py:function:: guild_role_delete(ctx: EventContext, role: Role)
     :async:
 
     Called when a role is deleted.

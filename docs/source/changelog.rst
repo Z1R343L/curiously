@@ -10,16 +10,29 @@ This document displays the differences between each release of curious.
 
  - Major: Add audit log support.
 
+    - Add :class:`.AuditLogView`, :class:`.AuditLogEntry`, etc.
+
+    - Add method :meth:`.Guild.get_audit_log_entries`.
+
  - Allow showing help for plugins.
+
+ - Breaking: Rename role events.
+
+    - ``ROLE_CREATE`` -> ``GUILD_ROLE_CREATE``
+
+    - ``ROLE_UPDATE`` -> ``GUILD_ROLE_UPDATE``
+
+    - ``ROLE_DELETE`` -> ``ROLE_DELETE``
+
+ - Breaking: Remove the ``MEMBER_UPDATE`` event and replace it with ``PRESENCE_UPDATE``.
+
 
 0.7.9 (Released 2018-08-05)
 ---------------------------
 
 .. note::
 
-    This will be the final release of the 0.7 branch. The 0.8 branch is designed to be a near
-    drop-in replacement, unless you're meddling with internal lib stuff (like the event manager)
-    directly.
+    This will be the final release of the 0.7 branch.
 
  - Remove :meth:`.Channel.connect`.
 
