@@ -640,6 +640,13 @@ class Channel(Dataclass):
             return None
 
     @property
+    def mention(self) -> str:
+        """
+        :return: The mention text for this channel.
+        """
+        return f"<#{self.id}>"
+
+    @property
     def private(self) -> bool:
         """
         :return: If this channel is a private channel (i.e has no guild.)
