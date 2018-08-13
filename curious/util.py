@@ -24,15 +24,23 @@ import datetime
 import functools
 import imghdr
 import inspect
+import multio
 import textwrap
 import types
 import warnings
+from multidict import MultiDict
 from typing import Any, Awaitable, Callable, Coroutine, List, Union
 
-import multio
-from multidict import MultiDict
-
 NO_ITEM = object()
+DISCORD_EPOCH = 1420070400000
+
+
+def to_snowflake(dt: datetime.datetime) -> int:
+    """
+    Turns a :class:`datetime.datetime` into a snowflake.
+    """
+    ts = int(dt.timestamp() * 1000)
+    return (ts << 22) - DISCORD_EPOCH
 
 
 def remove_from_multidict(d: MultiDict, key: str, item: Any):
