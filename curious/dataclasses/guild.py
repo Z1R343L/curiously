@@ -31,17 +31,18 @@ import typing
 from dataclasses import dataclass
 from os import PathLike
 from types import MappingProxyType
+from typing import Union
 
 from curious.core.httpclient import Endpoints
-from curious.dataclasses import channel as dt_channel, emoji as dt_emoji, invite as dt_invite, \
-    member as dt_member, permissions as dt_permissions, role as dt_role, \
+from curious.dataclasses import auditlog as dt_auditlog, channel as dt_channel, emoji as dt_emoji, \
+    invite as dt_invite, member as dt_member, permissions as dt_permissions, role as dt_role, \
     search as dt_search, user as dt_user, voice_state as dt_vs, webhook as dt_webhook
 from curious.dataclasses.bases import Dataclass
 from curious.dataclasses.presence import Presence, Status
 from curious.exc import CuriousError, HTTPException, HierarchyError, PermissionsError
 from curious.util import AsyncIteratorWrapper, base64ify, deprecated
 
-default_var = typing.TypeVar("T")
+default_var = typing.TypeVar("default_var")
 
 
 class MFALevel(enum.IntEnum):
@@ -1251,6 +1252,32 @@ class Guild(Dataclass):
         :param user: The :class:`.User` to forgive and unban.
         """
         return await self.bans.remove(user)
+
+    async def get_audit_log_entries(
+            self,
+            author: 'Union[dt_user.User, dt_member.Member]' = None,
+            action_type: 'dt_auditlog.AuditLogEvent' = None,
+            before: int = None,
+            limit: int = 50
+    ) -> 'dt_auditlog.AuditLogView':
+        """
+        Gets the audit log entries for this guild.
+
+        :param author: The :class:`.Member` or :class:`.User` to filter by.
+        :param action_type: The :class:`.AuditLogEvent` to filter by.
+        :param before: The snowflake to look for entries before.
+        :param limit: The maximum number of entires to return.
+        :return: An :class:`.AuditLogView` for this guild.
+        """
+        user_id = author.id if author is not None else None
+        action_type = int(action_type) if action_type is not None else None
+
+        result = await self._bot.http.get_audit_logs(guild_id=self.id,
+                                                     limit=limit,
+                                                     user_id=user_id,
+                                                     action_type=action_type,
+                                                     before=before)
+        return dt_auditlog.AuditLogView(self, **result)
 
     async def get_webhooks(self) -> 'typing.List[dt_webhook.Webhook]':
         """

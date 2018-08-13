@@ -18,25 +18,25 @@ The main Discord HTTP interface.
 
 .. currentmodule:: curious.core.httpclient
 """
+import time
+from math import ceil, floor
+
+import asks
 import datetime
 import json
 import logging
 import mimetypes
-import random
-import string
-import time
-import typing
-import weakref
-from email.utils import parsedate
-from math import ceil, floor
-from urllib.parse import quote
-
-import asks
 import multio
 import pytz
+import random
+import string
+import typing
+import weakref
 from asks.errors import ConnectivityError
 from asks.response_objects import Response
+from email.utils import parsedate
 from h11 import RemoteProtocolError
+from urllib.parse import quote
 
 try:
     # try and load a C impl of LRU first
@@ -1446,7 +1446,8 @@ class HTTPClient(object):
 
     async def get_audit_logs(self, guild_id: int,
                              *, limit: int = 50, user_id: int = None,
-                             action_type: int = None):
+                             action_type: int = None,
+                             before: int = None):
         """
         Gets the audit log for this guild.
         
@@ -1454,6 +1455,7 @@ class HTTPClient(object):
         :param limit: The maximum number of entries to return.
         :param user_id: The user ID to filter by.
         :param action_type: The action type to filter by.
+        :param before: The snowflake to filter before.
         """
         url = Endpoints.GUILD_AUDITLOGS.format(guild_id=guild_id)
         payload = {}
@@ -1466,6 +1468,9 @@ class HTTPClient(object):
 
         if action_type is not None:
             payload["action_type"] = action_type
+
+        if before is not None:
+            payload["before"] = before
 
         data = await self.get(url, bucket="guild:{}:audit-logs".format(guild_id), params=payload)
         return data

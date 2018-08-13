@@ -72,27 +72,31 @@ class AuditLogExtra:
     Represents any extra information for this audit log entry.
     """
 
+    @staticmethod
+    def _maybe_int(val: str):
+        if val is None:
+            return None
+
+        return int(val)
+
     def __init__(self, entry: 'AuditLogEntry', **kwargs):
         self._entry = entry
 
-        _target_id = kwargs.get("od")
-        if _target_id is not None:
-            _target_id = int(_target_id)
-
         #: The ID of an overwritten entity.
-        self.id: Optional[int] = _target_id
+        self.id: Optional[int] = self._maybe_int(kwargs.get("id"))
 
         #: The number of members removed by a prune.
-        self.members_removed: Optional[int] = int(kwargs.get("members_removed"))
+        _members_removed = kwargs.get
+        self.members_removed: Optional[int] = self._maybe_int(kwargs.get("members_removed"))
 
         #: The number of messages deleted by a mass delete.
-        self.count: Optional[int] = int(kwargs.get("count"))
+        self.count: Optional[int] = self._maybe_int(kwargs.get("count"))
 
         #: The type of an overwritten entity ("member" or "role").
         self.type: Optional[str] = kwargs.get("type")
 
         #: The name of a role if type is "role".
-        self.role: Optional[str] = kwargs.get("role_name")
+        self.role_name: Optional[str] = kwargs.get("role_name")
 
         _channel_id = kwargs.get("channel_id")
         if _channel_id is not None:
@@ -196,7 +200,7 @@ class AuditLogChange(object):
                 if i["type"] == "role":
                     obb = self._entry._guild.roles.get(object_id)
                 else:
-                    obb = self._entry._try_unwrap_member(object_id)
+                    obb = self._entry._view._try_unwrap_member(object_id)
 
                 overwrites.append(dt_permissions.Overwrite(
                     allow=i["allow"], deny=i["deny"],
@@ -216,7 +220,7 @@ class AuditLogChange(object):
             return roles
 
         if key in ["owner_id", "inviter_id"]:
-            return self._entry._try_unwrap_member(int(item))
+            return self._entry._view._try_unwrap_member(int(item))
 
         if key in ["widget_channel_id", "afk_channel_id", "channel_id"]:
             return self._entry._guild.channels.get(item)
@@ -230,9 +234,10 @@ class AuditLogEntry(Dataclass):
     Represents an audit log entry.
     """
 
-    def __init__(self, client, guild: 'md_guild.Guild', **kwargs):
-        super().__init__(kwargs['id'], client)
-        self._guild = guild
+    def __init__(self, view: 'AuditLogView', **kwargs):
+        super().__init__(kwargs['id'], view._guild._bot)
+        self._view = view
+        self._guild = view._guild
 
         #: The ID of the user who made the change.
         self.user_id: int = int(kwargs.get("user_id"))
@@ -250,16 +255,42 @@ class AuditLogEntry(Dataclass):
         self.event = AuditLogEvent(kwargs.get("action_type"))
 
         #: The "extra" options for this entry.
-        self.extra_options = AuditLogExtra(client, **kwargs.get("options", {}))
+        self.extra_options = AuditLogExtra(view._guild._bot, **kwargs.get("options", {}))
 
         #: The changes for this entry.
         self.changes: List[AuditLogChange] = \
-            [AuditLogChange(**i) for i in kwargs.get("changes", [])]
-
-        self._users = [User(client, **data) for data in kwargs.get("users")]
+            [AuditLogChange(self, **i) for i in kwargs.get("changes", [])]
 
     def __repr__(self):
-        return f"<AuditLogEntry guild='{self._guild!r} author={self.author!r} event={self.event}"
+        return f"<AuditLogEntry guild='{self._guild!r} author={self.author!r} event={self.event}>"
+
+    __str__ = __repr__
+
+    @property
+    def author(self) -> 'Union[User, md_member.Member]':
+        """
+        The author of this log entry.
+        """
+        return self._view._try_unwrap_member(self.user_id)
+
+
+class AuditLogView(object):
+    """
+    Represents a view into an audit log.
+    """
+
+    def __init__(self, guild, **kwargs):
+        self._guild = guild
+
+        #: The list of audit log entries for this view.
+        self.entries: List[AuditLogEntry] \
+            = [AuditLogEntry(self, **x) for x in kwargs.get("audit_log_entries")]
+
+        #: The list of users for this view.
+        self._users = [User(guild._bot, **data) for data in kwargs.get("users")]
+
+    def __repr__(self):
+        return f"<AuditLogView entries={self.entries!r}>"
 
     __str__ = __repr__
 
@@ -270,15 +301,8 @@ class AuditLogEntry(Dataclass):
         try:
             return self._guild.members[id]
         except KeyError:
-            member = self._bot.state._users.get(id)
+            member = self._guild._bot.state._users.get(id)
             if member is None:
                 return next(filter(lambda user: user.id == id, self._users))
             else:
                 return member
-
-    @property
-    def author(self) -> 'Union[User, md_member.Member]':
-        """
-        The author of this log entry.
-        """
-        return self._try_unwrap_member(self.user_id)
