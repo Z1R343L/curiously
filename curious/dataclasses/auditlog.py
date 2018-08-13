@@ -273,6 +273,14 @@ class AuditLogEntry(Dataclass):
         """
         return self._view._try_unwrap_member(self.user_id)
 
+    def find_change_of(self, key: str) -> AuditLogChange:
+        """
+        Finds a change of the specified key.
+        """
+        for change in self.changes:
+            if change.key == key:
+                return change
+
 
 class AuditLogView(object):
     """
