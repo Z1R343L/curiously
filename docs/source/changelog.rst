@@ -8,6 +8,8 @@ This document displays the differences between each release of curious.
 
  - Add the ability to customise the context class created by commands.
 
+ - Major: Add audit log support.
+
 0.7.9 (Released 2018-08-05)
 ---------------------------
 
