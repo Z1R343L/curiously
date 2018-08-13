@@ -176,6 +176,20 @@ class AuditLogChange(object):
         return self._unmap("new_value")
 
     @property
+    def old_value_raw(self) -> Any:
+        """
+        The old value of this change, in raw form.
+        """
+        return self._data.get("old_value")
+
+    @property
+    def new_value_raw(self) -> Any:
+        """
+        The new value of this change in raw form.
+        """
+        return self._data.get("new_value")
+
+    @property
     def key(self) -> str:
         """
         The key for this change.
@@ -216,6 +230,8 @@ class AuditLogChange(object):
                 role = self._entry._guild.roles[int(i["id"])]
                 if role is None:
                     roles.append(i["name"])  # TODO: Make this better?
+                else:
+                    roles.append(role)
 
             return roles
 
