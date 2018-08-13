@@ -258,6 +258,11 @@ class AuditLogEntry(Dataclass):
 
         self._users = [User(client, **data) for data in kwargs.get("users")]
 
+    def __repr__(self):
+        return f"<AuditLogEntry guild='{self._guild!r} author={self.author!r} event={self.event}"
+
+    __str__ = __repr__
+
     def _try_unwrap_member(self, id: int) -> 'Union[User, md_member.Member]':
         """
         Tries to unwrap an ID into a member or user.
@@ -270,3 +275,10 @@ class AuditLogEntry(Dataclass):
                 return next(filter(lambda user: user.id == id, self._users))
             else:
                 return member
+
+    @property
+    def author(self) -> 'Union[User, md_member.Member]':
+        """
+        The author of this log entry.
+        """
+        return self._try_unwrap_member(self.user_id)
