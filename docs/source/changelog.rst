@@ -10,6 +10,8 @@ This document displays the differences between each release of curious.
 
  - Major: Add audit log support.
 
+ - Allow showing help for plugins.
+
 0.7.9 (Released 2018-08-05)
 ---------------------------
 
