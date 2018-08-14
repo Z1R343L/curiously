@@ -131,10 +131,14 @@ class ReactionsPaginator(object):
             if author.id != self.respond_to.id:
                 return
 
-            if self._running:
-                await self._reaction_queue.put(reaction)
-            else:
-                raise ListenerExit
+            try:
+                if self._running:
+                    async with multio.asynclib.timeout_after(120):
+                        await self._reaction_queue.put(reaction)
+                else:
+                    raise ListenerExit
+            except multio.asynclib.TaskTimeout:
+                raise ListenerExit from None
 
         # spawn the consumer task first
         self.bot.events.add_temporary_listener("message_reaction_add", consume_reaction)
