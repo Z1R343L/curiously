@@ -16,9 +16,8 @@
 """
 A reactions-based paginator.
 """
-import typing
-
 import multio
+import typing
 
 from curious.core.event import ListenerExit
 from curious.dataclasses.channel import Channel
@@ -68,7 +67,7 @@ class ReactionsPaginator(object):
         #: The message object that is being edited.
         self._message = None  # type: Message
         self._running = False
-        self._reaction_queue = multio.Queue()
+        self._reaction_queue = multio.Queue(1)
 
     @classmethod
     async def paginate_response(cls, content: str,
