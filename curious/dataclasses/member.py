@@ -314,6 +314,7 @@ class Member(Dataclass):
         new_object = copy.copy(self)
         new_object.roles = MemberRoleContainer(new_object)
         new_object.role_ids = self.role_ids.copy()
+        new_object._nickname = copy.copy(self._nickname)
 
         return new_object
 
