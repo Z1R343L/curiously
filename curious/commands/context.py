@@ -21,11 +21,11 @@ Class for the commands context.
 import inspect
 import types
 import typing_inspect
-from typing import Any, Callable, List, Tuple, Type, Union
+from typing import Any, Callable, List, Tuple, Type, Union, Optional
 
 from curious.commands.converters import convert_channel, convert_float, convert_int, convert_list, \
     convert_member, convert_role, convert_union
-from curious.commands.exc import CommandInvokeError, CommandsError, ConditionsFailedError
+from curious.commands.exc import CommandInvokeError, CommandsError, ConditionFailedError
 from curious.commands.utils import _convert
 from curious.core.event import EventContext
 from curious.dataclasses.channel import Channel
@@ -180,20 +180,20 @@ class Context(object):
                 await self.manager.client.events.fire_event("command_error", self, e2,
                                                             ctx=evt_ctx)
 
-    async def can_run(self, cmd) -> Tuple[bool, list]:
+    async def can_run(self, cmd) -> Tuple[bool, Optional[str], Any]:
         """
         Checks if a command can be ran.
 
-        :return: If it can be ran, and a list of conditions that failed.
+        :return: If it can be ran, the error message (if any) and the condition that failed (if
+        any).
         """
         if getattr(cmd, "cmd_owner_bypass", False):
             application = self.bot.application_info
             if application is not None:
                 if self.message.author_id == application.owner.id:
-                    return True, []
+                    return True, None, None
 
         conditions = getattr(cmd, "cmd_conditions", [])
-        failed = []
         for condition in conditions:
             try:
                 success = condition(self)
@@ -201,16 +201,16 @@ class Context(object):
                     success = await success
             except CommandsError:
                 raise
-            except Exception:
-                failed.append(condition)
+            except Exception as e:
+                return False, f"Condition raised exception: {repr(e)}", condition
             else:
-                if not success:
-                    failed.append(success)
+                if isinstance(success, bool) and not success:
+                    return success, "Condition failed.", condition
+                else:
+                    if not success[0]:
+                        return success[0], success[1], condition
 
-        if failed:
-            return False, failed
-
-        return True, []
+        return True, None, None
 
     async def invoke(self, command) -> Any:
         """
@@ -262,9 +262,9 @@ class Context(object):
             matched_command = types.MethodType(matched_command, self_)
 
         # check if we can actually run it
-        can_run, conditions_failed = await self.can_run(matched_command)
+        can_run, error, condition = await self.can_run(matched_command)
         if not can_run:
-            raise ConditionsFailedError(self, conditions_failed)
+            raise ConditionFailedError(self, condition, error)
 
         # check if we're ratelimited
         await self.manager.ratelimiter.ensure_ratelimits(self, matched_command)

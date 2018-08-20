@@ -29,19 +29,17 @@ class CommandsError(CuriousError):
     pass
 
 
-class ConditionsFailedError(CommandsError):
+class ConditionFailedError(CommandsError):
     """
-    Raised when conditions fail for a command.
+    Raised when a condition has failed.
     """
-    def __init__(self, ctx, check):
+    def __init__(self, ctx, condition, message: str):
         self.ctx = ctx
-        self.conditions = check
+        self.condition = condition
+        self.message = message
 
-    def __repr__(self) -> str:
-        if isinstance(self.conditions, list):
-            return f"The conditions for `{self.ctx.command_name}` failed."
-
-        return f"The condition `{self.conditions.__name__}` for `{self.ctx.command_name}` failed." \
+    def __repr__(self):
+        return self.message
 
     __str__ = __repr__
 
