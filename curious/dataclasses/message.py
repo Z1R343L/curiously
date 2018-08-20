@@ -249,7 +249,7 @@ class Message(Dataclass):
         return obbs
 
     @property
-    def invites(self) -> 'typing.AsyncIterator[dt_invite.Invite]':
+    def invites(self) -> 'AsyncIteratorWrapper[dt_invite.Invite]':
         """
         Returns a list of :class:`.Invite` objects that are in this message (and valid).
         """

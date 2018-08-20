@@ -740,7 +740,7 @@ class Channel(Dataclass):
         return self.messages.history
 
     @property
-    def pins(self) -> '_typing.AsyncIterator[dt_message.Message]':
+    def pins(self) -> 'AsyncIteratorWrapper[dt_message.Message]':
         """
         :return: A :class:`.AsyncIteratorWrapper` that can be used to iterate over the pins.
         """
@@ -896,7 +896,7 @@ class Channel(Dataclass):
         return messages
 
     @property
-    def webhooks(self) -> 'AsyncIterator[dt_webhook.Webhook]':
+    def webhooks(self) -> 'AsyncIteratorWrapper[dt_webhook.Webhook]':
         """
         :return: A :class:`.AsyncIteratorWrapper` for the :class:`.Webhook` objects in this \
             channel.

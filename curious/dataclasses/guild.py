@@ -1127,7 +1127,7 @@ class Guild(Dataclass):
         return self.member_count >= 250
 
     @property
-    def invites(self) -> 'typing.AsyncIterator[dt_invite.Invite]':
+    def invites(self) -> 'AsyncIteratorWrapper[dt_invite.Invite]':
         """
         :return: A class:`.AsyncIteratorWrapper` that yields :class:`.Invite` objects for this
             guild.

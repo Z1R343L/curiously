@@ -27,9 +27,11 @@ import inspect
 import multio
 import textwrap
 import types
+import typing as typing
 import warnings
 from multidict import MultiDict
-from typing import Any, Awaitable, Callable, Coroutine, List, Union
+import typing
+from typing import Any, Awaitable, Callable, Coroutine, List, Union, TypeVar
 
 NO_ITEM = object()
 DISCORD_EPOCH = 1420070400000
@@ -58,7 +60,10 @@ def remove_from_multidict(d: MultiDict, key: str, item: Any):
     return d
 
 
-class AsyncIteratorWrapper(collections.AsyncIterator):
+T = TypeVar("T")
+
+
+class AsyncIteratorWrapper(collections.AsyncIterator, typing.AsyncIterator[T]):
     """
     Wraps a coroutine that returns a sequence of items into something that can iterated over
     asynchronously.
@@ -76,7 +81,7 @@ class AsyncIteratorWrapper(collections.AsyncIterator):
     
     """
 
-    def __init__(self, coro: Callable[[], Union[Awaitable[List[Any]], Coroutine[None, None, Any]]]):
+    def __init__(self, coro: Callable[[], Awaitable[List[T]]]):
         self.coro = coro
 
         self.items = collections.deque()
@@ -87,7 +92,7 @@ class AsyncIteratorWrapper(collections.AsyncIterator):
         self.items.extend(await self.coro())
         self._filled = True
 
-    async def __anext__(self) -> Any:
+    async def __anext__(self) -> T:
         if not self._filled:
             await self._fill()
 
@@ -97,7 +102,7 @@ class AsyncIteratorWrapper(collections.AsyncIterator):
             raise StopAsyncIteration
 
     # helper methods
-    async def next(self, default=NO_ITEM) -> Any:
+    async def next(self, default=NO_ITEM) -> T:
         """
         Gets the next item from this iterable.
         """
@@ -109,7 +114,7 @@ class AsyncIteratorWrapper(collections.AsyncIterator):
 
             return default
 
-    async def all(self) -> List[Any]:
+    async def all(self) -> List[T]:
         """
         Gets a flattened list of items from this iterator.
         """
