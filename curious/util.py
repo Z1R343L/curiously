@@ -27,11 +27,10 @@ import inspect
 import multio
 import textwrap
 import types
-import typing as typing
+import typing
 import warnings
 from multidict import MultiDict
-import typing
-from typing import Any, Awaitable, Callable, Coroutine, List, Union, TypeVar
+from typing import Any, Awaitable, Callable, List, TypeVar
 
 NO_ITEM = object()
 DISCORD_EPOCH = 1420070400000
