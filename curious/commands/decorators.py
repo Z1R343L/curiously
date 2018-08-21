@@ -99,7 +99,7 @@ def condition(cbl, *, bypass_owner=True):
             func.cmd_conditions = []
 
         func.cmd_conditions.append(cbl)
-        func.cmd_owner_bypass = bypass_owner
+        cbl.cmd_owner_bypass = bypass_owner
 
         return func
 

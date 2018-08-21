@@ -43,7 +43,7 @@ class AppInfo(Dataclass):
 
         #: The owner of this application.
         #: This can be None if the application fetched isn't the bot's.
-        self.owner = owner
+        self.owner: dt_user.User = owner
 
         #: The name of this application.
         self.name = self._application.get("name", None)  # type: str

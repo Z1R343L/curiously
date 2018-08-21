@@ -21,7 +21,7 @@ Class for the commands context.
 import inspect
 import types
 import typing_inspect
-from typing import Any, Callable, List, Tuple, Type, Union, Optional
+from typing import Any, Callable, List, Optional, Tuple, Type, Union
 
 from curious.commands.converters import convert_channel, convert_float, convert_int, convert_list, \
     convert_member, convert_role, convert_union
@@ -187,14 +187,14 @@ class Context(object):
         :return: If it can be ran, the error message (if any) and the condition that failed (if
         any).
         """
-        if getattr(cmd, "cmd_owner_bypass", False):
-            application = self.bot.application_info
-            if application is not None:
-                if self.message.author_id == application.owner.id:
-                    return True, None, None
-
         conditions = getattr(cmd, "cmd_conditions", [])
         for condition in conditions:
+            if getattr(condition, "cmd_owner_bypass", False) is True:
+                ainfo = self.bot.application_info
+                if ainfo is not None:
+                    if ainfo.owner.id == self.message.author_id:
+                        continue
+
             try:
                 success = condition(self)
                 if inspect.isawaitable(success):
