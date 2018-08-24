@@ -62,7 +62,7 @@ def remove_from_multidict(d: MultiDict, key: str, item: Any):
 T = TypeVar("T")
 
 
-class AsyncIteratorWrapper(collections.AsyncIterator, typing.AsyncIterator[T]):
+class AsyncIteratorWrapper(typing.Generic[T], collections.AsyncIterator):
     """
     Wraps a coroutine that returns a sequence of items into something that can iterated over
     asynchronously.
