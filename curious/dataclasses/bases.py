@@ -18,9 +18,10 @@ Base classes that all dataclasses inherit from.
 
 .. currentmodule:: curious.dataclasses.bases
 """
+import sys
+
 import datetime
 import inspect
-import sys
 import threading
 from contextlib import contextmanager
 
@@ -100,7 +101,7 @@ class Dataclass(IDObject):
         """
         Inspects the stack to ensure we're being called correctly.
         """
-        if _allowing_external_makes.flag is False:
+        if __debug__ and _allowing_external_makes.flag is False:
             try:
                 frameinfo = inspect.stack()[1]
                 frame = frameinfo.frame
