@@ -212,6 +212,12 @@ class Context(object):
 
         return True, None, None
 
+    async def _run_command(self, cbl, *args, **kwargs):
+        """
+        Overridable method that allows doing something before running a command.
+        """
+        return await cbl(self, *args, **kwargs)
+
     async def invoke(self, command) -> Any:
         """
         Invokes a command.
@@ -274,7 +280,7 @@ class Context(object):
 
         # finally, spawn the new command task
         try:
-            return await matched_command(self, *converted_args, **converted_kwargs)
+            return await self._run_command(matched_command, *converted_args, **converted_kwargs)
         except CommandsError:
             raise
         except Exception as e:
