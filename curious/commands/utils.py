@@ -287,17 +287,17 @@ def prefix_check_factory(prefix: Union[str, Iterable[str], Callable[[Client, Mes
     This provides a callable that will fire a command if the message begins with the specified
     prefix or list of prefixes.
 
-    If ``command_prefix`` is provided to the :class:`.Client`, then it will automatically call this
-    function to get a message check function to use.
+    If ``command_prefix`` is provided to the :class:`.CommandsManager`, then it will automatically
+    call this function to get a message check function to use.
 
     .. code-block:: python3
 
         # verbose form
         message_check = prefix_check_factory(["!", "?"])
-        cl = Client(message_check=message_check)
+        cl = CommandsManager(message_check=message_check)
 
         # implicit form
-        cl = Client(command_prefix=["!", "?"])
+        cl = CommandsManager(command_prefix=["!", "?"])
 
     The :attr:`prefix` is set on the returned function that can be used to retrieve the prefixes
     defined to create  the function at any time.

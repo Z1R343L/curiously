@@ -26,8 +26,8 @@ import inspect
 import logging
 import multio
 import traceback
-import typing
 from functools import partial
+from typing import Callable, Iterable, Type, Union
 
 from curious.commands.context import Context
 from curious.commands.exc import CommandsError
@@ -68,9 +68,6 @@ class CommandsManager(object):
         # at creation time
         manager = CommandsManager(bot, command_prefix="!")
 
-        # or set it on the manager
-        manager.command_prefix = "!"
-
     At this point, the command prefix will be available on the manager with either
     :attr:`.Manager.command_prefix` or :attr:`.Manager.message_check.prefix`.
 
@@ -108,8 +105,10 @@ class CommandsManager(object):
     """
 
     def __init__(self, client: 'md_client.Client', *,
-                 message_check=None, command_prefix: str = None,
-                 context_klass: typing.Type[Context] = Context):
+                 message_check=None,
+                 command_prefix: Union[str, Iterable[str],
+                                       Callable[[md_client.Client, Message], str]] = None,
+                 context_klass: Type[Context] = Context):
         """
         :param client: The :class:`.Client` to use with this manager.
         :param message_check: The message check function for this manager.
@@ -118,6 +117,8 @@ class CommandsManager(object):
             or a 2-item tuple:
               - The command word matched
               - The tokens after the command word
+
+        :param command_prefix: The command prefix, if no message check is provided.
         """
         if message_check is None and command_prefix is None:
             raise ValueError("Must provide one of message_check or command_prefix")

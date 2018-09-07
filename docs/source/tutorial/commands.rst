@@ -31,14 +31,10 @@ provides an easy way to use a simple command prefix:
 
 .. code-block:: python3
 
-    # at creation time
     manager = CommandsManager(bot, command_prefix="!")
 
-    # or set it on the manager
-    manager.command_prefix = "!"
-
-At this point, the command prefix will be available on the manager with either
-:attr:`.Manager.command_prefix` or :attr:`.Manager.message_check.prefix`.
+At this point, the command prefix will be available on the manager with
+:attr:`.Manager.message_check.prefix`.
 
 If you need more complex message checking, you can use ``message_check``:
 
@@ -164,6 +160,12 @@ type annotations on the arguments. Some built-in converters are provided:
  - ``arg: float`` - converts the argument into a float.
  - ``arg: Channel`` - converts the argument into a :class:`.Channel`.
  - ``arg: Member`` - converts the argument into a :class:`.Member`.
+ - ``arg: Role`` - converts the argument into a :class:`.Role`.
+
+Some more advanced converters are supported too:
+
+ - ``arg: List[T]`` - converts the argument into a list of T.
+ - ``arg: Union[T1, T2]`` - converts the argument into either T1 or T2.
 
 Additional converters can be added by calling :meth:`.Context.add_converter`; the converter must
 be a simple callable that takes a pair of arguments ``(ctx, arg)`` and returns the appropriate type.
