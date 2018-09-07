@@ -292,20 +292,7 @@ class Context(object):
 
         This will scan all the commands, then invoke as appropriate.
         """
-        # temp variable used to invoke if applicable
-        to_invoke = None
-
-        for command in self.manager.commands.values():
-            if self.match_command(command):
-                to_invoke = command
-                break
-
-        for plugin in self.manager.plugins.values():
-            commands = plugin._get_commands()
-            for command in commands:
-                if self.match_command(command):
-                    to_invoke = command
-                    break
+        to_invoke = self.manager.lookup_command(self.command_name)
 
         ev_ctx = self._make_reraise_ctx("command_error")
         if to_invoke is not None:
