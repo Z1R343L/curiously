@@ -169,7 +169,7 @@ class CommandsManager(object):
         from curious.commands.decorators import command
         self.commands["help"] = command(name="help")(help_command)
 
-    async def load_plugin(self, klass: typing.Type[Plugin], *args,
+    async def load_plugin(self, klass: Type[Plugin], *args,
                           module: str = None):
         """
         Loads a plugin.
@@ -204,7 +204,7 @@ class CommandsManager(object):
 
         return instance
 
-    async def unload_plugin(self, klass: typing.Union[Plugin, str]):
+    async def unload_plugin(self, klass: Union[Plugin, str]):
         """
         Unloads a plugin.
 
