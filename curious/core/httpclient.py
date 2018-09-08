@@ -1179,6 +1179,7 @@ class HTTPClient(object):
         :param user_limit: The maximum number of users that can be in the channel.
         :param parent_id: The ID of the parent.
         :param permission_overwrites: The list of permission overwrites to use for this channel.
+        :param rate_limit_per_user: The rate limit per user for this channel.
         """
         url = Endpoints.GUILD_CHANNELS.format(guild_id=guild_id)
         payload = {
@@ -1205,7 +1206,8 @@ class HTTPClient(object):
     async def edit_channel(self, channel_id: int, *,
                            name: str = None, position: int = None,
                            topic: str = None,
-                           bitrate: int = None, user_limit: int = -1):
+                           bitrate: int = None, user_limit: int = -1,
+                           rate_limit_per_user: int = None):
         """
         Edits a channel.
 
@@ -1215,6 +1217,7 @@ class HTTPClient(object):
         :param topic: The new topic of the channel.
         :param bitrate: The new bitrate of the channel.
         :param user_limit: The user limit of the channel.
+        :param rate_limit_per_user: The rate limit per user.
         """
         url = Endpoints.CHANNEL_BASE.format(channel_id=channel_id)
         payload = {}
@@ -1233,6 +1236,9 @@ class HTTPClient(object):
 
         if user_limit != -1:
             payload["user_limit"] = user_limit
+
+        if rate_limit_per_user is not None:
+            payload["rate_limit_per_user"] = rate_limit_per_user
 
         data = await self.patch(url, bucket="channels:{}".format(channel_id), json=payload)
         return data

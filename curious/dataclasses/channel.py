@@ -30,7 +30,6 @@ import typing as _typing
 from async_generator import asynccontextmanager
 from os import PathLike
 from types import MappingProxyType
-from typing import AsyncIterator
 
 from curious.dataclasses import guild as dt_guild, invite as dt_invite, member as dt_member, \
     message as dt_message, permissions as dt_permissions, role as dt_role, user as dt_user, \
@@ -562,6 +561,9 @@ class Channel(Dataclass):
 
         #: If this channel is NSFW.
         self.nsfw = kwargs.get("nsfw", False)  # type: bool
+
+        #: The rate limit per user (each user can send 1 message every N seconds where N = this num)
+        self.rate_limit_per_user = kwargs.get("rate_limit_per_user", 0)
 
         #: If private, the mapping of :class:`.User` that are in this channel.
         self._recipients = {}  # type: _typing.Dict[int, dt_user.User]
