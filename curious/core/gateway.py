@@ -223,7 +223,7 @@ class GatewayHandler(object):
             # whereas other close codes won't.
             # The timeout mihgt be too high to RESUME, however.
             return await self.close(code=1006, reason="Zombied connection", reconnect=True,
-                                    clear_session_id=False)
+                                    clear_session_id=False, forceful=True)
 
         self.logger.debug("Heartbeating with sequence {}".format(self.gw_state.sequence))
         payload = {
