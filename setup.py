@@ -17,7 +17,7 @@ install_requires = [
 
 py36_requires = [
     "dataclasses>=0.3",  # PEP 557
-    # pending 567 backport
+    "contextvars>=2.1"
 ]
 
 if sys.version_info[0:2] <= (3, 6):

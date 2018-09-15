@@ -18,12 +18,12 @@ Special helpers for events.
 
 .. currentmodule: curious.core.events
 """
+import contextvars
 import functools
 import inspect
 import logging
-import typing
-
 import multio
+import typing
 from async_generator import asynccontextmanager
 from multidict import MultiDict
 
@@ -32,6 +32,16 @@ from curious.core.gateway import GatewayHandler
 from curious.util import remove_from_multidict, safe_generator
 
 logger = logging.getLogger("curious.events")
+
+#: The current :class:`.EventContext`.
+event_context = contextvars.ContextVar("event_context")
+
+
+def current_event_context() -> 'EventContext':
+    """
+    :return: The current :class:`.EventContext` that is being processed.
+    """
+    return event_context.get()
 
 
 class ListenerExit(Exception):
@@ -269,6 +279,8 @@ class EventManager(object):
 
         # clobber event name
         ctx.event_name = event_name
+        # update current event context
+        event_context.set(ctx)
 
         # always ensure hooks are ran first
         for hook in self.event_hooks:
