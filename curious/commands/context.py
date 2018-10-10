@@ -204,13 +204,13 @@ class Context(object):
             except Exception as e:
                 return False, f"Condition raised exception: {repr(e)}", condition
             else:
-                if isinstance(success, bool) and not success:
-                    return success, "Condition failed.", condition
-                else:
-                    if not success[0]:
-                        return success[0], success[1], condition
+                if isinstance(success, bool):
+                    success = (success, "Condition failed.")
 
-        return True, None, None
+                if not success[0]:
+                    return success[0], success[1], condition
+
+        return True, "", None
 
     async def _run_command(self, cbl, *args, **kwargs):
         """
