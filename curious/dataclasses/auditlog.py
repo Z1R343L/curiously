@@ -20,6 +20,7 @@ Classes for the audit log.
 import enum
 from typing import Any, List, Optional, Union
 
+from curious.core import get_current_client
 from curious.dataclasses import channel as md_channel, guild as md_guild, member as md_member, \
     permissions as dt_permissions, role as md_role
 from curious.dataclasses.bases import Dataclass
@@ -110,7 +111,7 @@ class AuditLogExtra:
         """
         :return: The :class:`.Channel` if this extras has a channel_id.
         """
-        return self._entry._bot.state.find_channel(self.channel_id)
+        return get_current_client().state.find_channel(self.channel_id)
 
     @property
     def member(self) -> 'Optional[md_member.Member]':
@@ -251,7 +252,7 @@ class AuditLogEntry(Dataclass):
     """
 
     def __init__(self, view: 'AuditLogView', **kwargs):
-        super().__init__(kwargs['id'], view._guild._bot)
+        super().__init__(kwargs['id'])
         self._view = view
         self._guild = view._guild
 
@@ -271,7 +272,7 @@ class AuditLogEntry(Dataclass):
         self.event = AuditLogEvent(kwargs.get("action_type"))
 
         #: The "extra" options for this entry.
-        self.extra_options = AuditLogExtra(view._guild._bot, **kwargs.get("options", {}))
+        self.extra_options = AuditLogExtra(**kwargs.get("options", {}))
 
         #: The changes for this entry.
         self.changes: List[AuditLogChange] = \
@@ -311,7 +312,7 @@ class AuditLogView(object):
             = [AuditLogEntry(self, **x) for x in kwargs.get("audit_log_entries")]
 
         #: The list of users for this view.
-        self._users = [User(guild._bot, **data) for data in kwargs.get("users")]
+        self._users = [User(**data) for data in kwargs.get("users")]
 
     def __repr__(self):
         return f"<AuditLogView entries={self.entries!r}>"
@@ -325,7 +326,7 @@ class AuditLogView(object):
         try:
             return self._guild.members[id]
         except KeyError:
-            member = self._guild._bot.state._users.get(id)
+            member = get_current_client().state._users.get(id)
             if member is None:
                 return next(filter(lambda user: user.id == id, self._users))
             else:

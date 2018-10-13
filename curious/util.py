@@ -18,13 +18,13 @@ Misc utilities shared throughout the library.
 
 .. currentmodule:: curious.util
 """
+import anyio
 import base64
 import collections
 import datetime
 import functools
 import imghdr
 import inspect
-import multio
 import textwrap
 import types
 import typing
@@ -34,6 +34,20 @@ from typing import Any, Awaitable, Callable, List, TypeVar
 
 NO_ITEM = object()
 DISCORD_EPOCH = 1420070400000
+
+
+class Promise(object):
+    def __init__(self):
+        self._event = anyio.create_event()
+        self._result = None
+
+    async def set(self, value: Any):
+        self._result = value
+        await self._event.set()
+
+    async def wait(self) -> Any:
+        await self._event.wait()
+        return self._result
 
 
 def to_snowflake(dt: datetime.datetime) -> int:
@@ -238,9 +252,8 @@ async def coerce_agen(gen):
     Coerces an async generator into a list.
     """
     results = []
-    async with multio.asynclib.finalize_agen(gen) as agen:
-        async for i in agen:
-            results.append(i)
+    async for i in gen:
+        results.append(i)
 
     return results
 

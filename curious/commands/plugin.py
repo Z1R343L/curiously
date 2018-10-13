@@ -18,11 +18,10 @@ Classes for plugin objects.
 
 .. currentmodule:: curious.commands.plugin
 """
-import inspect
-import logging
 from collections import OrderedDict
 
-import multio
+import inspect
+import logging
 
 from curious.core import client as md_client
 
@@ -55,6 +54,9 @@ class Plugin(metaclass=PluginMeta):
         """
         Spawns a task using this plugin's task group.
         """
+        # stubbed out, need to redo
+        return
+
         if self.task_group is None:
             # spawn a new task group function
             async def task_group_magic():

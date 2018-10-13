@@ -32,13 +32,14 @@ if the data for each  is not cached by curious. Otherwise, full :class:`.Guild` 
 import typing
 
 from curious import util
+from curious.core import get_current_client
 from curious.dataclasses import channel as dt_channel, guild as dt_guild, member as dt_member, \
     user as dt_user
-from curious.dataclasses.bases import IDObject
+from curious.dataclasses.bases import Snowflaked
 from curious.exc import PermissionsError
 
 
-class InviteGuild(IDObject):
+class InviteGuild(Snowflaked):
     """
     Represents an InviteGuild - a subset of a guild.
     """
@@ -93,7 +94,7 @@ class InviteGuild(IDObject):
                                                                            self.splash_hash)
 
 
-class InviteChannel(IDObject):
+class InviteChannel(Snowflaked):
     """
     Represents an InviteChannel - a subset of a channel.
     """
@@ -143,9 +144,7 @@ class Invite(object):
     Represents an invite object.
     """
 
-    def __init__(self, client, **kwargs):
-        self._bot = client
-
+    def __init__(self, **kwargs):
         #: The invite code.
         self.code = kwargs.get("code")  # type: str
 
@@ -185,19 +184,25 @@ class Invite(object):
 
     def __del__(self) -> None:
         if self.inviter:
-            self._bot.state._check_decache_user(self.inviter_id)
+            try:
+                client = get_current_client()
+            except LookupError:  # GC winddown
+                return
+            client.state._check_decache_user(self.inviter_id)
 
     @property
     def inviter(self) -> 'typing.Union[dt_member.Member, dt_user.User]':
         """
         :return: The :class:`.Member` or :class:`.User` that made this invite.
         """
+        client = get_current_client()
+
         if isinstance(self._invite_guild, InviteGuild):
-            return self._bot.state.make_user(self._inviter_data)
+            return client.state.make_user(self._inviter_data)
 
         u = self._invite_guild.members.get(self.inviter_id)
         if not u:
-            return self._bot.state.make_user(self._inviter_data)
+            return client.state.make_user(self._inviter_data)
 
         return u
 
@@ -206,7 +211,7 @@ class Invite(object):
         """
         :return: The guild this invite is associated with.
         """
-        return self._bot.state.guilds.get(self.guild_id, self._invite_guild)
+        return get_current_client().state.guilds.get(self.guild_id, self._invite_guild)
 
     @property
     def channel(self) -> 'typing.Union[dt_channel.Channel, InviteChannel]':
@@ -230,4 +235,4 @@ class Invite(object):
             if not guild.me.guild_permissions.manage_channels:
                 raise PermissionsError("manage_channels")
 
-        await self._bot.http.delete_invite(self.code)
+        await get_current_client().http.delete_invite(self.code)

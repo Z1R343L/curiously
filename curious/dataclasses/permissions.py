@@ -22,6 +22,7 @@ This class uses some automatic generation to create the objects.
 """
 import typing
 
+from curious.core import get_current_client
 from curious.dataclasses import channel as dt_channel, member as dt_member, role as dt_role
 from curious.exc import PermissionsError
 
@@ -254,7 +255,7 @@ class Overwrite(object):
         """
         :return: The :class:`.Channel` this overwrite represents.
         """
-        return self.target._bot.state.find_channel(self.channel_id)
+        return get_current_client().state.find_channel(self.channel_id)
 
     def __repr__(self) -> str:
         return "<Overwrites for object={} channel={} allow={} deny={}>".format(self.target,

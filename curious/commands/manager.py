@@ -21,10 +21,10 @@ Contains the class for the commands manager for a client.
 import sys
 from collections import defaultdict
 
+import anyio
 import importlib
 import inspect
 import logging
-import multio
 import traceback
 from functools import partial
 from typing import Callable, Iterable, Type, Union
@@ -222,7 +222,7 @@ class CommandsManager(object):
         if p is not None:
             # cancel the task group used for this plugin, if it's running
             if p.task_group is not None:
-                await multio.asynclib.cancel_task_group(p.task_group)
+                await p.task_group.cancel_scope.cancel()
 
             await p.unload()
             self._plugin_command_cache.pop(getattr(p, "plugin_name", type(p).__name__))
@@ -335,7 +335,7 @@ class CommandsManager(object):
         for plugin in self._module_plugins[module]:
             await plugin.unload()
             if plugin.task_group is not None:
-                multio.asynclib.cancel_task_group(plugin.task_group)
+                plugin.task_group.cancel_scope.cancel()
 
             name = getattr(plugin, "plugin_name", type(plugin).__name__)
             self.plugins.pop(name)
@@ -347,7 +347,8 @@ class CommandsManager(object):
         """
         The event hook for the commands manager.
         """
-        async with multio.asynclib.task_manager() as tg:
+        async with anyio.create_task_group() as tg:
+            tg: anyio.TaskGroup
             for plugin in self.plugins.values():
                 body = inspect.getmembers(plugin, predicate=lambda v: hasattr(v, "is_event"))
                 for _, handler in body:
@@ -357,7 +358,7 @@ class CommandsManager(object):
                     cofunc = partial(self.client.events._safety_wrapper,
                                      handler, ctx, *args, **kwargs)
 
-                    await multio.asynclib.spawn(tg, cofunc)
+                    await tg.spawn(cofunc)
 
     async def handle_commands(self, ctx: EventContext, message: Message):
         """

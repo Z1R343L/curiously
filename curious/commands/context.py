@@ -27,6 +27,7 @@ from curious.commands.converters import convert_channel, convert_float, convert_
     convert_member, convert_role, convert_union
 from curious.commands.exc import CommandInvokeError, CommandsError, ConditionFailedError
 from curious.commands.utils import _convert
+from curious.core import get_current_client
 from curious.core.event import EventContext
 from curious.dataclasses.channel import Channel
 from curious.dataclasses.guild import Guild
@@ -77,9 +78,6 @@ class Context(object):
 
         #: The event context for this context.
         self.event_context = event_context  # type: EventContext
-
-        #: The :class:`.Client` for this context.
-        self.bot = event_context.bot
 
     @classmethod
     def add_converter(cls, type_: Type[Any], converter):
@@ -161,7 +159,7 @@ class Context(object):
         """
         Makes a new :class:`.EventContext` for re-dispatching.
         """
-        return EventContext(self.bot, self.event_context.shard_id, new_name)
+        return EventContext(self.event_context.shard_id, new_name)
 
     async def _safety_wrapper(self, coro) -> None:
         """
@@ -190,7 +188,7 @@ class Context(object):
         conditions = getattr(cmd, "cmd_conditions", [])
         for condition in conditions:
             if getattr(condition, "cmd_owner_bypass", False) is True:
-                ainfo = self.bot.application_info
+                ainfo = get_current_client().application_info
                 if ainfo is not None:
                     if ainfo.owner.id == self.message.author_id:
                         continue

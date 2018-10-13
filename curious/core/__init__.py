@@ -30,4 +30,15 @@ delegating it to client code.
     httpclient
     state
 """
+import contextvars
 
+
+_current_client = contextvars.ContextVar("current_client")
+
+
+def get_current_client():
+    """
+    Gets the currently running client. Mostly for internal usage.
+    """
+
+    return _current_client.get()

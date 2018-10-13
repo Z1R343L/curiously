@@ -23,6 +23,7 @@ import functools
 import typing
 from typing import Iterator
 
+from curious.core import get_current_client
 from curious.dataclasses import channel as dt_channel, guild as dt_guild, member as dt_member, \
     message as dt_message, user as dt_user
 
@@ -243,16 +244,9 @@ class SearchQuery(object):
         :return: The built URL to execute this search query on. 
         """
         if self.guild is not None:
-            return functools.partial(self._bot.http.search_guild, self.guild.id)
+            return functools.partial(get_current_client().http.search_guild, self.guild.id)
 
-        return functools.partial(self._bot.http.search_channel, self.channel.id)
-
-    @property
-    def _bot(self):
-        if self._guild is not None:
-            return self._guild._bot
-
-        return self._channel._bot
+        return functools.partial(get_current_client().http.search_channel, self.channel.id)
 
     # public properties
     @property
@@ -340,7 +334,7 @@ class SearchQuery(object):
 
         # parse all of the message objects
         for group in res.get("messages", []):
-            message_blocks.append([self._bot.state.make_message(m) for m in group])
+            message_blocks.append([get_current_client().state.make_message(m) for m in group])
 
         return message_blocks
 

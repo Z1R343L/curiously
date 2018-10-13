@@ -25,8 +25,6 @@ import inspect
 import threading
 from contextlib import contextmanager
 
-from curious.core import client
-
 DISCORD_EPOCH = 1420070400000
 
 _allowing_external_makes = threading.local()
@@ -45,7 +43,7 @@ def allow_external_makes() -> None:
         _allowing_external_makes.flag = False
 
 
-class IDObject(object):
+class Snowflaked(object):
     """
     This object is comparable using the snowflake as an ID.
 
@@ -86,15 +84,13 @@ class IDObject(object):
         return hash(self.id)
 
 
-class Dataclass(IDObject):
+class Dataclass(Snowflaked):
     """
     The base class for all dataclasses.
-
-    These contain a reference to the current bot as `_bot`.
     """
 
     # __weakref__ is used to allow weakreffing
-    __slots__ = "_bot", "__weakref__"
+    __slots__ = "__weakref__"
 
     @staticmethod
     def __new__(cls, *args, **kwargs):
@@ -131,7 +127,5 @@ class Dataclass(IDObject):
 
         return object.__new__(cls)
 
-    def __init__(self, id: int, cl: 'client.Client'):
+    def __init__(self, id: int):
         super().__init__(id)
-
-        self._bot = cl

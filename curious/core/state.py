@@ -22,7 +22,6 @@ Defines :class:`.State`.
 import collections
 import copy
 import logging
-import multio
 import typing
 from types import MappingProxyType
 from typing import Dict
@@ -64,13 +63,10 @@ class State(object):
     The other main purpose for this class is to parse events from the Discord websocket.
     """
 
-    def __init__(self, client, max_messages: int = 500):
+    def __init__(self, max_messages: int = 500):
         #: The current user of this bot.
         #: This is automatically set after login.
         self._user = None  # type: BotUser
-
-        #: The client associated with this connection.
-        self.client = client
 
         #: The private channel cache.
         self._private_channels = {}
@@ -86,9 +82,6 @@ class State(object):
         self.messages = collections.deque(maxlen=max_messages)
 
         self.__shards_is_ready = collections.defaultdict(lambda: False)
-        self.__voice_state_crap = collections.defaultdict(
-            lambda *args, **kwargs: ((multio.Event(), multio.Event()), {})
-        )
 
     def is_ready(self, shard_id: int) -> bool:
         """
@@ -271,7 +264,7 @@ class State(object):
         # ensure the webhook user is decached
         self._check_decache_user(user.id)
         user.bot = True
-        webhook = Webhook(client=self.client, webhook_id=webhook_id, **event_data)
+        webhook = Webhook(webhook_id=webhook_id, **event_data)
         webhook.guild_id = channel.guild_id
         webhook.channel_id = channel.id
         webhook.user = user
@@ -295,7 +288,7 @@ class State(object):
         :param channel_data: The channel data to cache.
         :return: A new :class:`.Channel`.
         """
-        channel = Channel(self.client, **channel_data)
+        channel = Channel(**channel_data)
         self._private_channels[channel.id] = channel
 
         return channel
@@ -315,7 +308,7 @@ class State(object):
         if id in self._users and not override_cache:
             return self._users[id]
 
-        user = user_klass(self.client, **user_data)
+        user = user_klass(**user_data)
         self._users[user.id] = user
 
         return user
@@ -328,7 +321,7 @@ class State(object):
         :param cache: Should this message be cached?
         :return: A new :class:`.Message` object for the message.
         """
-        message = Message(self.client, **event_data)
+        message = Message(**event_data)
 
         if message in self.messages and cache is True:
             # don't bother re-caching
@@ -391,7 +384,7 @@ class State(object):
         Called when READY is dispatched.
         """
         # Create our bot user.
-        self._user = BotUser(self.client, **event_data.get("user"))
+        self._user = BotUser(**event_data.get("user"))
         # cache ourselves
         self._users[self._user.id] = self._user
 
@@ -402,7 +395,7 @@ class State(object):
 
         # Create all of the guilds.
         for guild in event_data.get("guilds", []):
-            new_guild = Guild(self.client, **guild)
+            new_guild = Guild(**guild)
             self._guilds[new_guild.id] = new_guild
             new_guild.from_guild_create(**guild)
             new_guild.shard_id = gw.gw_state.shard_id
@@ -460,7 +453,7 @@ class State(object):
         if member is None:
             # create the member from the presence
             # we only pass the User here as we're about to update everything
-            member = Member(client=self.client, user=event_data["user"])
+            member = Member(user=event_data["user"])
             member.guild_id = guild.id
             old_member = None
         else:
@@ -539,7 +532,7 @@ class State(object):
             guild.from_guild_create(**event_data)
         else:
             had_guild = False
-            guild = Guild(self.client, **event_data)
+            guild = Guild(**event_data)
             self._guilds[guild.id] = guild
             guild.from_guild_create(**event_data)
 
@@ -868,7 +861,7 @@ class State(object):
         if not guild:
             return
 
-        member = Member(self.client, **event_data)
+        member = Member(**event_data)
         member.guild_id = guild.id
 
         guild._members[member.id] = member
@@ -972,7 +965,7 @@ class State(object):
         guild_id = int(event_data.get("guild_id", 0))
         guild = self._guilds.get(guild_id)
 
-        channel = Channel(self.client, **event_data)
+        channel = Channel(**event_data)
         if channel.private:
             self._private_channels[channel.id] = channel
         else:
@@ -1044,7 +1037,7 @@ class State(object):
             return
 
         if role_id not in guild._roles:
-            role = Role(self.client, **role_data)
+            role = Role(**role_data)
             role.guild_id = guild.id
             guild._roles[role_id] = role
         else:
@@ -1160,7 +1153,7 @@ class State(object):
             # disconnect!
             new_voice_state = None
         else:
-            new_voice_state = VoiceState(**event_data, client=self.client)
+            new_voice_state = VoiceState(**event_data)
             new_voice_state.guild_id = guild.id
 
         # copy the voice states

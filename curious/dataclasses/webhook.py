@@ -21,6 +21,7 @@ Wrappers for Webhook objects.
 
 import typing
 
+from curious.core import get_current_client
 from curious.dataclasses import channel as dt_channel, embed as dt_embed, guild as dt_guild, \
     user as dt_user
 from curious.dataclasses.bases import Dataclass
@@ -44,10 +45,10 @@ class Webhook(Dataclass):
     __slots__ = "user", "guild_id", "channel_id", "token", "owner", \
                 "default_name", "_default_avatar"
 
-    def __init__(self, client, **kwargs) -> None:
+    def __init__(self, **kwargs) -> None:
         # Use the webhook ID is provided (i.e created from a message object).
         # If that doesn't exist, we use the ID of the data instead (it's probably right!).
-        super().__init__(kwargs.get("webhook_id", kwargs.get("id")), cl=client)
+        super().__init__(kwargs.get("webhook_id", kwargs.get("id")))
 
         #: The user object associated with this webhook.
         self.user = None  # type: dt_user.User
@@ -107,7 +108,7 @@ class Webhook(Dataclass):
         """
         :return: The :class:`.Guild` this webhook is in.
         """
-        return self._bot.guilds.get(self.guild_id)
+        return get_current_client().guilds.get(self.guild_id)
 
     @property
     def channel(self) -> 'dt_channel.Channel':
@@ -141,7 +142,7 @@ class Webhook(Dataclass):
         if self.token:
             return self.token
 
-        us = await self._bot.http.get_webhook(self.id)
+        us = await get_current_client().http.get_webhook(self.id)
         self.token = us.get("token")
         return self.token
 
@@ -153,7 +154,7 @@ class Webhook(Dataclass):
         to delete it.
         """
         if self.token is not None:
-            return await self._bot.http.delete_webhook_with_token(self.id, self.token)
+            return await get_current_client().http.delete_webhook_with_token(self.id, self.token)
         else:
             return await self.guild.delete_webhook(self)
 
@@ -171,7 +172,8 @@ class Webhook(Dataclass):
 
         if self.token is not None:
             # edit with token, don't pass to guild
-            data = await self._bot.http.edit_webhook_with_token(self.id, name=name, avatar=avatar)
+            data = await get_current_client().http.edit_webhook_with_token(self.id, name=name,
+                                                                           avatar=avatar)
             self.default_name = data.get("name")
             self._default_avatar = data.get("avatar")
 
@@ -185,7 +187,7 @@ class Webhook(Dataclass):
 
     async def execute(self, *,
                       content: str = None, username: str = None, avatar_url: str = None,
-                      embeds: 'typing.List[dt_embed.Embed]'=None, wait: bool = False) \
+                      embeds: 'typing.List[dt_embed.Embed]' = None, wait: bool = False) \
             -> typing.Union[None, str]:
         """
         Executes the webhook.
@@ -202,10 +204,11 @@ class Webhook(Dataclass):
         if self.token is None:
             await self.get_token()
 
-        data = await self._bot.http.execute_webhook(self.id, self.token,
-                                                    content=content, embeds=embeds,
-                                                    username=username, avatar_url=avatar_url,
-                                                    wait=wait)
+        client = get_current_client()
+        data = await client.http.execute_webhook(self.id, self.token,
+                                                 content=content, embeds=embeds,
+                                                 username=username, avatar_url=avatar_url,
+                                                 wait=wait)
 
         if wait:
-            return self._bot.state.make_message(data, cache=False)
+            return client.state.make_message(data, cache=False)

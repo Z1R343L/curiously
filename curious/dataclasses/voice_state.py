@@ -18,7 +18,7 @@ Wrappers for voice state objects.
 
 .. currentmodule:: curious.dataclasses.voice_state
 """
-
+from curious.core import get_current_client
 from curious.dataclasses import channel as dt_channel, guild as dt_guild, member as dt_member
 
 
@@ -27,11 +27,9 @@ class VoiceState(object):
     Represents the voice state of a user.
     """
     __slots__ = ("user_id", "guild_id", "channel_id", "_self_mute",
-                 "_server_mute", "_self_deaf", "_server_deaf", "_bot")
+                 "_server_mute", "_self_deaf", "_server_deaf")
 
     def __init__(self, **kwargs) -> None:
-        self._bot = kwargs.get("client")
-
         #: The ID of the user for this VoiceState.
         self.user_id = int(kwargs.get("user_id", 0)) or None
 
@@ -52,7 +50,7 @@ class VoiceState(object):
         """
         :return: The :class:`.Guild` associated, or None if the guild is uncached.
         """
-        return self._bot.guilds.get(self.guild_id)
+        return get_current_client().guilds.get(self.guild_id)
 
     @property
     def channel(self) -> 'dt_channel.Channel':

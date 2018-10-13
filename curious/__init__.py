@@ -45,13 +45,12 @@ USER_AGENT = _fmt.format(__version__, sys.version_info)
 del _fmt
 
 
-from curious.core.client import BotType, Client
 from curious.core.event import EventContext, event, current_event_context
 from curious.core.gateway import open_websocket, GatewayHandler
 from curious.core.state import State
 from curious.dataclasses.appinfo import AppInfo
 from curious.dataclasses.attachment import Attachment
-from curious.dataclasses.bases import Dataclass, IDObject
+from curious.dataclasses.bases import Dataclass, Snowflaked
 from curious.dataclasses.channel import Channel, ChannelType
 from curious.dataclasses.embed import Embed
 from curious.dataclasses.emoji import Emoji
@@ -69,6 +68,8 @@ from curious.dataclasses.user import User, AvatarUrl
 from curious.dataclasses.voice_state import VoiceState
 from curious.dataclasses.webhook import Webhook
 from curious.dataclasses.widget import Widget, WidgetChannel, WidgetGuild, WidgetMember
+
+from curious.core.client import Client
 
 from curious.exc import ErrorCode, CuriousError, Forbidden, NotFound, Unauthorized, \
     HierarchyError, PermissionsError, HTTPException

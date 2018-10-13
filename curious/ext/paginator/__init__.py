@@ -16,7 +16,7 @@
 """
 A reactions-based paginator.
 """
-import multio
+import anyio
 import typing
 
 from curious.core.event import ListenerExit
@@ -67,7 +67,7 @@ class ReactionsPaginator(object):
         #: The message object that is being edited.
         self._message = None  # type: Message
         self._running = False
-        self._reaction_queue = multio.Queue(1)
+        self._reaction_queue = anyio.create_queue(1)
 
     @classmethod
     async def paginate_response(cls, content: str,
@@ -133,11 +133,11 @@ class ReactionsPaginator(object):
 
             try:
                 if self._running:
-                    async with multio.asynclib.timeout_after(120):
+                    async with anyio.fail_after(120):
                         await self._reaction_queue.put(reaction)
                 else:
                     raise ListenerExit
-            except multio.asynclib.TaskTimeout:
+            except TimeoutError:
                 raise ListenerExit from None
 
         # spawn the consumer task first
@@ -149,7 +149,7 @@ class ReactionsPaginator(object):
 
         try:
             while True:
-                async with multio.asynclib.timeout_after(120):
+                async with anyio.fail_after(120):
                     reaction = await self._reaction_queue.get()
 
                 if reaction.emoji == self.BUTTON_FORWARD:
@@ -172,7 +172,7 @@ class ReactionsPaginator(object):
                     break
 
                 await self._message.unreact(reaction.emoji, self.respond_to)
-        except multio.asynclib.TaskTimeout:
+        except TimeoutError:
             # eat timeouts but nothing else
             pass
 

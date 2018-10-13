@@ -21,12 +21,12 @@ The main Discord HTTP interface.
 import time
 from math import ceil, floor
 
+import anyio
 import asks
 import datetime
 import json
 import logging
 import mimetypes
-import multio
 import pytz
 import random
 import string
@@ -252,25 +252,23 @@ class HTTPClient(object):
         }
 
         self.endpoints = Endpoints()
-        self.session = asks.Session(base_location=self.endpoints.BASE, endpoint=Endpoints.API_BASE,
-                                    connections=max_connections)
         self.headers = headers
 
         #: The global ratelimit lock.
-        self.global_lock = multio.Lock()
+        self.global_lock = anyio.create_lock()
 
         self._rate_limits = weakref.WeakValueDictionary()
         self._ratelimit_remaining = lru(1024)
         self._is_bot = bot
 
-    def get_ratelimit_lock(self, bucket: object) -> 'multio.Lock':
+    def get_ratelimit_lock(self, bucket: object) -> 'anyio.Lock':
         """
         Gets a ratelimit lock from the dict if it exists, otherwise creates a new one.
         """
         try:
             return self._rate_limits[bucket]
         except KeyError:
-            lock = multio.Lock()
+            lock = anyio.create_lock()
             self._rate_limits[bucket] = lock
             return lock
 
@@ -336,14 +334,13 @@ class HTTPClient(object):
         # (X-RateLimit-Reset - time.time()) seconds, then unlocks the lock.
 
         lock = self.get_ratelimit_lock(bucket)
+
         # If we're being globally ratelimited, this will block until the global lock is finished.
-        await self.global_lock.acquire()
         # Immediately release it because we're no longer being globally ratelimited.
-        await self.global_lock.release()
+        async with self.global_lock:
+            pass
 
-        await lock.acquire()
-        try:
-
+        async with lock:
             if bucket in self._ratelimit_remaining:
                 # Make sure we have enough tries left.
                 tries, reset_time = self._ratelimit_remaining[bucket]
@@ -353,7 +350,7 @@ class HTTPClient(object):
                     sleep_time = ceil(reset_time - time.time())
                     if sleep_time >= 0:
                         logger.debug("Sleeping with lock open for {} seconds.".format(sleep_time))
-                        await multio.asynclib.sleep(sleep_time)
+                        await anyio.sleep(sleep_time)
 
             for tries in range(0, 5):
                 method = kwargs.get("method", "???")
@@ -378,7 +375,7 @@ class HTTPClient(object):
                     # 502 means that we can retry without worrying about ratelimits.
                     # Perform exponential backoff to prevent spamming discord.
                     sleep_time = 1 + (tries * 2)
-                    await multio.asynclib.sleep(sleep_time)
+                    await anyio.sleep(sleep_time)
                     continue
 
                 if response.status_code == 429:
@@ -386,7 +383,7 @@ class HTTPClient(object):
                     # But it's okay, we can handle it.
                     logger.warning("Hit a 429 in bucket {}. Check your clock!".format(bucket))
                     sleep_time = ceil(int(response.headers["Retry-After"]) / 1000)
-                    await multio.asynclib.sleep(sleep_time)
+                    await anyio.sleep(sleep_time)
                     continue
 
                 # Extract ratelimit headers.
@@ -435,7 +432,7 @@ class HTTPClient(object):
 
                         # Sleep that amount of time.
                         if sleep_time >= 0:
-                            await multio.asynclib.sleep(sleep_time)
+                            await anyio.sleep(sleep_time)
                     finally:
                         # If the global lock is acquired, unlock it now
                         if is_global:
@@ -465,9 +462,6 @@ class HTTPClient(object):
                     raise HTTPException(response, result)
             else:
                 raise RuntimeError("Failed to get response after 5 tries.")
-
-        finally:
-            await lock.release()
 
     async def get(self, url: str, bucket: str,
                   *args, **kwargs):
@@ -717,7 +711,8 @@ class HTTPClient(object):
         # it must be a normal json string with can contain JSON unicode-escapes (which 
         # dumps does when ensure_ascii is True; which is the default, but just it case the default changes
         # in the future, we give it explicitly)
-        payload = {"payload_json": json.dumps(payload_json, ensure_ascii=True, separators=(',', ':'))}
+        payload = {
+            "payload_json": json.dumps(payload_json, ensure_ascii=True, separators=(',', ':'))}
 
         body, headers = encode_multipart(payload, files)
         data = await self.post(url, "messages:{}".format(channel_id),
@@ -1243,7 +1238,8 @@ class HTTPClient(object):
         data = await self.patch(url, bucket="channels:{}".format(channel_id), json=payload)
         return data
 
-    async def update_channel_positions(self, guild_id: int, channel_ids_and_positions: typing.List[typing.Tuple[int, int]]):
+    async def update_channel_positions(self, guild_id: int, channel_ids_and_positions: typing.List[
+        typing.Tuple[int, int]]):
         """
         Updates the positions of channels
 
@@ -1255,7 +1251,8 @@ class HTTPClient(object):
         if len(channel_ids_and_positions) < 2:
             raise ValueError("channel_ids_and_position must contain at least 2 entries")
 
-        payload=[{"id": str(id), "position": position} for id, position in channel_ids_and_positions]
+        payload = [{"id": str(id), "position": position} for id, position in
+                   channel_ids_and_positions]
 
         data = await self.patch(url, bucket="guild:{}".format(guild_id), json=payload)
         return data

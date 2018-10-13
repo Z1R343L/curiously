@@ -21,7 +21,7 @@ from collections import AsyncIterable
 import abc
 
 
-class BasicWebsocketWrapper(AsyncIterable):
+class BasicWebsocketWrapper(abc.ABC, AsyncIterable):
     """
     The base class for a basic websocket wrapper.
     """
@@ -31,8 +31,9 @@ class BasicWebsocketWrapper(AsyncIterable):
         #: The gateway URL.
         self.url = url
 
-    @abc.abstractclassmethod
-    async def open(cls, url: str) -> 'BasicWebsocketWrapper':
+    @classmethod
+    @abc.abstractmethod
+    async def open(cls, url: str, task_group) -> 'BasicWebsocketWrapper':
         """
         Opens this websocket.
         """

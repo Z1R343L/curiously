@@ -20,8 +20,8 @@ class Attachment(Dataclass):
     """
     Represents an attachment.
     """
-    def __init__(self, id: int, bot, **kwargs):
-        super().__init__(id, cl=bot)
+    def __init__(self, id: int, **kwargs):
+        super().__init__(id)
 
         #: The filename for this attachment.
         self.filename: str = kwargs.get("filename")
@@ -46,5 +46,5 @@ class Attachment(Dataclass):
         Downloads the attachment into bytes.
         """
         bucket = ("attachment", self.id)
-        data = await self._bot.http.request(bucket, method="GET", uri=self.proxy_url)
+        data = await get_current_client().http.request(bucket, method="GET", uri=self.proxy_url)
         return data

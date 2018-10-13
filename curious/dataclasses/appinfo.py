@@ -20,6 +20,7 @@ Wrappers for Application Info objects.
 """
 from typing import Union
 
+from curious.core import get_current_client
 from curious.dataclasses import user as dt_user
 from curious.dataclasses.bases import Dataclass
 
@@ -29,15 +30,15 @@ class AppInfo(Dataclass):
     Represents the application info for an OAuth2 application.
     """
 
-    def __init__(self, client, **kwargs) -> None:
+    def __init__(self, **kwargs) -> None:
         self._application = kwargs.get("application", {})
 
         #: The client ID of this application.
         self.client_id = int(self._application.get("id", 0))
-        super().__init__(self.client_id, client)
+        super().__init__(self.client_id)
 
         if "owner" in self._application:
-            owner = self._bot.state.make_user(self._application.get("owner"))
+            owner = get_current_client().state.make_user(self._application.get("owner"))
         else:
             owner = None
 
@@ -65,7 +66,7 @@ class AppInfo(Dataclass):
         self.bot = None  # type: dt_user.User
 
         if "bot" in kwargs:
-            self.bot = self._bot.state.make_user(kwargs.get("bot", {}))
+            self.bot = get_current_client().state.make_user(kwargs.get("bot", {}))
         else:
             self.bot = None
 

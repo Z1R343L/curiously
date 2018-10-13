@@ -13,8 +13,9 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with curious.  If not, see <http://www.gnu.org/licenses/>.
 
-import logging
 from collections import defaultdict
+
+import logging
 from typing import List, MutableMapping
 
 from curious.core import client as md_client
@@ -115,7 +116,7 @@ class Chunker(object):
 
         # fire a ready
         gateway = self.client._gateways[shard_id]
-        await self.client.events.fire_event("ready", gateway=gateway, client=self.client)
+        await self.client.events.fire_event("ready", gateway=gateway)
         self._ready[shard_id] = True
 
     @event("guild_chunk")

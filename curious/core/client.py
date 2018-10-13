@@ -20,13 +20,10 @@ This contains a definition for :class:`.Client` which is used to interface prima
 
 .. currentmodule:: curious.core.client
 """
-
+import anyio
 import collections
 import enum
-import functools
-import inspect
 import logging
-import multio
 import typing
 from types import MappingProxyType
 from typing import Union
@@ -35,16 +32,15 @@ from curious.core import chunker as md_chunker
 from curious.core.event import EventContext, EventManager, event as ev_dec, scan_events
 from curious.core.gateway import GatewayHandler, open_websocket
 from curious.core.httpclient import HTTPClient
-from curious.dataclasses import channel as dt_channel, guild as dt_guild, member as dt_member
+from curious.dataclasses import channel as dt_channel, guild as dt_guild
 from curious.dataclasses.appinfo import AppInfo
-from curious.dataclasses.bases import allow_external_makes
 from curious.dataclasses.invite import Invite
 from curious.dataclasses.message import CHANNEL_REGEX, EMOJI_REGEX, MENTION_REGEX
 from curious.dataclasses.presence import Game, Status
 from curious.dataclasses.user import BotUser, User
 from curious.dataclasses.webhook import Webhook
 from curious.dataclasses.widget import Widget
-from curious.util import base64ify
+from curious.util import base64ify, coerce_agen
 
 logger = logging.getLogger("curious.client")
 
@@ -127,7 +123,7 @@ class Client(object):
             state_klass = State
 
         #: The current connection state for the bot.
-        self.state = state_klass(self)
+        self.state = state_klass()
 
         #: The bot type for this bot.
         self.bot_type = bot_type
@@ -154,7 +150,7 @@ class Client(object):
         self.application_info = None  # type: AppInfo
 
         #: The task manager used for this bot.
-        self.task_manager = None
+        self.task_manager: anyio.TaskGroup = None
 
         for (name, event) in scan_events(self):
             self.events.add_event(event)
@@ -274,7 +270,7 @@ class Client(object):
             if event_name not in self.IGNORE_READY and not event_name.startswith("gateway_"):
                 return
 
-        return await self.events.fire_event(event_name, *args, **kwargs, client=self)
+        return await self.events.fire_event(event_name, *args, **kwargs)
 
     async def wait_for(self, *args, **kwargs) -> typing.Any:
         """
@@ -364,7 +360,7 @@ class Client(object):
         :return: A new :class:`.AppInfo` object corresponding to the application.
         """
         data = await self.http.get_app_info(application_id=application_id)
-        appinfo = AppInfo(self, **data)
+        appinfo = AppInfo(**data)
 
         return appinfo
 
@@ -386,7 +382,7 @@ class Client(object):
         :param with_counts: Return the approximate counts for this invite?
         :return: A new :class:`.Invite` object.
         """
-        return Invite(self, **(await self.http.get_invite(invite_code, with_counts=with_counts)))
+        return Invite(**(await self.http.get_invite(invite_code, with_counts=with_counts)))
 
     async def get_widget(self, guild_id: int) -> Widget:
         """
@@ -396,7 +392,7 @@ class Client(object):
         :return: A :class:`.Widget` object.
         """
         data = await self.http.get_widget_data(guild_id)
-        return Widget(self, **data)
+        return Widget(**data)
 
     async def clean_content(self, content: str) -> str:
         """
@@ -448,165 +444,6 @@ class Client(object):
 
         return " ".join(final)
 
-    # download_ methods
-    async def download_guild_member(self, guild_id: int, member_id: int) -> 'dt_member.Member':
-        """
-        Downloads a :class:`.Member` over HTTP.
-        
-        .. warning::
-            
-            The :attr:`.Member.roles` and similar fields will be empty when downloading a Member,
-            unless the guild was in cache.
-        
-        :param guild_id: The ID of the guild which the member is in. 
-        :param member_id: The ID of the member to get.
-        :return: The :class:`.Member` object downloaded.
-        """
-        member_data = await self.http.get_guild_member(guild_id=guild_id, member_id=member_id)
-        member = dt_member.Member(self, **member_data)
-        # this is enough to pick up the cache
-        member.guild_id = guild_id
-
-        # manual refcounts :ancap:
-        self.state._check_decache_user(member.id)
-
-        return member
-
-    async def download_guild_members(self, guild_id: int, *,
-                                     after: int = None, limit: int = 1000,
-                                     get_all: bool = True) -> 'typing.Iterable[dt_member.Member]':
-        """
-        Downloads the members for a :class:`.Guild` over HTTP.
-        
-        .. warning::
-        
-            This can take a long time on big guilds.
-        
-        :param guild_id: The ID of the guild to download members for.
-        :param after: The member ID after which to get members for.
-        :param limit: The maximum number of members to return. By default, this is 1000 members.
-        :param get_all: Should *all* members be fetched?
-        :return: An iterable of :class:`.Member`.
-        """
-        member_data = []
-        if get_all is True:
-            last_id = 0
-            while True:
-                next_data = await self.http.get_guild_members(guild_id=guild_id, limit=limit,
-                                                              after=last_id)
-                # no more members to get
-                if not next_data:
-                    break
-
-                member_data.extend(next_data)
-                # if there's less data than limit, we are finished downloading members
-                if len(next_data) < limit:
-                    break
-
-                last_id = member_data[-1]["user"]["id"]
-        else:
-            next_data = await self.http.get_guild_members(guild_id=guild_id, limit=limit,
-                                                          after=after)
-            member_data.extend(next_data)
-
-        # create the member objects
-        members = []
-        for datum in member_data:
-            m = dt_member.Member(self, **datum)
-            m.guild_id = guild_id
-            members.append(m)
-
-        return members
-
-    async def download_channels(self, guild_id: int) -> 'typing.List[dt_channel.Channel]':
-        """
-        Downloads all the :class:`.Channel` for a Guild.
-        
-        :param guild_id: The ID of the guild to download channels for. 
-        :return: An iterable of :class:`.Channel` objects.
-        """
-        channel_data = await self.http.get_guild_channels(guild_id=guild_id)
-        channels = []
-        for datum in channel_data:
-            channel = dt_channel.Channel(self, **datum)
-            channel.guild_id = guild_id
-            channels.append(channel)
-
-        return channels
-
-    async def download_guild(self, guild_id: int, *,
-                             full: bool = False) -> 'dt_guild.Guild':
-        """
-        Downloads a :class:`.Guild` over HTTP.
-        
-        .. warning::
-        
-            If ``full`` is True, this will fetch and fill ALL objects of the guild, including 
-            channels and members. This can take a *long* time if the guild is large.
-        
-        :param guild_id: The ID of the Guild object to download. 
-        :param full: If all extra data should be downloaded alongside it.
-        :return: The :class:`.Guild` object downloaded.
-        """
-        guild_data = await self.http.get_guild(guild_id)
-        # create the new guild using the data specified
-        guild = dt_guild.Guild(self, **guild_data)
-        guild.unavailable = False
-        guild.from_guild_create(**guild_data)
-
-        # update the guild store
-        self.state._guilds[guild_id] = guild
-
-        if full:
-            # download all of the members
-            members = await self.download_guild_members(guild_id=guild_id, get_all=True)
-            # update the `_members` dict
-            guild._members = {m.id: m for m in members}
-
-            # download all of the channels
-            channels = await self.download_channels(guild_id=guild_id)
-            guild._channels = {c.id: c for c in channels}
-
-        return guild
-
-    @ev_dec(name="gateway_dispatch_received")
-    async def handle_dispatches(self, ctx: EventContext, name: str, dispatch: dict):
-        """
-        Handles dispatches for the client.
-        """
-        try:
-            handle_name = name.lower()
-            handler = getattr(self.state, f"handle_{handle_name}")
-        except AttributeError:
-            logger.warning(f"Got unknown dispatch {name}")
-            return
-        else:
-            logger.debug(f"Processing event {name}")
-
-        try:
-            with allow_external_makes():
-                result = handler(ctx.gateway, dispatch)
-
-                if inspect.isawaitable(result):
-                    results = [await result]
-                elif inspect.isasyncgen(result):
-                    async with multio.asynclib.finalize_agen(result) as gen:
-                        results = [r async for r in gen]
-                else:
-                    results = [result]
-
-            for item in results:
-                if not isinstance(item, tuple):
-                    await self.events.fire_event(item, gateway=ctx.gateway, client=self)
-                else:
-                    await self.events.fire_event(item[0], *item[1:], gateway=ctx.gateway,
-                                                 client=self)
-
-        except Exception:
-            logger.exception(f"Error decoding event {name} with data {dispatch}!")
-            await self.kill()
-            raise
-
     @ev_dec(name="ready")
     async def handle_ready(self, ctx: 'EventContext'):
         """
@@ -620,47 +457,55 @@ class Client(object):
         await self.events.fire_event("shards_ready", gateway=self._gateways[ctx.shard_id],
                                      client=self)
 
-    async def handle_shard(self, shard_id: int, shard_count: int):
+    async def run_shard(self, shard_id: int):
         """
-        Handles a shard.
-
-        :param shard_id: The shard ID to boot and handle.
-        :param shard_count: The shard count to send in the identify packet.
+        Runs a shard.
         """
-        # consume events
-        async with open_websocket(self._token, self._gw_url,
-                                  shard_id=shard_id, shard_count=shard_count) as gw:
+        async with open_websocket(self._token, url=self._gw_url,
+                                  shard_id=shard_id, shard_count=self.shard_count) as gw:
+            # gw: GatewayHandler
             self._gateways[shard_id] = gw
 
-            try:
-                async with multio.asynclib.finalize_agen(gw.events()) as agen:
-                    async for event in agen:
-                        await self.fire_event(event[0], *event[1:], gateway=gw)
-            except Exception as e:  # kill the bot if we failed to parse something
-                await self.kill()
-                raise
-            finally:
-                self._gateways.pop(shard_id, None)
+            async for event in gw.events():
+                name, *params = event
+                to_dispatch = [event]
 
-    async def start(self, shard_count: int):
+                if name == "gateway_dispatch_received":
+                    handler = f"handle_{params[0].lower()}"
+                    handler = getattr(self.state, handler)
+                    subevents = await coerce_agen(handler(gw, *params[1:]))
+                    to_dispatch += subevents
+
+                for event in to_dispatch:
+                    await self.events.fire_event(event[0], *event[1:], gateway=gw)
+
+    async def start_sharded(self, shard_count: int):
         """
-        Starts the bot.
+        Starts the bot. This is an internal method - you want :meth:`.Client.run_async`.
 
         :param shard_count: The number of shards to boot.
         """
+        from curious.core import _current_client
+        _current_client.set(self)
+
         if self.bot_type & BotType.BOT:
-            self.application_info = AppInfo(self, **(await self.http.get_app_info(None)))
+            self.application_info = AppInfo(**(await self.http.get_app_info(None)))
 
         # update ready state
         for shard_id in range(shard_count):
             self._ready_state[shard_id] = False
 
-        async with multio.asynclib.task_manager() as tg:
+        # boot up the gateway connections
+        logger.info(f"Loading {shard_count} gateway connections.")
+        async with anyio.create_task_group() as tg:
+            # tg: anyio.TaskGroup
+
+            # copy the task manager into the global namespace
             self.task_manager = tg
             self.events.task_manager = tg
 
-            for shard_id in range(0, shard_count):
-                await multio.asynclib.spawn(tg, self.handle_shard, shard_id, shard_count)
+            for shard in range(0, shard_count):
+                await tg.spawn(self.run_shard, shard)
 
     async def run_async(self, *, shard_count: int = 1, autoshard: bool = True):
         """
@@ -676,32 +521,4 @@ class Client(object):
 
         self._gw_url = url
         self.shard_count = shard_count
-        return await self.start(shard_count)
-
-    async def kill(self) -> None:
-        """
-        Kills the bot by closing all shards.
-        """
-        for gateway in self._gateways.copy().values():
-            await gateway.close(code=1006, reason="Bot killed", reconnect=False)
-
-    def run(self, *, shard_count: int = 1, autoshard: bool = True, **kwargs):
-        """
-        Convenience method to run the bot with multio.
-
-        :param shard_count: The number of shards to use. Ignored if autoshard is True.
-        :param autoshard: If the bot should be autosharded.
-        """
-
-        p = functools.partial(self.run_async, shard_count=shard_count, autoshard=autoshard)
-        multio.run(p, **kwargs)
-
-    @classmethod
-    def from_token(cls, token: str = None):
-        """
-        Starts a bot from a token object.
-
-        :param token: The token to use for the bot.
-        """
-        bot = cls(token)
-        return bot.run()
+        return await self.start_sharded(shard_count)

@@ -18,18 +18,17 @@ Special helpers for events.
 
 .. currentmodule: curious.core.events
 """
+import anyio
 import contextvars
 import functools
 import inspect
 import logging
-import multio
 import typing
 from async_generator import asynccontextmanager
 from multidict import MultiDict
 
-from curious.core import client as md_client
 from curious.core.gateway import GatewayHandler
-from curious.util import remove_from_multidict, safe_generator
+from curious.util import Promise, remove_from_multidict, safe_generator
 
 logger = logging.getLogger("curious.events")
 
@@ -63,13 +62,14 @@ async def _wait_for_manager(manager, name: str, predicate):
     """
     Helper class for managing a wait_for.
     """
-    async with multio.asynclib.task_manager() as tg:
+    async with anyio.create_task_group() as tg:
+        tg: anyio.TaskGroup
         try:
             partial = functools.partial(manager.wait_for, name, predicate)
-            await multio.asynclib.spawn(tg, partial)
+            await tg.spawn(partial)
             yield
         except:
-            await multio.asynclib.cancel_task_group(tg)
+            await tg.cancel_scope.cancel()
             raise
 
 
@@ -82,7 +82,7 @@ class EventManager(object):
 
     def __init__(self):
         #: The task manager used to spawn events.
-        self.task_manager = None
+        self.task_manager: anyio.TaskGroup = None
 
         #: A list of event hooks.
         self.event_hooks = set()
@@ -193,7 +193,7 @@ class EventManager(object):
         :param event_name: The name of the event.
         :param predicate: The predicate to use to check for the event.
         """
-        p = multio.Promise()
+        p = Promise()
         errored = False
 
         async def listener(ctx, *args):
@@ -262,7 +262,7 @@ class EventManager(object):
         :param cofunc: The async function to spawn.
         :param args: Args to provide to the async function.
         """
-        return await multio.asynclib.spawn(self.task_manager, cofunc, *args)
+        return await self.task_manager.spawn(cofunc, *args)
 
     async def fire_event(self, event_name: str, *args, **kwargs):
         """
@@ -272,8 +272,7 @@ class EventManager(object):
         """
         if "ctx" not in kwargs:
             gateway = kwargs.pop("gateway")
-            client = kwargs.pop("client")
-            ctx = EventContext(client, gateway.gw_state.shard_id, event_name)
+            ctx = EventContext(gateway.gw_state.shard_id, event_name)
         else:
             ctx = kwargs.pop("ctx")
 
@@ -342,20 +341,18 @@ class EventContext(object):
     Represents a special context that are passed to events.
     """
 
-    def __init__(self, cl: 'md_client.Client', shard_id: int,
+    def __init__(self, shard_id: int,
                  event_name: str):
         """
-        :param cl: The :class:`.Client` instance for this event context.
         :param shard_id: The shard ID this event is for.
         :param event_name: The event name for this event.
         """
-        #: The :class:`.Client` instance that this event was fired under.
-        self.bot = cl
+        from curious.core import get_current_client
 
         #: The shard this event was received on.
         self.shard_id = shard_id  # type: int
         #: The shard for this bot.
-        self.shard_count = cl.shard_count  # type: int
+        self.shard_count = get_current_client().shard_count  # type: int
 
         #: The event name for this event.
         self.event_name = event_name  # type: str

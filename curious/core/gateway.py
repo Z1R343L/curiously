@@ -23,17 +23,18 @@ import time
 import zlib
 from collections import Counter
 
+import anyio
 import enum
 import json
 import logging
-import multio
+from anyio import TaskGroup
 from async_generator import asynccontextmanager
 from dataclasses import dataclass  # use a 3.6 backport if available
 from lomond.errors import WebSocketClosed, WebSocketClosing, WebSocketUnavailable
 from lomond.events import Binary, Closed, Connected, Connecting, Text
 from typing import Any, AsyncContextManager, AsyncGenerator, List, Union
 
-from curious.core._ws_wrapper import BasicWebsocketWrapper
+from curious.core._ws_wrapper.universal_wrapper import UniversalWrapper
 from curious.util import safe_generator
 
 
@@ -130,13 +131,13 @@ class GatewayHandler(object):
         self.heartbeat_stats = HeartbeatStats()
 
         #: The current :class:`.BasicWebsocketWrapper` connected to Discord.
-        self.websocket: BasicWebsocketWrapper = None
+        self.websocket: UniversalWrapper = None
 
         #: The current task group for this gateway.
-        self.task_group = None
+        self.task_group: TaskGroup = None
 
         self._logger = None
-        self._stop_heartbeating = multio.Event()
+        self._stop_heartbeating = anyio.create_event()
         self._dispatches_handled = Counter()
 
         # used for zlib-streaming
@@ -166,7 +167,9 @@ class GatewayHandler(object):
         :param clear_session_id: If we should clear the session ID.
         :param forceful: If the websocket should be forcefully closed.
         """
-        await self.websocket.close(code=code, reason=reason, reconnect=reconnect, forceful=forceful)
+        if self.websocket is not None:
+            await self.websocket.close(code=code, reason=reason, kill=reconnect)
+                                       # forceful=True)
         # this kills the websocket
         await self._stop_heartbeating.set()
 
@@ -303,28 +306,19 @@ class GatewayHandler(object):
 
             This only opens the websocket.
         """
-        if multio.asynclib.lib_name == "curio":
-            from curious.core._ws_wrapper.curio_wrapper import CurioWebsocketWrapper as Wrapper
-            ws_open = Wrapper.open
-        elif multio.asynclib.lib_name == "trio":
-            from curious.core._ws_wrapper.trio_wrapper import TrioWebsocketWrapper as Wrapper
-            ws_open = lambda url: Wrapper.open(url, self.task_group)
-        else:
-            raise RuntimeError("Unsupported lib: " + multio.asynclib.lib_name)
-
-        self.logger.info("Using %s for the gateway", Wrapper.__name__)
+        self.logger.info("Using universal wrapper for the gateway")
 
         # new websocket means zlib starts from scratch
         self._databuffer.clear()
         self._decompressor = zlib.decompressobj()
 
-        self.websocket = await ws_open(self.gw_state.gateway_url)
+        self.websocket = UniversalWrapper(self.gw_state.gateway_url)
 
     async def events(self) -> AsyncGenerator[None, Any]:
         """
         Returns an async generator used to iterate over the events received by this websocket.
         """
-        async for event in self.websocket:
+        async for event in self.websocket.run():
             if isinstance(event, Closed):
                 await self._stop_heartbeat_events()
                 self.logger.info("The websocket has closed")
@@ -339,12 +333,12 @@ class GatewayHandler(object):
 
             elif isinstance(event, Connected):
                 self.logger.info("The websocket has connected")
+                yield "websocket_connected"
 
             elif isinstance(event, (Text, Binary)):
                 gen = self.handle_data_event(event)
-                async with multio.asynclib.finalize_agen(gen) as finalized:
-                    async for i in finalized:
-                        yield i
+                async for i in gen:
+                    yield i
 
     async def _start_heatbeat_events(self, heartbeat_interval: float):
         """
@@ -358,9 +352,9 @@ class GatewayHandler(object):
         async def heartbeater() -> None:
             while True:
                 try:
-                    async with multio.asynclib.timeout_after(heartbeat_interval):
+                    async with anyio.fail_after(heartbeat_interval):
                         await self._stop_heartbeating.wait()
-                except multio.asynclib.TaskTimeout:
+                except TimeoutError:
                     pass
                 else:
                     break
@@ -370,7 +364,7 @@ class GatewayHandler(object):
                 except (WebSocketClosing, WebSocketClosed, WebSocketUnavailable):
                     return
 
-        await multio.asynclib.spawn(self.task_group, heartbeater)
+        await self.task_group.spawn(heartbeater)
 
     async def _stop_heartbeat_events(self) -> None:
         """
@@ -517,7 +511,7 @@ async def open_websocket(token: str, url: str, *,
 
     logger = logging.getLogger(f"curious.gateway:shard-{shard_id}")
 
-    async with multio.asynclib.task_manager() as tg:
+    async with anyio.create_task_group() as tg:
         gw.task_group = tg
         try:
             logger.info("Opening gateway connection to %s", url)
@@ -526,4 +520,4 @@ async def open_websocket(token: str, url: str, *,
         finally:
             # make sure we don't die on closing the task group
             await gw._stop_heartbeating.set()
-            await gw.close(code=1000, reason="Closing bot")
+            await gw.close(code=1000, reason="Closing bot", reconnect=False)
