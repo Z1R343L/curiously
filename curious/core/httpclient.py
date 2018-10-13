@@ -416,27 +416,27 @@ class HTTPClient(object):
                             sleep_time = 1 + (tries * 2)
 
                     before_time = time.monotonic()
-                    if is_global:
-                        logger.debug("Reached the global ratelimit, acquiring global lock.")
-                        await self.global_lock.acquire()
-                    try:
-                        after_time = int(floor(time.monotonic() - before_time))
-                        if after_time != 0:
-                            # subtract the time we spent waiting for the global lock to be acquired
-                            sleep_time -= after_time
 
-                        logger.debug(
-                            "Being ratelimited under bucket %s, waking in %s seconds",
-                            bucket, sleep_time
-                        )
+                    after_time = int(floor(time.monotonic() - before_time))
+                    if after_time != 0:
+                        # subtract the time we spent waiting for the global lock to be acquired
+                        sleep_time -= after_time
 
-                        # Sleep that amount of time.
+                    logger.debug(
+                        "Being ratelimited under bucket %s, waking in %s seconds",
+                        bucket, sleep_time
+                    )
+
+                    # Sleep that amount of time.
+                    async def sleeper():
                         if sleep_time >= 0:
                             await anyio.sleep(sleep_time)
-                    finally:
-                        # If the global lock is acquired, unlock it now
-                        if is_global:
-                            await self.global_lock.release()
+
+                    if is_global:
+                        async with self.global_lock:
+                            await sleeper()
+                    else:
+                        await sleeper()
 
                 # Now, we have that nuisance out of the way, we can try and get the result from
                 # the request.
