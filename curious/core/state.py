@@ -389,7 +389,7 @@ class State(object):
         self._users[self._user.id] = self._user
 
         logger.info("We have been issued a session on shard {}, parsing ready for `{}#{}` ({})"
-                    .format(gw.gw_state.shard_id, self._user.username, self._user.discriminator,
+                    .format(gw.session.shard_id, self._user.username, self._user.discriminator,
                             self._user.id)
                     )
 
@@ -398,10 +398,10 @@ class State(object):
             new_guild = Guild(**guild)
             self._guilds[new_guild.id] = new_guild
             new_guild.from_guild_create(**guild)
-            new_guild.shard_id = gw.gw_state.shard_id
+            new_guild.shard_id = gw.session.shard_id
 
         logger.info("Ready processed for shard {}. Delaying until all guilds are chunked."
-                    .format(gw.gw_state.shard_id))
+                    .format(gw.session.shard_id))
         yield "connect",
 
         # event_data.pop("guilds")
@@ -536,7 +536,7 @@ class State(object):
             self._guilds[guild.id] = guild
             guild.from_guild_create(**event_data)
 
-        guild.shard_id = gw.gw_state.shard_id
+        guild.shard_id = gw.session.shard_id
         # TODO: Need to do this
         # try:
         #    guild.me.presence.game = gw.game
@@ -546,7 +546,7 @@ class State(object):
         #    pass
 
         # Dispatch the event if we're ready (i.e not streaming)
-        if self.__shards_is_ready[gw.gw_state.shard_id]:
+        if self.__shards_is_ready[gw.session.shard_id]:
             if had_guild:
                 yield "guild_available", guild,
             else:

@@ -123,9 +123,9 @@ class GatewayHandler(object):
     GATEWAY_VERSION = 6
     ZLIB_FLUSH_SUFFIX = b'\x00\x00\xff\xff'
 
-    def __init__(self, gw_state: _GatewayState):
-        #: The current state being used for this gateway.
-        self.gw_state = gw_state
+    def __init__(self, session: _GatewayState):
+        #: The current session being used for this gateway.
+        self.session = session
 
         #: The current heartbeat stats being used for this gateway.
         self.heartbeat_stats = HeartbeatStats()
@@ -152,7 +152,7 @@ class GatewayHandler(object):
         if self._logger:
             return self._logger
 
-        self._logger = logging.getLogger("curious.gateway:shard-{}".format(self.gw_state.shard_id))
+        self._logger = logging.getLogger("curious.gateway:shard-{}".format(self.session.shard_id))
         return self._logger
 
     async def close(self, code: int = 1000, reason: str = "Client closed connection", *,
@@ -174,9 +174,9 @@ class GatewayHandler(object):
         await self._stop_heartbeating.set()
 
         if clear_session_id:
-            self.gw_state.session_id = None
+            self.session.session_id = None
             # also clear heartbeats so we don't immediately HEARTBEAT with the wrong hb
-            self.gw_state.sequence = None
+            self.session.sequence = None
             self.heartbeat_stats.heartbeats = 0
             self.heartbeat_stats.heartbeat_acks = 0
 
@@ -195,7 +195,7 @@ class GatewayHandler(object):
         payload = {
             "op": GatewayOp.IDENTIFY,
             "d": {
-                "token": self.gw_state.token,
+                "token": self.session.token,
                 "properties": {
                     "$os": sys.platform,
                     "$browser": "curious",
@@ -205,7 +205,7 @@ class GatewayHandler(object):
                 },
                 "large_threshold": 250,
                 "v": self.GATEWAY_VERSION,
-                "shard": [self.gw_state.shard_id, self.gw_state.shard_count]
+                "shard": [self.session.shard_id, self.session.shard_count]
             }
         }
         return await self.send(payload)
@@ -228,10 +228,10 @@ class GatewayHandler(object):
             return await self.close(code=1006, reason="Zombied connection", reconnect=True,
                                     clear_session_id=False, forceful=True)
 
-        self.logger.debug("Heartbeating with sequence {}".format(self.gw_state.sequence))
+        self.logger.debug("Heartbeating with sequence {}".format(self.session.sequence))
         payload = {
             "op": GatewayOp.HEARTBEAT,
-            "d": self.gw_state.sequence
+            "d": self.session.sequence
         }
         return await self.send(payload)
 
@@ -242,9 +242,9 @@ class GatewayHandler(object):
         payload = {
             "op": GatewayOp.RESUME,
             "d": {
-                "token": self.gw_state.token,
-                "session_id": self.gw_state.session_id,
-                "seq": self.gw_state.sequence
+                "token": self.session.token,
+                "session_id": self.session.session_id,
+                "seq": self.session.sequence
             }
         }
         return await self.send(payload)
@@ -312,7 +312,7 @@ class GatewayHandler(object):
         self._databuffer.clear()
         self._decompressor = zlib.decompressobj()
 
-        self.websocket = UniversalWrapper(self.gw_state.gateway_url)
+        self.websocket = UniversalWrapper(self.session.gateway_url)
 
     async def events(self) -> AsyncGenerator[None, Any]:
         """
@@ -400,7 +400,7 @@ class GatewayHandler(object):
 
         # update sequence number for dispatches
         if sequence is not None:
-            self.gw_state.sequence = sequence
+            self.session.sequence = sequence
 
         # switch based on opcode
         if opcode == GatewayOp.HELLO:
@@ -413,7 +413,7 @@ class GatewayHandler(object):
             self.logger.info(f"Connected to Discord servers {trace}")
 
             try:
-                if self.gw_state.session_id is None:
+                if self.session.session_id is None:
                     self.logger.info("Sending IDENTIFY...")
                     await self.send_identify()
                 else:
@@ -446,8 +446,8 @@ class GatewayHandler(object):
                 await self.send_resume()
             else:
                 self.logger.warning("Received INVALIDATE_SESSION with d False, re-identifying.")
-                self.gw_state.sequence = 0
-                self.gw_state.session_id = None
+                self.session.sequence = 0
+                self.session.session_id = None
                 await self.send_identify()
 
             yield ("gateway_invalidate_session", should_resume,)
@@ -459,7 +459,7 @@ class GatewayHandler(object):
 
             if event == "READY":
                 # hijack the session id
-                self.gw_state.session_id = event_data["session_id"]
+                self.session.session_id = event_data["session_id"]
 
             self._dispatches_handled[event] += 1
             yield ("gateway_dispatch_received", event, event_data,)
@@ -507,7 +507,7 @@ async def open_websocket(token: str, url: str, *,
     params = f"/?v={GatewayHandler.GATEWAY_VERSION}&encoding=json&compress=zlib-stream"
     url = url + params
     state = _GatewayState(token=token, gateway_url=url, shard_id=shard_id, shard_count=shard_count)
-    gw = GatewayHandler(gw_state=state)
+    gw = GatewayHandler(session=state)
 
     logger = logging.getLogger(f"curious.gateway:shard-{shard_id}")
 
@@ -521,3 +521,4 @@ async def open_websocket(token: str, url: str, *,
             # make sure we don't die on closing the task group
             await gw._stop_heartbeating.set()
             await gw.close(code=1000, reason="Closing bot", reconnect=False)
+            await tg.cancel_scope.cancel()
