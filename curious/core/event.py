@@ -283,12 +283,12 @@ class EventManager(object):
             cofunc = functools.partial(hook, ctx, *args, **kwargs)
             await self.spawn(cofunc)
 
-        for handler in self.event_listeners.getall(event_name, []):
+        for handler in self.event_listeners.getall(event_name):
             coro = functools.partial(handler, ctx, *args, **kwargs)
             coro.__name__ = handler.__name__
             await self.spawn(self._safety_wrapper, coro)
 
-        for listener in self.temporary_listeners.getall(event_name, []):
+        for listener in self.temporary_listeners.getall(event_name):
             coro = functools.partial(self._listener_wrapper, event_name, listener, ctx,
                                      *args, **kwargs)
             await self.spawn(coro)
@@ -359,7 +359,8 @@ class EventContext(object):
         """
         :return: A list of handlers registered for this event. 
         """
-        return self.bot.events.getall(self.event_name, [])
+        from curious.core import get_current_client
+        return get_current_client().events.getall(self.event_name, [])
 
     async def change_status(self, *args, **kwargs) -> None:
         """
@@ -368,11 +369,14 @@ class EventContext(object):
         This takes the same arguments as :class:`.Client.change_status`, but ignoring the shard ID.
         """
         kwargs["shard_id"] = self.shard_id
-        return await self.bot.change_status(*args, **kwargs)
+
+        from curious.core import get_current_client
+        return await get_current_client().change_status(*args, **kwargs)
 
     @property
     def gateway(self) -> GatewayHandler:
         """
         :return: The :class:`.Gateway` that produced this event.
         """
-        return self.bot.gateways[self.shard_id]
+        from curious.core import get_current_client
+        return get_current_client().gateways[self.shard_id]
