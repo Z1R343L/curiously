@@ -23,6 +23,7 @@ import contextvars
 import functools
 import inspect
 import logging
+import outcome
 import typing
 from async_generator import asynccontextmanager
 from multidict import MultiDict
@@ -194,12 +195,11 @@ class EventManager(object):
         :param predicate: The predicate to use to check for the event.
         """
         p = Promise()
-        errored = False
 
         async def listener(ctx, *args):
             # exit immediately if the predicate is none
             if predicate is None:
-                await p.set(args)
+                await p.set(outcome.Value(None))
                 raise ListenerExit
 
             try:
@@ -208,29 +208,26 @@ class EventManager(object):
                     res = await res
             except ListenerExit:
                 # ???
-                await p.set(args)
+                await p.set(outcome.Value(args))
                 raise
             except Exception as e:
                 # something bad happened, set exception and exit
                 logger.exception("Exception in wait_for predicate!")
                 # signal that an error happened
-                nonlocal errored
-                errored = True
-                await p.set(e)
+                await p.set(outcome.Error(e))
                 raise ListenerExit
             else:
                 # exit now if result is true
                 if res is True:
-                    await p.set(args)
+                    await p.set(outcome.Value(args))
                     raise ListenerExit
 
         self.add_temporary_listener(name=event_name, listener=listener)
-        output = await p.wait()
-        if errored:
-            raise output
+        output: outcome.Outcome = await p.wait()
+        result = output.unwrap()
 
         # unwrap tuples, if applicable
-        if len(output) == 1:
+        if len(result) == 1:
             return output[0]
         return output
 
