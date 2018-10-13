@@ -21,7 +21,7 @@ Wrappers for Member objects (Users with guilds).
 import collections
 import copy
 import datetime
-from typing import List
+from typing import List, Optional
 
 from curious.core import get_current_client
 from curious.dataclasses import guild as dt_guild, role as dt_role, user as dt_user, \
@@ -65,7 +65,7 @@ class Nickname(object):
     def __repr__(self) -> str:
         return f"<Nickname value={self.value}>"
 
-    async def set(self, new_nickname: str) -> 'Nickname':
+    async def set(self, new_nickname: Optional[str]) -> 'Nickname':
         """
         Sets the nickname of the username.
 
