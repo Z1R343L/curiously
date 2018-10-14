@@ -4,21 +4,21 @@ from pathlib import Path
 from setuptools import setup
 
 install_requires = [
-    "lomond>=0.3.0",
+    "lomond>=2.0.0",
     "pylru==1.0.9",
     "oauthlib>=2.0.2,<2.1.0",
     "pytz>=2017.3",
-    "asks>=1.3.0,<1.4.0",
+    "asks>=2.2.0",
     "multidict>=4.1.0,<4.2.0",
     "anyio",
     "outcome",
     "async_generator~=1.9",  # asynccontextmanager for 3.6
-    "typing_inspect>=0.2.0"
+    "typing_inspect>=0.2.0",
 ]
 
 py36_requires = [
     "dataclasses>=0.3",  # PEP 557
-    "contextvars>=2.1"
+    "contextvars>=2.1",
 ]
 
 if sys.version_info[0:2] <= (3, 6):
