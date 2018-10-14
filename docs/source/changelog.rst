@@ -26,6 +26,22 @@ This document displays the differences between each release of curious.
 
  - Breaking: Remove the ``MEMBER_UPDATE`` event and replace it with ``PRESENCE_UPDATE``.
 
+ - Breaking: Rewrite for the ``anyio`` library.
+
+    - This removes all usage of the multio library.
+
+    - This also means that the client must be created *inside* an async def function, not at the
+      top-level.
+
+    - Whilst anyio officially supports asyncio, curious does not; no support will be offered and
+      any bots working on asyncio are purely incidental.
+
+ - Add :meth:`curious.core.get_current_client` to get the running client.
+
+ - Remove all references to the client from dataclasses.
+
+    - Instead they now use a context variable to get the running client instance.
+
 
 0.7.9 (Released 2018-08-05)
 ---------------------------

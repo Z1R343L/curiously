@@ -31,12 +31,16 @@ delegating it to client code.
     state
 """
 import contextvars
+import typing
+
+if typing.TYPE_CHECKING:
+    from curious.core.client import Client
 
 
 _current_client = contextvars.ContextVar("current_client")
 
 
-def get_current_client():
+def get_current_client() -> 'Client':
     """
     Gets the currently running client. Mostly for internal usage.
     """
