@@ -30,7 +30,7 @@ async def _get_command_list(ctx: Context, command, *, include_root: bool = True)
     Recursively produces a command list for the command, using subcommands.
     """
     try:
-        if not (await ctx.can_run(command))[0]:
+        if not (await ctx.can_run(command)).success:
             return []
     except CommandsError:
         return []
@@ -48,7 +48,8 @@ async def _get_command_list(ctx: Context, command, *, include_root: bool = True)
 
         # only do subcommands that can be ran
         try:
-            can_run, _ = await ctx.can_run(subcommand)
+            res = await ctx.can_run(subcommand)
+            can_run = res.success
         except CommandsError:
             can_run = False
 

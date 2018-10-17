@@ -269,7 +269,7 @@ class EventManager(object):
         """
         if "ctx" not in kwargs:
             gateway = kwargs.pop("gateway")
-            ctx = EventContext(gateway.gw_state.shard_id, event_name)
+            ctx = EventContext(gateway.session.shard_id, event_name)
         else:
             ctx = kwargs.pop("ctx")
 
@@ -283,12 +283,12 @@ class EventManager(object):
             cofunc = functools.partial(hook, ctx, *args, **kwargs)
             await self.spawn(cofunc)
 
-        for handler in self.event_listeners.getall(event_name):
+        for handler in self.event_listeners.getall(event_name, []):
             coro = functools.partial(handler, ctx, *args, **kwargs)
             coro.__name__ = handler.__name__
             await self.spawn(self._safety_wrapper, coro)
 
-        for listener in self.temporary_listeners.getall(event_name):
+        for listener in self.temporary_listeners.getall(event_name, []):
             coro = functools.partial(self._listener_wrapper, event_name, listener, ctx,
                                      *args, **kwargs)
             await self.spawn(coro)

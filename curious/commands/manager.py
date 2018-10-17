@@ -394,15 +394,21 @@ class CommandsManager(object):
 
         # step 2, create the new commands context
         ctx = self.context_class(event_context=ctx, message=message)
-        ctx.command_name = command_word
-        ctx.tokens = tokens
+        ctx.root_command_name = command_word
+        ctx.full_tokens = tokens
+        ctx.tokens = ctx.full_tokens
         ctx.manager = self
 
         # step 3, invoke the context to try and match the command and run it
-        await ctx.try_invoke()
+        try:
+            await ctx.run_contained_command()
+        except CommandsError as e:
+            reraise_ctx = ctx._make_reraise_ctx(e.event_name)
+            await self.client.events.fire_event("command_error", e, ctx=reraise_ctx)
+            await self.client.events.fire_event(e.event_name, e, ctx=reraise_ctx)
 
     @event("command_error")
-    async def default_command_error(self, ev_ctx: EventContext, ctx: Context, err: CommandsError):
+    async def default_command_error(self, ctx: Context, err: CommandsError):
         """
         Handles command errors by default.
         """
