@@ -24,10 +24,15 @@ class UniversalWrapper:
     """
     Represents a universal websocket wrapper.
     """
-    def __init__(self, url: str):
+    _DONE = object()
+
+    def __init__(self, url: str, task_group: anyio.TaskGroup):
         self._url = url
         self._ws: WebSocket = None
         self._cancelled = threading.Event()
+
+        self._queue = anyio.create_queue(5)
+        self._task_group = task_group
 
     def _generator(self):
         """
@@ -38,7 +43,9 @@ class UniversalWrapper:
         self._ws = ws
 
         for item in websocket:
-            yield item
+            anyio.run_async_from_thread(self._queue.put, item)
+
+        anyio.run_async_from_thread(self._queue.put, self._DONE)
 
     async def run(self):
         """
@@ -49,9 +56,12 @@ class UniversalWrapper:
         if self._cancelled.is_set():
             return
 
-        gen = self._generator()
+        await self._task_group.spawn(anyio.run_in_thread, self._generator)
         while True:
-            item = await anyio.run_in_thread(next, gen)
+            item = await self._queue.get()
+            if item is self._DONE:
+                return
+
             yield item
 
             # this will work because if it's cancelled the persist will spew a cancelled
@@ -74,4 +84,7 @@ class UniversalWrapper:
             self._cancelled.set()
 
         if self._ws is not None:
-            await anyio.run_in_thread(self._ws.close, code, reason)
+            # NB: This can't run in a thread because if we're cancelled (trio) this will never
+            # happen
+            # So we just pray this doesn't block!
+            self._ws.close(code, reason)

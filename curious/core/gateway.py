@@ -167,8 +167,9 @@ class GatewayHandler(object):
         :param clear_session_id: If we should clear the session ID.
         :param forceful: If the websocket should be forcefully closed.
         """
+        print("Calling close")
         if self.websocket is not None:
-            await self.websocket.close(code=code, reason=reason, kill=reconnect)
+            await self.websocket.close(code=code, reason=reason, kill=not reconnect)
                                        # forceful=True)
         # this kills the websocket
         await self._stop_heartbeating.set()
@@ -312,7 +313,7 @@ class GatewayHandler(object):
         self._databuffer.clear()
         self._decompressor = zlib.decompressobj()
 
-        self.websocket = UniversalWrapper(self.session.gateway_url)
+        self.websocket = UniversalWrapper(self.session.gateway_url, self.task_group)
 
     async def events(self) -> AsyncGenerator[None, Any]:
         """

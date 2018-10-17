@@ -507,8 +507,6 @@ class Client(object):
             for shard in range(0, shard_count):
                 await tg.spawn(self.run_shard, shard)
 
-        print("closed")
-
     async def run_async(self, *, shard_count: int = 1, autoshard: bool = True):
         """
         Runs the client asynchronously.
