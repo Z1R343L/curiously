@@ -490,7 +490,7 @@ async def open_websocket(token: str, url: str, *,
     .. code-block:: python3
 
         async with trio.open_nursery() as nursery:
-            async with open_websocket(token, url, task_group=nursery) as gateway:
+            async with open_websocket(token, url) as gateway:
                 # example for changing presence
                 nursery.start_soon(some_gw_handler, gateway)
 
