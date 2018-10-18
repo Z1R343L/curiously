@@ -21,69 +21,40 @@ Classes for plugin objects.
 from collections import OrderedDict
 
 import inspect
-import logging
-
-from curious.core import client as md_client
 
 
-class PluginMeta(type):
+class PluginMetacls(type):
     def __prepare__(*args, **kwargs):
         return OrderedDict()  # 3.6 compat
 
 
-class Plugin(metaclass=PluginMeta):
+class Plugin(metaclass=PluginMetacls):
     """
     Represents a plugin (a collection of events and commands under one class).
     """
-    def __init__(self, client: 'md_client.Client'):
-        #: The client for this plugin.
-        self.client = client
 
-        #: The task group for this plugin.
-        self.task_group = None
-
-    async def load(self) -> None:
+    async def plugin_load(self) -> None:
         """
         Called when this plugin is loaded.
 
-        By default, this does nothing. It is meant to be overridden to customize behaviour.
+        The manager **will** wait for this function to complete.
         """
         pass
 
-    async def spawn(self, cofunc, *args):
+    async def plugin_run(self) -> None:
         """
-        Spawns a task using this plugin's task group.
+        Called to run any background tasks on this plugin.
+
+        Open your task group here (or similar) for any background tasks. This will be
+        automatically cancelled when the plugin is unloaded.
         """
-        # stubbed out, need to redo
-        return
 
-        if self.task_group is None:
-            # spawn a new task group function
-            async def task_group_magic():
-                logger = logging.getLogger(__name__)
-                try:
-                    async with multio.asynclib.task_manager() as tg:
-                        self.task_group = tg
-                        await multio.asynclib.spawn(tg, cofunc, *args)
-                except multio.asynclib.TaskGroupError as e:
-                    errors = multio.asynclib.unwrap_taskgrouperror(e)
-                    for error in errors:
-                        logger.exception("Plugin task group crashed!", exc_info=error)
-                except Exception as e:
-                    logger.exception("Plugin task group crashed!", exc_info=e)
-                finally:
-                    self.task_group = None
-
-            await multio.asynclib.spawn(self.client.task_manager, task_group_magic)
-        else:
-            # spawn using the current one
-            await multio.asynclib.spawn(self.task_group, cofunc, *args)
-
-    async def unload(self) -> None:
+    async def plugin_unload(self) -> None:
         """
         Called when this plugin is unloaded.
 
-        By default, this does nothing. It is meant to be overridden to customize behaviour.
+        The manager **will** wait for this function to complete. It can be used to, for example,
+        cancel any running tasks.
         """
 
     def _get_commands(self) -> list:

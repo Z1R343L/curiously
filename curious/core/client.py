@@ -209,6 +209,9 @@ class Client(object):
         """
         return MappingProxyType(self._gateways)
 
+    async def _spawn_task_internal(self, cofunc):
+        await self.task_manager.spawn(self.events._safety_wrapper, cofunc)
+
     def find_channel(self, channel_id: int) -> 'Union[None, dt_channel.Channel]':
         """
         Finds a channel by channel ID.
@@ -498,15 +501,15 @@ class Client(object):
 
         # boot up the gateway connections
         logger.info(f"Loading {shard_count} gateway connections.")
-        async with anyio.create_task_group() as tg:
+        async with anyio.create_task_group() as main_group:
             # tg: anyio.TaskGroup
 
             # copy the task manager into the global namespace
-            self.task_manager = tg
-            self.events.task_manager = tg
+            self.task_manager = main_group
+            self.events.task_manager = main_group
 
             for shard in range(0, shard_count):
-                await tg.spawn(self.run_shard, shard)
+                await main_group.spawn(self.run_shard, shard)
 
     async def run_async(self, *, shard_count: int = 1, autoshard: bool = True):
         """

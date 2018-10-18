@@ -27,7 +27,7 @@ import inspect
 import logging
 import traceback
 from functools import partial
-from typing import Callable, Iterable, Type, Union
+from typing import Callable, Dict, Iterable, Tuple, Type, Union
 
 from curious.commands.context import Context
 from curious.commands.exc import CommandsError
@@ -38,6 +38,7 @@ from curious.commands.utils import prefix_check_factory
 from curious.core import client as md_client
 from curious.core.event import EventContext, event
 from curious.dataclasses.message import Message
+from curious.util import Promise
 
 logger = logging.getLogger("curious.commands.manager")
 
@@ -133,7 +134,7 @@ class CommandsManager(object):
         self.message_check = message_check
 
         #: A dictionary mapping of <plugin name> -> <plugin> object.
-        self.plugins = {}
+        self.plugins: Dict[str, Tuple[Plugin, anyio.CancelScope]] = {}
 
         #: A dictionary mapping of <plugin> -> <dict of commands> object for cache purposes.
         self._plugin_command_cache = {}
@@ -184,12 +185,24 @@ class CommandsManager(object):
         """
         # get the name and create the plugin object
         plugin_name = getattr(klass, "plugin_name", klass.__name__)
-        instance = klass(self.client, *args)
+        instance = klass(*args)
 
         # call load, of course
-        await instance.load()
+        await instance.plugin_load()
 
-        self.plugins[plugin_name] = instance
+        # set up a cancel scope which allows "easy" background task management and
+        # automatic cancellation of them
+        p_scope = Promise()
+
+        async def _run_plugin():
+            async with anyio.open_cancel_scope() as scope:
+                await p_scope.set(scope)
+                await instance.plugin_run()
+
+        await self.client._spawn_task_internal(_run_plugin)
+        new_scope = await p_scope.wait()
+
+        self.plugins[plugin_name] = (instance, new_scope)
         if module is not None:
             self._module_plugins[module].append(instance)
 
@@ -204,30 +217,32 @@ class CommandsManager(object):
 
         return instance
 
-    async def unload_plugin(self, klass: Union[Plugin, str]):
+    async def unload_plugin(self, klass: Union[Type[Plugin], str]):
         """
         Unloads a plugin.
 
         :param klass: The plugin class or name of plugin to unload.
         """
-        p: Plugin = None
+        plugin, scope = (None, None)
         if isinstance(klass, str):
-            p = self.plugins.pop(klass)
+            plugin, scope = self.plugins.pop(klass)
+        else:
+            for k, (s, p) in self.plugins.copy().items():
+                if type(p) == klass:
+                    plugin, scope = self.plugins.pop(k)
+                    break
 
-        for k, p in self.plugins.copy().items():
-            if type(p) == klass:
-                p = self.plugins.pop(k)
-                break
+        if plugin is None:
+            return
 
-        if p is not None:
-            # cancel the task group used for this plugin, if it's running
-            if p.task_group is not None:
-                await p.task_group.cancel_scope.cancel()
+        # cancel any old bg tasks
+        await scope.cancel()
 
-            await p.unload()
-            self._plugin_command_cache.pop(getattr(p, "plugin_name", type(p).__name__))
+        if plugin is not None:
+            await plugin.plugin_unload()
+            self._plugin_command_cache.pop(getattr(plugin, "plugin_name", type(plugin).__name__))
 
-        return p
+        return plugin
 
     def lookup_command(self, name: str):
         """
@@ -333,10 +348,7 @@ class CommandsManager(object):
             module = import_path
 
         for plugin in self._module_plugins[module]:
-            await plugin.unload()
-            if plugin.task_group is not None:
-                plugin.task_group.cancel_scope.cancel()
-
+            await plugin.plugin_unload()
             name = getattr(plugin, "plugin_name", type(plugin).__name__)
             self.plugins.pop(name)
 
