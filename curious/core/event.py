@@ -228,8 +228,8 @@ class EventManager(object):
 
         # unwrap tuples, if applicable
         if len(result) == 1:
-            return output[0]
-        return output
+            return result[0]
+        return result
 
     def wait_for_manager(self, event_name: str, predicate) -> 'typing.AsyncContextManager[None]':
         """
