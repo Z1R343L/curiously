@@ -40,7 +40,7 @@ from curious.dataclasses.presence import Game, Status
 from curious.dataclasses.user import BotUser, User
 from curious.dataclasses.webhook import Webhook
 from curious.dataclasses.widget import Widget
-from curious.util import base64ify, coerce_agen
+from curious.util import base64ify, coerce_agen, finalise
 
 logger = logging.getLogger("curious.client")
 
@@ -466,18 +466,19 @@ class Client(object):
             # gw: GatewayHandler
             self._gateways[shard_id] = gw
 
-            async for event in gw.events():
-                name, *params = event
-                to_dispatch = [event]
+            async with finalise(gw.events()) as agen:
+                async for event in agen:
+                    name, *params = event
+                    to_dispatch = [event]
 
-                if name == "gateway_dispatch_received":
-                    handler = f"handle_{params[0].lower()}"
-                    handler = getattr(self.state, handler)
-                    subevents = await coerce_agen(handler(gw, *params[1:]))
-                    to_dispatch += subevents
+                    if name == "gateway_dispatch_received":
+                        handler = f"handle_{params[0].lower()}"
+                        handler = getattr(self.state, handler)
+                        subevents = await coerce_agen(handler(gw, *params[1:]))
+                        to_dispatch += subevents
 
-                for event in to_dispatch:
-                    await self.events.fire_event(event[0], *event[1:], gateway=gw)
+                    for event in to_dispatch:
+                        await self.events.fire_event(event[0], *event[1:], gateway=gw)
 
     async def start_sharded(self, shard_count: int):
         """

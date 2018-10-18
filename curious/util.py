@@ -386,6 +386,28 @@ def safe_generator(cbl):
         return cbl
 
 
+class _Finalize:
+    def __init__(self, g):
+        self._g = g
+
+    async def __aenter__(self):
+        return self._g
+
+    async def __aexit__(self, exc_type, exc_val, exc_tb):
+        if hasattr(self._g, 'aclose'):
+            await self._g.aclose()
+
+        return False
+
+
+def finalise(cbl):
+    try:
+        from curio.meta import finalize
+        return finalize(cbl)
+    except ImportError:
+        return _Finalize(cbl)
+
+
 def _ad_getattr(self, key: str):
     try:
         return self[key]

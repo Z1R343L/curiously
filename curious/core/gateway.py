@@ -35,7 +35,7 @@ from lomond.events import Binary, Closed, Connected, Connecting, Text
 from typing import Any, AsyncContextManager, AsyncGenerator, List, Union
 
 from curious.core._ws_wrapper.universal_wrapper import UniversalWrapper
-from curious.util import safe_generator
+from curious.util import finalise, safe_generator
 
 
 class GatewayOp(enum.IntEnum):
@@ -167,7 +167,6 @@ class GatewayHandler(object):
         :param clear_session_id: If we should clear the session ID.
         :param forceful: If the websocket should be forcefully closed.
         """
-        print("Calling close")
         if self.websocket is not None:
             await self.websocket.close(code=code, reason=reason, kill=not reconnect)
                                        # forceful=True)
@@ -319,27 +318,29 @@ class GatewayHandler(object):
         """
         Returns an async generator used to iterate over the events received by this websocket.
         """
-        async for event in self.websocket.run():
-            if isinstance(event, Closed):
-                await self._stop_heartbeat_events()
-                self.logger.info("The websocket has closed")
-                yield "websocket_closed",
+        async with finalise(self.websocket.run()) as agen:
+            async for event in agen:
+                if isinstance(event, Closed):
+                    await self._stop_heartbeat_events()
+                    self.logger.info("The websocket has closed")
+                    yield "websocket_closed",
 
-            elif isinstance(event, Connecting):
-                self.logger.info("The websocket is opening...")
-                # we need to reset the data buffer and zlib inflater
-                self._databuffer.clear()
-                self._decompressor = zlib.decompressobj()
-                yield "websocket_opened",
+                elif isinstance(event, Connecting):
+                    self.logger.info("The websocket is opening...")
+                    # we need to reset the data buffer and zlib inflater
+                    self._databuffer.clear()
+                    self._decompressor = zlib.decompressobj()
+                    yield "websocket_opened",
 
-            elif isinstance(event, Connected):
-                self.logger.info("The websocket has connected")
-                yield "websocket_connected"
+                elif isinstance(event, Connected):
+                    self.logger.info("The websocket has connected")
+                    yield "websocket_connected"
 
-            elif isinstance(event, (Text, Binary)):
-                gen = self.handle_data_event(event)
-                async for i in gen:
-                    yield i
+                elif isinstance(event, (Text, Binary)):
+                    gen = self.handle_data_event(event)
+                    async with finalise(gen) as agen:
+                        async for i in agen:
+                            yield i
 
     async def _start_heatbeat_events(self, heartbeat_interval: float):
         """
