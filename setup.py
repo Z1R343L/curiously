@@ -30,7 +30,7 @@ setup(
         "version_scheme": "guess-next-dev",
         "local_scheme": "dirty-tag"
     },
-    packages=['curious', 'curious.core', 'curious.core._ws_wrapper',
+    packages=['curious', 'curious.core', 'curious.core._ws_wrapper', 'curious.core.event',
               'curious.commands', 'curious.dataclasses',
               'curious.ext.paginator', 'curious.ipc'],
     url='https://github.com/SunDwarf/curious',
