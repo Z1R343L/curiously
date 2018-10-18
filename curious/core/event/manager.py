@@ -12,36 +12,19 @@
 #
 # You should have received a copy of the GNU Lesser General Public License
 # along with curious.  If not, see <http://www.gnu.org/licenses/>.
-
-"""
-Special helpers for events.
-
-.. currentmodule: curious.core.events
-"""
 import anyio
-import contextvars
 import functools
 import inspect
 import logging
 import outcome
-import typing
 from async_generator import asynccontextmanager
 from multidict import MultiDict
+from typing import Any, AsyncContextManager
 
-from curious.core.gateway import GatewayHandler
+from curious.core.event.context import EventContext, event_context
 from curious.util import Promise, remove_from_multidict, safe_generator
 
-logger = logging.getLogger("curious.events")
-
-#: The current :class:`.EventContext`.
-event_context = contextvars.ContextVar("event_context")
-
-
-def current_event_context() -> 'EventContext':
-    """
-    :return: The current :class:`.EventContext` that is being processed.
-    """
-    return event_context.get()
+logger = logging.getLogger(__name__)
 
 
 class ListenerExit(Exception):
@@ -231,7 +214,7 @@ class EventManager(object):
             return result[0]
         return result
 
-    def wait_for_manager(self, event_name: str, predicate) -> 'typing.AsyncContextManager[None]':
+    def wait_for_manager(self, event_name: str, predicate) -> 'AsyncContextManager[None]':
         """
         Returns a context manager that can be used to run some steps whilst waiting for a
         temporary listener.
@@ -245,7 +228,7 @@ class EventManager(object):
         """
         return _wait_for_manager(self, event_name, predicate)
 
-    async def spawn(self, cofunc, *args) -> typing.Any:
+    async def spawn(self, cofunc, *args) -> Any:
         """
         Spawns a new async function using our task manager.
 
@@ -292,91 +275,3 @@ class EventManager(object):
             coro = functools.partial(self._listener_wrapper, event_name, listener, ctx,
                                      *args, **kwargs)
             await self.spawn(coro)
-
-
-def event(name, scan: bool = True):
-    """
-    Marks a function as an event.
-
-    :param name: The name of the event.
-    :param scan: Should this event be handled in scans too?
-    """
-
-    def __innr(f):
-        if not hasattr(f, "events"):
-            f.events = {name}
-
-        f.is_event = True
-        f.events.add(name)
-        f.scan = scan
-        return f
-
-    return __innr
-
-
-def scan_events(obb) -> typing.Generator[None, typing.Tuple[str, typing.Any], None]:
-    """
-    Scans an object for any items marked as an event and yields them.
-    """
-
-    def _pred(f):
-        is_event = getattr(f, "is_event", False)
-        if not is_event:
-            return False
-
-        if not f.scan:
-            return False
-
-        return True
-
-    for _, item in inspect.getmembers(obb, predicate=_pred):
-        yield (_, item)
-
-
-class EventContext(object):
-    """
-    Represents a special context that are passed to events.
-    """
-
-    def __init__(self, shard_id: int,
-                 event_name: str):
-        """
-        :param shard_id: The shard ID this event is for.
-        :param event_name: The event name for this event.
-        """
-        from curious.core import get_current_client
-
-        #: The shard this event was received on.
-        self.shard_id = shard_id  # type: int
-        #: The shard for this bot.
-        self.shard_count = get_current_client().shard_count  # type: int
-
-        #: The event name for this event.
-        self.event_name = event_name  # type: str
-
-    @property
-    def handlers(self) -> typing.List[typing.Callable[['EventContext'], None]]:
-        """
-        :return: A list of handlers registered for this event. 
-        """
-        from curious.core import get_current_client
-        return get_current_client().events.getall(self.event_name, [])
-
-    async def change_status(self, *args, **kwargs) -> None:
-        """
-        Changes the current status for this shard.
-        
-        This takes the same arguments as :class:`.Client.change_status`, but ignoring the shard ID.
-        """
-        kwargs["shard_id"] = self.shard_id
-
-        from curious.core import get_current_client
-        return await get_current_client().change_status(*args, **kwargs)
-
-    @property
-    def gateway(self) -> GatewayHandler:
-        """
-        :return: The :class:`.Gateway` that produced this event.
-        """
-        from curious.core import get_current_client
-        return get_current_client().gateways[self.shard_id]
