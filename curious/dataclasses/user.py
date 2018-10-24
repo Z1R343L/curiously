@@ -21,6 +21,7 @@ Wrappers for User objects.
 
 import datetime
 
+from curious.core import get_current_client
 from curious.dataclasses import channel as dt_channel, guild as dt_guild, message as dt_message
 from curious.dataclasses.bases import Dataclass
 from curious.exc import CuriousError
@@ -192,13 +193,14 @@ class User(Dataclass):
             raise CuriousError("Cannot open a private channel with a webhook")
 
         # First, try and access the channel from the channel cache.
-        original_channel = get_current_client().state.find_channel(self.id)
+        client = get_current_client()
+        original_channel = client.state.find_channel(self.id)
         if original_channel:
             return original_channel
 
         # Failing that, open a new private channel.
-        channel_data = await get_current_client().http.create_private_channel(self.id)
-        channel = get_current_client().state.make_private_channel(channel_data)
+        channel_data = await client.http.create_private_channel(self.id)
+        channel = client.state.make_private_channel(channel_data)
         return channel
 
     async def send(self, content: str = None, *args, **kwargs) -> 'dt_message.Message':
