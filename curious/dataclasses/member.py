@@ -27,7 +27,6 @@ from curious.core import get_current_client
 from curious.dataclasses import guild as dt_guild, role as dt_role, user as dt_user, \
     voice_state as dt_vs
 from curious.dataclasses.bases import Dataclass
-from curious.dataclasses.guild import GuildBan
 from curious.dataclasses.permissions import Permissions
 from curious.dataclasses.presence import Game, Presence, Status
 from curious.exc import HierarchyError, PermissionsError
@@ -429,7 +428,8 @@ class Member(Dataclass):
         """
         return await self.user.send(content, *args, **kwargs)
 
-    async def ban(self, delete_message_days: int = 7, reason: str = None) -> GuildBan:
+    async def ban(self, delete_message_days: int = 7,
+                  reason: str = None) -> 'dt_guild.GuildBan':
         """
         Bans this member from the guild.
 
