@@ -280,27 +280,23 @@ class GuildChannelWrapper(_WrapperBase):
 
         if parent is not None:
             if parent.type != dt_channel.ChannelType.CATEGORY:
-                raise CuriousError("Cannot create channel with non-category parent")
+                raise ValueError("Cannot create channel with non-category parent")
 
             if type_.value == dt_channel.ChannelType.CATEGORY:
-                raise CuriousError("Cannot create category channel with category")
+                raise ValueError("Cannot create category channel with category")
 
             kwargs["parent_id"] = parent.id
 
+        client = get_current_client()
         # create a listener so we wait for the WS before editing
-        async def _listener(channel: dt_channel.Channel):
-            return channel.name == name and channel.guild == self._guild
-
-        async with get_current_client().events.wait_for_manager("channel_create", _listener):
-            channel_data = await get_current_client().http.create_channel(self._guild.id, **kwargs)
+        channel_data = await client.http.create_channel(self._guild.id, **kwargs)
 
         # if it's a text channel and the topic was provided, automatically add it
-        if type is dt_channel.ChannelType.TEXT and topic is not None:
-            async with get_current_client().events.wait_for_manager("channel_update", _listener):
-                await get_current_client().http.edit_channel(channel_id=channel_data["id"],
-                                                             topic=topic)
+        if type_ is dt_channel.ChannelType.TEXT and topic is not None:
+            channel_data = await client.http.edit_channel(channel_id=channel_data["id"],
+                                                          topic=topic)
 
-        return self._guild._channels[int(channel_data.get("id"))]
+        return dt_channel.Channel(**channel_data)
 
     def edit(self, channel: 'dt_channel.Channel', **kwargs):
         """

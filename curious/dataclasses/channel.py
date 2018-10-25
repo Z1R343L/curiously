@@ -483,7 +483,7 @@ class ChannelMessageWrapper(object):
             if can_bulk_delete:
                 try:
                     await get_current_client().http.delete_multiple_messages(self.channel.id,
-                                                                          message_ids)
+                                                                             message_ids)
                 except Forbidden:
                     # We might not have MANAGE_MESSAGES.
                     # Check if we should fallback on normal delete.
@@ -539,6 +539,7 @@ class Channel(Dataclass):
     """
     Represents a channel object.
     """
+    _NONE = object()
 
     def __init__(self, **kwargs) -> None:
         super().__init__(kwargs.get("id"))
@@ -1123,13 +1124,7 @@ class Channel(Dataclass):
         async def runner():
             await self.send_typing()
             while True:
-                try:
-                    async with anyio.fail_after(5):
-                        await running.wait()
-                except TimeoutError:
-                    await self.send_typing()
-                else:
-                    return
+                await self.send_typing()
 
         async with anyio.create_task_group() as tg:
             tg: anyio.TaskGroup
@@ -1139,7 +1134,6 @@ class Channel(Dataclass):
             finally:
                 await tg.cancel_scope.cancel()
 
-    @deprecated(since="0.7.0", see_instead="Channel.messages.send", removal="0.10.0")
     async def send(self, content: str = None, *,
                    tts: bool = False, embed: Embed = None) -> 'dt_message.Message':
         """
@@ -1159,29 +1153,39 @@ class Channel(Dataclass):
         """
         return await self.messages.send(content, tts=tts, embed=embed)
 
-    @deprecated(since="0.7.0", see_instead="Channel.messages.upload", removal="0.10.0")
-    async def send_file(self, file_content: bytes, filename: str,
-                        *, message_content: _typing.Optional[str] = None) -> 'dt_message.Message':
+    async def upload(self, fp: '_typing.Union[bytes, str, PathLike, _typing.IO]',
+                     *,
+                     filename: str = None,
+                     message_content: '_typing.Optional[str]' = None,
+                     message_embed: '_typing.Optional[Embed]' = None) -> 'dt_message.Message':
         """
         Uploads a message to this channel.
 
         This requires SEND_MESSAGES and ATTACH_FILES permission in the channel.
 
-        .. code:: python
+        .. code-block:: python3
 
             with open("/tmp/emilia_best_girl.jpg", 'rb') as f:
-                await channel.send_file(f.read(), "my_waifu.jpg")
+                await channel.messages.upload(f, "my_waifu.jpg")
 
-        :param file_content: The bytes-like file content to upload.
-            This **cannot** be a file-like object.
+        :param fp: Variable.
 
-        :param filename: The filename of the file.
+            - If passed a string or a :class:`os.PathLike`, will open and read the file and
+            upload it.
+            - If passed bytes, will use the bytes as the file content.
+            - If passed a file-like, will read and use the content to upload.
+
+        :param filename: The filename for the file uploaded. If a path-like or str is passed, \
+            will use the filename from that if this is not specified.
         :param message_content: Optional: Any extra content to be sent with the message.
+        :param message_embed: Optional: An :class:`.Embed` to be sent with the message. The embed \
+           can refer to the image as "attachment://filename"
         :return: The new :class:`.Message` created.
         """
-        return await self.messages.upload(file_content, filename, message_content=message_content)
+        return await self.messages.upload(fp, filename=filename, message_content=message_content,
+                                          message_embed=message_embed)
 
-    @deprecated(since="0.7.0", see_instead="Channel.messages.upload", removal="0.10.0")
+    @deprecated(since="0.7.0", see_instead="Channel.messages.upload", removal="0.9.0")
     async def upload_file(self, filename: str, *,
                           message_content: str = None) -> 'dt_message.Message':
         """
@@ -1248,9 +1252,21 @@ class Channel(Dataclass):
 
         return self
 
-    async def edit(self, **kwargs) -> 'Channel':
+    async def edit(self, *, name: str = None, position: int = None,
+                   topic: str = None,
+                   bitrate: int = None, user_limit: int = -1,
+                   rate_limit_per_user: int = None,
+                   parent: 'Channel' = _NONE) -> 'Channel':
         """
         Edits this channel.
+
+        :param name: The new name of the channel.
+        :param position: The new position of the channel.
+        :param topic: The new topic of the channel.
+        :param bitrate: The new bitrate of the channel.
+        :param user_limit: The user limit of the channel.
+        :param rate_limit_per_user: The rate limit per user.
+        :param parent: The :class:`.Channel` to set as the category parent for this channel.
         """
         if self.guild is None:
             raise CuriousError("Can only edit guild channels")
@@ -1258,10 +1274,20 @@ class Channel(Dataclass):
         if not self.effective_permissions(self.guild.me).manage_channels:
             raise PermissionsError("manage_channels")
 
-        if "parent" in kwargs:
-            kwargs["parent_id"] = kwargs["parent"].id
+        if parent is None:
+            parent = 0
+        elif parent is not self._NONE:
+            if not parent.type == ChannelType.CATEGORY:
+                raise ValueError("Parent channel must be a category")
+            parent = parent.id
+        else:
+            parent = -1
 
-        await get_current_client().http.edit_channel(self.id, **kwargs)
+        await get_current_client().http.edit_channel(
+            self.id,
+            name=name, position=position, topic=topic, bitrate=bitrate, user_limit=user_limit,
+            rate_limit_per_user=rate_limit_per_user, parent_id=parent
+        )
         return self
 
     async def delete(self) -> 'Channel':
