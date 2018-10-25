@@ -29,6 +29,7 @@ import traceback
 from functools import partial
 from typing import Callable, Dict, Iterable, Tuple, Type, Union
 
+from curious import current_event_context
 from curious.commands.context import Context
 from curious.commands.exc import CommandsError
 from curious.commands.help import help_command
@@ -36,7 +37,7 @@ from curious.commands.plugin import Plugin
 from curious.commands.ratelimit import RateLimiter
 from curious.commands.utils import prefix_check_factory
 from curious.core import client as md_client
-from curious.core.event import EventContext, event
+from curious.core.event import event
 from curious.dataclasses.message import Message
 from curious.util import Promise
 
@@ -355,7 +356,7 @@ class CommandsManager(object):
         del sys.modules[import_path]
         del self._module_plugins[module]
 
-    async def event_hook(self, ctx: EventContext, *args, **kwargs):
+    async def event_hook(self, *args, **kwargs):
         """
         The event hook for the commands manager.
         """
@@ -363,6 +364,7 @@ class CommandsManager(object):
             tg: anyio.TaskGroup
             for (plugin, scope) in self.plugins.values():
                 body = inspect.getmembers(plugin, predicate=lambda v: hasattr(v, "is_event"))
+                ctx = current_event_context()
                 for _, handler in body:
                     if ctx.event_name not in handler.events:
                         continue
@@ -372,7 +374,7 @@ class CommandsManager(object):
 
                     await tg.spawn(cofunc)
 
-    async def handle_commands(self, ctx: EventContext, message: Message):
+    async def handle_commands(self, message: Message):
         """
         Handles commands for a message.
         """
@@ -405,7 +407,7 @@ class CommandsManager(object):
         command_word, tokens = matched
 
         # step 2, create the new commands context
-        ctx = self.context_class(event_context=ctx, message=message)
+        ctx = self.context_class(message=message)
         ctx.root_command_name = command_word
         ctx.full_tokens = tokens
         ctx.tokens = ctx.full_tokens
@@ -420,7 +422,7 @@ class CommandsManager(object):
             await self.client.events.fire_event(e.event_name, e, ctx=reraise_ctx)
 
     @event("command_error")
-    async def default_command_error(self, ctx: Context, err: CommandsError):
+    async def default_command_error(self, err: CommandsError):
         """
         Handles command errors by default.
         """
@@ -433,8 +435,8 @@ class CommandsManager(object):
         logger.error(f"Error in command!\n{fmtted}")
 
     @event("message_create")
-    async def handle_message(self, ctx: EventContext, message: Message):
+    async def handle_message(self, message: Message):
         """
         Registered as the event handler in a client for handling commands.
         """
-        return await self.handle_commands(ctx, message)
+        return await self.handle_commands(message)

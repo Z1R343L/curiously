@@ -49,6 +49,9 @@ class EventContext(object):
         #: The event name for this event.
         self.event_name = event_name  # type: str
 
+        #: The original context, if this event was dispatched inside an event.
+        self.original_context: EventContext = None
+
     @property
     def handlers(self) -> List[Callable[['EventContext'], None]]:
         """

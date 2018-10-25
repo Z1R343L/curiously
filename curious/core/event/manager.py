@@ -179,7 +179,7 @@ class EventManager(object):
         """
         p = Promise()
 
-        async def listener(ctx, *args):
+        async def listener(*args):
             # exit immediately if the predicate is none
             if predicate is None:
                 await p.set(outcome.Value(None))
@@ -263,15 +263,15 @@ class EventManager(object):
 
         # always ensure hooks are ran first
         for hook in self.event_hooks:
-            cofunc = functools.partial(hook, ctx, *args, **kwargs)
+            cofunc = functools.partial(hook, *args, **kwargs)
             await self.spawn(cofunc)
 
         for handler in self.event_listeners.getall(event_name, []):
-            coro = functools.partial(handler, ctx, *args, **kwargs)
+            coro = functools.partial(handler, *args, **kwargs)
             coro.__name__ = handler.__name__
             await self.spawn(self._safety_wrapper, coro)
 
         for listener in self.temporary_listeners.getall(event_name, []):
-            coro = functools.partial(self._listener_wrapper, event_name, listener, ctx,
+            coro = functools.partial(self._listener_wrapper, event_name, listener,
                                      *args, **kwargs)
             await self.spawn(coro)

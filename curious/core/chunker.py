@@ -18,8 +18,9 @@ from collections import defaultdict
 import logging
 from typing import List, MutableMapping
 
+from curious import current_event_context
 from curious.core import client as md_client
-from curious.core.event import EventContext, event
+from curious.core.event import event
 from curious.dataclasses import guild as md_guild
 
 logger = logging.getLogger(__name__)
@@ -116,22 +117,25 @@ class Chunker(object):
 
         # fire a ready
         gateway = self.client._gateways[shard_id]
+        logger.debug("All guilds are chunked. Firing ready event.")
         await self.client.events.fire_event("ready", gateway=gateway)
         self._ready[shard_id] = True
 
     @event("guild_chunk")
-    async def handle_member_chunk(self, ctx: EventContext, guild: 'md_guild.Guild', members: int):
+    async def handle_member_chunk(self, guild: 'md_guild.Guild', members: int):
         """
         Checks if we can fire ready or not.
         """
+        ctx = current_event_context()
         # the state handles the finer details of the event, thankfully
         await self._potentially_fire_ready(ctx.shard_id)
 
     @event("guild_streamed")
-    async def potentially_add_to_pending(self, ctx: EventContext, guild: 'md_guild.Guild'):
+    async def potentially_add_to_pending(self, guild: 'md_guild.Guild'):
         """
         Potentially adds a guild to the pending count.
         """
+        ctx = current_event_context()
         if guild.large:
             logger.debug("Added guild `%s` to chunk pending", guild.id)
             self._pending[ctx.shard_id].append(guild)
@@ -140,19 +144,21 @@ class Chunker(object):
 
     @event("guild_available")
     @event("guild_joined")
-    async def handle_new_guild(self, ctx: EventContext, guild: 'md_guild.Guild'):
+    async def handle_new_guild(self, guild: 'md_guild.Guild'):
         """
         Handles a new guild (just become available for) has just joined.
         """
+        ctx = current_event_context()
         # immediately chunk
         await self.fire_chunks(ctx.shard_id, [guild])
 
     # clear any pending guilds
     @event("connect")
-    async def unconditionally_chunk_rest(self, ctx: EventContext):
+    async def unconditionally_chunk_rest(self):
         """
         Unconditionally chunks the current guilds that are pending.
         """
+        ctx = current_event_context()
         # clear ready
         self._ready[ctx.shard_id] = False
 

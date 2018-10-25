@@ -31,7 +31,7 @@ from curious.commands.exc import CommandInvokeError, CommandNotFound, CommandsEr
 from curious.commands.plugin import Plugin
 from curious.commands.utils import _convert
 from curious.core import get_current_client
-from curious.core.event import EventContext
+from curious.core.event import EventContext, current_event_context
 from curious.dataclasses.channel import Channel
 from curious.dataclasses.guild import Guild
 from curious.dataclasses.member import Member
@@ -68,10 +68,9 @@ class Context(object):
         float: convert_float,
     }
 
-    def __init__(self, message: Message, event_context: EventContext):
+    def __init__(self, message: Message):
         """
         :param message: The :class:`.Message` this command was invoked with.
-        :param event_context: The EventContext for this context.
         """
         #: The message for this context.
         self.message = message
@@ -96,9 +95,6 @@ class Context(object):
 
         #: The manager for this context.
         self.manager = None
-
-        #: The event context for this context.
-        self.event_context: EventContext = event_context
 
     @classmethod
     def add_converter(cls, type_: Type[Any], converter):
@@ -306,7 +302,10 @@ class Context(object):
         """
         Makes a new :class:`.EventContext` for re-dispatching.
         """
-        return EventContext(self.event_context.shard_id, new_name)
+        old_ctx = current_event_context()
+        new = EventContext(old_ctx.shard_id, new_name)
+        new.original_context = old_ctx
+        return new
 
     async def _run_command(self, cbl, *args, **kwargs):
         """
