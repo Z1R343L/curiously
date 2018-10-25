@@ -29,7 +29,7 @@ from types import MappingProxyType
 from typing import Union
 
 from curious.core import chunker as md_chunker
-from curious.core.event import EventContext, EventManager, event as ev_dec, scan_events
+from curious.core.event import EventManager, event as ev_dec, scan_events
 from curious.core.gateway import GatewayHandler, open_websocket
 from curious.core.httpclient import HTTPClient
 from curious.dataclasses import channel as dt_channel, guild as dt_guild
@@ -448,10 +448,13 @@ class Client(object):
         return " ".join(final)
 
     @ev_dec(name="ready")
-    async def handle_ready(self, ctx: 'EventContext'):
+    async def handle_ready(self):
         """
         Handles a READY event, dispatching a ``shards_ready`` event when all shards are ready.
         """
+        from curious.core.event import current_event_context
+        ctx = current_event_context()
+
         self._ready_state[ctx.shard_id] = True
 
         if not all(self._ready_state.values()):
