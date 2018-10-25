@@ -678,7 +678,7 @@ class HTTPClient(object):
 
         :param channel_id: The ID of the channel to type in.
         """
-        url = Endpoints.CHANNEL_format(channel_id=channel_id)
+        url = Endpoints.CHANNEL_TYPING.format(channel_id=channel_id)
 
         data = await self.post(url, bucket="typing:{}".format(channel_id))
         return data
