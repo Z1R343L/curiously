@@ -411,7 +411,7 @@ class State(object):
         """
         Called when the gateway connection is resumed.
         """
-        yield ("resumed",)
+        yield "resumed",
 
     async def handle_user_update(self, gw: 'gateway.GatewayHandler', event_data: dict):
         """
@@ -496,7 +496,7 @@ class State(object):
 
     async def handle_presences_replace(self, gw: 'gateway.GatewayHandler', event_data: dict):
         # TODO
-        pass
+        yield "presences_replace",
 
     async def handle_guild_members_chunk(self, gw: 'gateway.GatewayHandler', event_data: dict):
         """
