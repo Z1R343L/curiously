@@ -70,6 +70,7 @@ from curious.dataclasses.webhook import Webhook
 from curious.dataclasses.widget import Widget, WidgetChannel, WidgetGuild, WidgetMember
 
 from curious.core.client import Client
+from curious.core.httpclient import audit_log_reason
 
 from curious.exc import ErrorCode, CuriousError, Forbidden, NotFound, Unauthorized, \
     HierarchyError, PermissionsError, HTTPException

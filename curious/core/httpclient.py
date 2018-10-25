@@ -23,6 +23,7 @@ from math import ceil, floor
 
 import anyio
 import asks
+import contextvars
 import datetime
 import json
 import logging
@@ -30,12 +31,13 @@ import mimetypes
 import pytz
 import random
 import string
-import typing
 import weakref
 from asks.errors import ConnectivityError
 from asks.response_objects import Response
+from contextlib import contextmanager
 from email.utils import parsedate
 from h11 import RemoteProtocolError
+from typing import Any, Dict, Iterable, List, Tuple, Union
 from urllib.parse import quote
 
 try:
@@ -49,7 +51,6 @@ except ImportError:
 
     lru = py_lru
 
-import curious
 from curious.exc import Forbidden, HTTPException, NotFound, Unauthorized
 
 logger = logging.getLogger("curious.http")
@@ -218,6 +219,28 @@ class Endpoints:
         self.BASE = base_url
 
 
+_audit_log_reason = contextvars.ContextVar("audit_log_reason")
+
+
+@contextmanager
+def audit_log_reason(reason: str) -> None:
+    """
+    Provides a reason for the audit log. This is used as a context manager, e.g.
+
+    .. code-block:: python3
+
+        with curious.audit_log_reason("Bad user"):
+            await member.kick()
+
+    :param reason: The audit log reason to set.
+    """
+    token = _audit_log_reason.set(reason)
+    try:
+        yield
+    finally:
+        _audit_log_reason.reset(token)
+
+
 class HTTPClient(object):
     """
     The HTTP client object used to make requests to Discord's servers.
@@ -246,8 +269,9 @@ class HTTPClient(object):
         self.token = token
 
         # Calculated headers
+        from curious import USER_AGENT
         headers = {
-            "User-Agent": curious.USER_AGENT,
+            "User-Agent": USER_AGENT,
             "Authorization": "{}{}".format("Bot " if bot else "", self.token)
         }
 
@@ -274,7 +298,7 @@ class HTTPClient(object):
 
     # Special wrapper functions
     @staticmethod
-    def get_response_data(response: Response) -> typing.Union[str, dict]:
+    def get_response_data(response: Response) -> Union[str, dict]:
         """
         Return either the text of a request or the JSON.
 
@@ -301,6 +325,8 @@ class HTTPClient(object):
         # update reason header
         if "reason" in kwargs:
             headers["X-Audit-Log-Reason"] = quote(kwargs["reason"])
+        elif _audit_log_reason.get(None) is not None:
+            headers["X-Audit-Log-Reason"] = quote(_audit_log_reason.get())
 
         # ensure path is escaped
         path = kwargs["path"]
@@ -652,7 +678,7 @@ class HTTPClient(object):
 
         :param channel_id: The ID of the channel to type in.
         """
-        url = Endpoints.CHANNEL_TYPING.format(channel_id=channel_id)
+        url = Endpoints.CHANNEL_format(channel_id=channel_id)
 
         data = await self.post(url, bucket="typing:{}".format(channel_id))
         return data
@@ -905,7 +931,7 @@ class HTTPClient(object):
         data = await self.get(url, bucket="pins:{}".format(channel_id))
         return data
 
-    async def delete_multiple_messages(self, channel_id: int, message_ids: typing.List[int]):
+    async def delete_multiple_messages(self, channel_id: int, message_ids: List[int]):
         """
         Deletes multiple messages.
 
@@ -1011,7 +1037,7 @@ class HTTPClient(object):
     async def create_guild(self, name: str, region: str = None, icon: str = None,
                            verification_level: int = None,
                            default_message_notifications: int = None,
-                           roles: typing.List[dict] = None, channels: typing.List[dict] = None):
+                           roles: List[dict] = None, channels: List[dict] = None):
         """
         Creates a new guild.
 
@@ -1238,13 +1264,14 @@ class HTTPClient(object):
         data = await self.patch(url, bucket="channels:{}".format(channel_id), json=payload)
         return data
 
-    async def update_channel_positions(self, guild_id: int, channel_ids_and_positions: typing.List[
-        typing.Tuple[int, int]]):
+    async def update_channel_positions(self, guild_id: int,
+                                       channel_ids_and_positions: List[Tuple[int, int]]):
         """
         Updates the positions of channels
 
         :param guild_id: The guild ID that contains the channels.
-        :param channel_ids_and_positions: A list of tuples of (channel_id, new_position); must at least be a swap of two channel positions.
+        :param channel_ids_and_positions: A list of tuples of (channel_id, new_position); \
+            must at least be a swap of two channel positions.
         """
         url = Endpoints.GUILD_CHANNELS.format(guild_id=guild_id)
 
@@ -1286,7 +1313,7 @@ class HTTPClient(object):
         return data
 
     async def edit_member_roles(self, guild_id: int, member_id: int,
-                                role_ids: typing.Iterable[int]):
+                                role_ids: Iterable[int]):
         """
         Modifies the roles that a member object contains.
 
@@ -1304,7 +1331,7 @@ class HTTPClient(object):
         return data
 
     async def edit_role_positions(self, guild_id: int,
-                                  role_mapping: typing.List[typing.Tuple[str, int]]):
+                                  role_mapping: List[Tuple[str, int]]):
         """
         Changes the position of a set of roles.
 
@@ -1504,7 +1531,7 @@ class HTTPClient(object):
 
     async def create_guild_emoji(self, guild_id: int, *,
                                  name: str, image: str,
-                                 roles: typing.List[int] = None):
+                                 roles: List[int] = None):
         """
         Creates an emoji in a guild.
 
@@ -1525,7 +1552,7 @@ class HTTPClient(object):
         return data
 
     async def edit_guild_emoji(self, guild_id: int, emoji_id: int, *,
-                               name: str = None, roles: typing.List[int] = None):
+                               name: str = None, roles: List[int] = None):
         """
         Modifies an emoji in a guild.
 
@@ -1679,7 +1706,7 @@ class HTTPClient(object):
         return data
 
     async def execute_webhook(self, webhook_id: int, webhook_token: str, *,
-                              content: str = None, embeds: typing.List[typing.Dict] = None,
+                              content: str = None, embeds: List[Dict[str, Any]] = None,
                               username: str = None, avatar_url: str = None,
                               wait: bool = False):
         """
@@ -1802,7 +1829,7 @@ class HTTPClient(object):
         :param guild_id: The guild ID of the guild to search. 
         :param params: Params to search with.
         """
-        url = (self.GUILD_BASE + "/messages/search").format(guild_id=guild_id)
+        url = (Endpoints.GUILD_BASE + "/messages/search").format(guild_id=guild_id)
 
         data = await self.get(url, bucket="search:{}".format(guild_id), params=params)
         return data
@@ -1825,7 +1852,7 @@ class HTTPClient(object):
         return data
 
     # Application info
-    async def get_app_info(self, application_id: typing.Union[int, None]):
+    async def get_app_info(self, application_id: Union[int, None]):
         """
         Gets some basic info about an application.
 
@@ -1866,15 +1893,6 @@ class HTTPClient(object):
 
         return final
 
-    async def get_user_applications(self):
-        """
-        Gets the list of applications for a user.
-        """
-        url = Endpoints.OAUTH2_APPLICATIONS
-
-        data = await self.get(url, "oauth2")
-        return data
-
     async def get_application(self, application_id: int):
         """
         Gets an application by ID.
@@ -1884,98 +1902,6 @@ class HTTPClient(object):
         url = "/oauth2/applications/{}".format(application_id)
 
         data = await self.get(url, "oauth2")
-        return data
-
-    async def authorize_bot(self, application_id: int, guild_id: int,
-                            *, permissions: int = 0):
-        """
-        Authorize a bot to be added to a guild.
-        
-        .. warning::
-        
-            This is a **user-acount only** endpoint.
-        
-
-        :param application_id: The client ID of the bot to be added.
-        :param guild_id: The guild ID to add the bot to.
-        :param permissions: The permissions to add the bot with.
-        """
-        url = Endpoints.OAUTH2_AUTHORIZE
-        params = {
-            "client_id": str(application_id),
-            "scope": "bot"
-        }
-
-        payload = {
-            "guild_id": guild_id,
-            "authorize": True,
-            "permissions": permissions
-        }
-
-        data = await self.post(url, "oauth2", params=params, json=payload)
-        return data
-
-    async def get_authorized_apps(self):
-        """
-        Gets authorized apps for this account.
-                
-        .. warning::
-        
-            This is a **user-account only** endpoint.
-        
-        """
-        url = Endpoints.OAUTH2_TOKENS
-
-        data = await self.get(url, bucket="oauth2")
-        return data
-
-    async def revoke_authorized_app(self, app_id: int):
-        """
-        Revokes an application authorization.
-                
-        .. warning::
-        
-            This is a **user-acount only** endpoint.
-        
-        
-        :param app_id: The ID of the application to revoke the authorization of. 
-        """
-        url = "/oauth2/tokens/{app_id}".format(app_id=app_id)
-
-        data = await self.delete(url, bucket="oauth")
-        return data
-
-    async def get_mentions(self, *,
-                           guild_id: int = None, limit: int = 25,
-                           roles: bool = True, everyone: bool = True):
-        """
-        Gets your recent mentions.
-        
-        .. warning::
-        
-            This is a **user-acount only** endpoint.
-        
-        :param guild_id: The guild ID to limit mentions for.
-        :param limit: The maximum number of messages to return.
-        :param roles: Should role mentions be included?
-        :param everyone: Should @everyone/@here mentions be included?
-        """
-        url = Endpoints.USER_MENTIONS
-        params = {}
-
-        if limit is not None:
-            params["limit"] = str(limit)
-
-        if guild_id is not None:
-            params["guild_id"] = str(guild_id)
-
-        if roles is not None:
-            params["roles"] = str(roles).lower()
-
-        if everyone is not None:
-            params["everyone"] = str(everyone).lower()
-
-        data = await self.get(url, "me:mentions", params=params)
         return data
 
     # Misc
