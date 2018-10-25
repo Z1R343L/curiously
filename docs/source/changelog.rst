@@ -42,6 +42,13 @@ This document displays the differences between each release of curious.
 
     - Instead they now use a context variable to get the running client instance.
 
+ - Remove passing around the event context explicitly.
+
+    - Instead, :meth:`curious.core.events.current_event_context` is required to get the event
+      context.
+
+    - This will break every single event handler.
+
 
 0.7.9 (Released 2018-08-05)
 ---------------------------
