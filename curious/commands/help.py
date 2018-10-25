@@ -84,7 +84,7 @@ async def help_for_all(ctx: Context):
     # this isn't incremented if we skip a row
     row_num = 0
 
-    for plugin in ctx.manager.plugins.values():
+    for (plugin, _) in ctx.manager.plugins.values():
         commands = plugin._get_commands()
         command_names = []
 
