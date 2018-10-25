@@ -361,7 +361,7 @@ class CommandsManager(object):
         """
         async with anyio.create_task_group() as tg:
             tg: anyio.TaskGroup
-            for plugin in self.plugins.values():
+            for (plugin, scope) in self.plugins.values():
                 body = inspect.getmembers(plugin, predicate=lambda v: hasattr(v, "is_event"))
                 for _, handler in body:
                     if ctx.event_name not in handler.events:
