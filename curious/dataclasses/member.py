@@ -27,6 +27,7 @@ from curious.core import get_current_client
 from curious.dataclasses import guild as dt_guild, role as dt_role, user as dt_user, \
     voice_state as dt_vs
 from curious.dataclasses.bases import Dataclass
+from curious.dataclasses.guild import GuildBan
 from curious.dataclasses.permissions import Permissions
 from curious.dataclasses.presence import Game, Presence, Status
 from curious.exc import HierarchyError, PermissionsError
@@ -275,7 +276,7 @@ class Member(Dataclass):
         return get_current_client().guilds.get(self.guild_id)
 
     @property
-    def voice(self) -> 'dt_vs.VoiceState':
+    def voice(self) -> 'Optional[dt_vs.VoiceState]':
         """
         :return: The :class:`.VoiceState` associated with this member.
         """
@@ -364,7 +365,7 @@ class Member(Dataclass):
         return self.presence.status if self.presence else Status.OFFLINE
 
     @property
-    def game(self) -> Game:
+    def game(self) -> Optional[Game]:
         """
         :return: The current :class:`.Game` this member is playing.
         """
@@ -428,15 +429,18 @@ class Member(Dataclass):
         """
         return await self.user.send(content, *args, **kwargs)
 
-    async def ban(self, delete_message_days: int = 7):
+    async def ban(self, delete_message_days: int = 7, reason: str = None) -> GuildBan:
         """
         Bans this member from the guild.
 
         :param delete_message_days: The number of days of messages to delete.
+        :param reason: The reason for this ban.
         """
-        return await self.guild.bans.add(self, delete_message_days=delete_message_days)
+        return await self.guild.bans.add(self,
+                                         delete_message_days=delete_message_days,
+                                         reason=reason)
 
-    async def kick(self):
+    async def kick(self) -> None:
         """
         Kicks this member from the guild.
         """

@@ -31,7 +31,7 @@ import typing
 from dataclasses import dataclass
 from os import PathLike
 from types import MappingProxyType
-from typing import Union
+from typing import Optional, Union
 
 from curious.core import get_current_client
 from curious.core.httpclient import Endpoints
@@ -1188,7 +1188,7 @@ class Guild(Dataclass):
         if not self.me.guild_permissions.kick_members:
             raise PermissionsError("kick_members")
 
-        if self._guild.owner == victim:
+        if self.owner == victim:
             raise HierarchyError("Cannot kick the owner")
 
         if victim.guild != self:
@@ -1288,11 +1288,12 @@ class Guild(Dataclass):
 
         :return: A list of :class:`.Webhook` objects for the guild.
         """
-        webhooks = await get_current_client().http.get_webhooks_for_guild(self.id)
+        client = get_current_client()
+        webhooks = await client.http.get_webhooks_for_guild(self.id)
         obbs = []
 
         for webhook in webhooks:
-            obbs.append(get_current_client().state.make_webhook(webhook))
+            obbs.append(client.state.make_webhook(webhook))
 
         return obbs
 
@@ -1428,6 +1429,7 @@ class Guild(Dataclass):
         :param status: The status of this widget: True or False.
         :param channel: The channel object to set the instant invite to.
         """
+        # i dont remember why I wrote this
         if channel is None:
             channel_id = None
         elif channel == -1:
@@ -1437,7 +1439,7 @@ class Guild(Dataclass):
 
         await get_current_client().http.edit_widget(self.id, enabled=status, channel_id=channel_id)
 
-    async def get_vanity_invite(self) -> 'typing.Union[None, dt_invite.Invite]':
+    async def get_vanity_invite(self) -> 'Optional[dt_invite.Invite]':
         """
         Gets the vanity :class:`.Invite` for this guild.
 
@@ -1471,7 +1473,7 @@ class Guild(Dataclass):
         :return: The :class:`.Invite` produced.
         """
         if 'vanity-url' not in self.features:
-            raise CuriousError("This guild has no vanity URL")
+            raise CuriousError("This guild cannot have a vanity URL")
 
         try:
             resp = await get_current_client().http.edit_vanity_url(self.id, url)
@@ -1479,7 +1481,7 @@ class Guild(Dataclass):
             if e.error_code != 50020:
                 raise
 
-            raise CuriousError("This guild has no vanity URL")
+            raise CuriousError("Invalid vanity URL")
 
         code = resp.get("code", None)
         if code is None:

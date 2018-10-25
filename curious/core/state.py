@@ -108,13 +108,6 @@ class State(object):
         """
         return MappingProxyType(self._guilds)
 
-    @property
-    def guilds_ordered(self) -> typing.Mapping[int, Guild]:
-        """
-        :return: An ordered mapping of int -> :class:`.Guild` by the user's guild ordering.
-        """
-        return self._guilds.with_order
-
     def have_all_chunks(self, shard_id: int):
         """
         Checks if we have all the chunks for the specified shard.
