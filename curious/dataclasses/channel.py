@@ -26,10 +26,10 @@ import collections
 import copy
 import enum
 import pathlib
-import typing as _typing
 from async_generator import asynccontextmanager
 from os import PathLike
 from types import MappingProxyType
+from typing import Any, AsyncContextManager, Callable, Dict, IO, List, Mapping, Optional, Union
 
 from curious.core import get_current_client
 from curious.dataclasses import guild as dt_guild, invite as dt_invite, member as dt_member, \
@@ -188,7 +188,7 @@ class HistoryIterator(collections.AsyncIterator):
         """
         return await self.__anext__()
 
-    async def all(self) -> '_typing.List[dt_message.Message]':
+    async def all(self) -> 'List[dt_message.Message]':
         """
         Gets a flattened list of items from the history.
         """
@@ -297,11 +297,14 @@ class ChannelMessageWrapper(object):
 
         return obb
 
-    async def upload(self, fp: '_typing.Union[bytes, str, PathLike, _typing.IO]',
-                     *,
-                     filename: str = None,
-                     message_content: '_typing.Optional[str]' = None,
-                     message_embed: '_typing.Optional[Embed]' = None) -> 'dt_message.Message':
+    async def upload(
+            self,
+            fp: 'Union[bytes, str, PathLike, IO]',
+            *,
+            filename: str = None,
+            message_content: Optional[str] = None,
+            message_embed: Optional[Embed] = None
+    ) -> 'dt_message.Message':
         """
         Uploads a message to this channel.
 
@@ -349,7 +352,7 @@ class ChannelMessageWrapper(object):
                 filename = path.parts[-1]
 
             file_content = path.read_bytes()
-        elif isinstance(fp, _typing.IO) or hasattr(fp, "read"):
+        elif isinstance(fp, IO) or hasattr(fp, "read"):
             file_content = fp.read()
 
             if isinstance(file_content, str):
@@ -369,7 +372,7 @@ class ChannelMessageWrapper(object):
         obb = client.state.make_message(data, cache=False)
         return obb
 
-    async def bulk_delete(self, messages: '_typing.List[dt_message.Message]') -> int:
+    async def bulk_delete(self, messages: 'List[dt_message.Message]') -> int:
         """
         Deletes messages from a channel.
         This is the low-level delete function - for the high-level function, see
@@ -410,8 +413,8 @@ class ChannelMessageWrapper(object):
     async def purge(self, limit: int = 100, *,
                     author: 'dt_member.Member' = None,
                     content: str = None,
-                    predicate: '_typing.Callable[[dt_message.Message], bool]' = None,
-                    fallback_from_bulk: bool = False):
+                    predicate: 'Callable[[dt_message.Message], bool]' = None,
+                    fallback_from_bulk: bool = False) -> int:
         """
         Purges messages from a channel.
         This will attempt to use ``bulk-delete`` if possible, but otherwise will use the normal
@@ -545,35 +548,35 @@ class Channel(Dataclass):
         super().__init__(kwargs.get("id"))
 
         #: The name of this channel.
-        self.name = kwargs.get("name", None)  # type: str
+        self.name: str = kwargs.get("name", None)
 
         #: The topic of this channel.
-        self.topic = kwargs.get("topic", None)  # type: str
+        self.topic: str = kwargs.get("topic", None)
 
         #: The ID of the guild this is associated with.
-        self.guild_id = int(kwargs.get("guild_id", 0)) or None  # type: int
+        self.guild_id: int = int(kwargs.get("guild_id", 0)) or None
 
         parent_id = kwargs.get("parent_id")
         if parent_id is not None:
             parent_id = int(parent_id)
 
         #: The parent ID of this channel.
-        self.parent_id = parent_id  # type: int
+        self.parent_id: int = parent_id
 
         #: The :class:`.ChannelType` of channel this channel is.
-        self.type = ChannelType(kwargs.get("type", 0))  # type: ChannelType
+        self.type = ChannelType(kwargs.get("type", 0))
 
         #: The :class:`.ChannelMessageWrapper` for this channel.
-        self._messages = None  # type: ChannelMessageWrapper
+        self._messages: Optional[ChannelMessageWrapper] = None
 
         #: If this channel is NSFW.
-        self.nsfw = kwargs.get("nsfw", False)  # type: bool
+        self.nsfw: bool = kwargs.get("nsfw", False)
 
         #: The rate limit per user (each user can send 1 message every N seconds where N = this num)
-        self.rate_limit_per_user = kwargs.get("rate_limit_per_user", 0)
+        self.rate_limit_per_user: int = kwargs.get("rate_limit_per_user", 0)
 
         #: If private, the mapping of :class:`.User` that are in this channel.
-        self._recipients = {}  # type: _typing.Dict[int, dt_user.User]
+        self._recipients: Dict[int, dt_user.User] = {}
 
         if self.private:
             for recipient in kwargs.get("recipients", []):
@@ -582,14 +585,15 @@ class Channel(Dataclass):
 
             if self.type == ChannelType.GROUP:
                 # append the current user
-                self._recipients[get_current_client().user.id] = get_current_client().user
+                client = get_current_client()
+                self._recipients[client.user.id] = get_current_client().user
 
         #: The position of this channel.
-        self.position = kwargs.get("position", 0)  # type: int
+        self.position: int = kwargs.get("position", 0)
 
         #: The last message ID of this channel.
         #: Used for history.
-        self._last_message_id = None  # type: int
+        self._last_message_id: Optional[int] = None
 
         _last_message_id = kwargs.get("last_message_id", 0)
         if _last_message_id:
@@ -600,13 +604,13 @@ class Channel(Dataclass):
         # group channel stuff
         #: The owner ID of the channel.
         #: This is None for non-group channels.
-        self.owner_id = int(kwargs.get("owner_id", 0)) or None  # type: int
+        self.owner_id: Optional[int] = int(kwargs.get("owner_id", 0)) or None
 
         #: The icon hash of the channel.
-        self.icon_hash = kwargs.get("icon", None)  # type: str
+        self.icon_hash: Optional[int] = kwargs.get("icon", None)
 
         #: The internal overwrites for this channel.
-        self._overwrites = {}  # type: _typing.Dict[int, dt_permissions.Overwrite]
+        self._overwrites: Dict[int, dt_permissions.Overwrite] = {}
 
     def __repr__(self) -> str:
         return f"<Channel id={self.id} name={self.name} type={self.type.name} " \
@@ -614,7 +618,7 @@ class Channel(Dataclass):
 
     __str__ = __repr__
 
-    def _update_overwrites(self, overwrites: _typing.List[dict]):
+    def _update_overwrites(self, overwrites: List[Dict[str, Any]]) -> None:
         """
         Updates the overwrites for this channel.
 
@@ -640,7 +644,7 @@ class Channel(Dataclass):
             self._overwrites[id_]._immutable = True
 
     @property
-    def guild(self) -> '_typing.Union[dt_guild.Guild, None]':
+    def guild(self) -> 'Optional[dt_guild.Guild]':
         """
         :return: The :class:`.Guild` associated with this Channel.
         """
@@ -664,14 +668,14 @@ class Channel(Dataclass):
         return self.guild_id is None
 
     @property
-    def recipients(self) -> '_typing.Mapping[int, dt_user.User]':
+    def recipients(self) -> 'Mapping[int, dt_user.User]':
         """
         :return: A mapping of int -> :class:`.User` for the recipients of this private chat.
         """
         return MappingProxyType(self._recipients)
 
     @property
-    def user(self) -> '_typing.Union[dt_user.User, None]':
+    def user(self) -> 'Optional[dt_user.User]':
         """
         :return: If this channel is a private channel, the :class:`.User` of the other user.
         """
@@ -684,7 +688,7 @@ class Channel(Dataclass):
             return None
 
     @property
-    def owner(self) -> '_typing.Union[dt_user.User, None]':
+    def owner(self) -> 'Optional[dt_user.User]':
         """
         :return: If this channel is a group channel, the owner of the channel.
         """
@@ -697,7 +701,7 @@ class Channel(Dataclass):
             return None
 
     @property
-    def parent(self) -> '_typing.Union[Channel, None]':
+    def parent(self) -> 'Optional[Channel]':
         """
         :return: If this channel has a parent, the parent category of this channel.
         """
@@ -707,7 +711,7 @@ class Channel(Dataclass):
             return None
 
     @property
-    def children(self) -> '_typing.List[Channel]':
+    def children(self) -> 'List[Channel]':
         """
         :return: A list of :class:`.Channel` children this channel has, if any.
         """
@@ -719,7 +723,7 @@ class Channel(Dataclass):
                     if channel.parent_id == self.id]
         return channels
 
-    def get_by_name(self, name: str) -> '_typing.Union[Channel, None]':
+    def get_by_name(self, name: str) -> 'Optional[Channel]':
         """
         Gets a channel by name in this channel's children.
 
@@ -729,7 +733,7 @@ class Channel(Dataclass):
         return next(filter(lambda channel: channel.name == name, self.children), None)
 
     @property
-    def messages(self) -> 'ChannelMessageWrapper':
+    def messages(self) -> ChannelMessageWrapper:
         """
         :return: The :class:`.ChannelMessageWrapper` for this channel, if applicable.
         """
@@ -738,6 +742,7 @@ class Channel(Dataclass):
 
         if self._messages is None:
             self._messages = ChannelMessageWrapper(self)
+
         return self._messages
 
     @property
@@ -756,7 +761,7 @@ class Channel(Dataclass):
         return AsyncIteratorWrapper(self.get_pins)
 
     @property
-    def icon_url(self) -> _typing.Union[str, None]:
+    def icon_url(self) -> Optional[str]:
         """
         :return: The icon URL for this channel if it is a group DM.
         """
@@ -764,7 +769,7 @@ class Channel(Dataclass):
             .format(self.id, self.icon_hash)
 
     @property
-    def voice_members(self) -> '_typing.List[dt_member.Member]':
+    def voice_members(self) -> 'List[dt_member.Member]':
         """
         :return: A list of members that are in this voice channel.
         """
@@ -775,14 +780,13 @@ class Channel(Dataclass):
                 if state.channel_id == self.id]
 
     @property
-    def overwrites(self) -> '_typing.Mapping[int, dt_permissions.Overwrite]':
+    def overwrites(self) -> 'Mapping[int, dt_permissions.Overwrite]':
         """
         :return: A mapping of target_id -> :class:`.Overwrite` for this channel.
         """
         return MappingProxyType(self._overwrites)
 
-    def effective_permissions(self, member: 'dt_member.Member') -> \
-            'dt_permissions.Permissions':
+    def effective_permissions(self, member: 'dt_member.Member') -> 'dt_permissions.Permissions':
         """
         Gets the effective permissions for the given member.
         """
@@ -799,7 +803,7 @@ class Channel(Dataclass):
 
         overwrites_everyone = self._overwrites.get(self.guild.default_role.id)
         if overwrites_everyone:
-            permissions.bitfield &= ~(overwrites_everyone.deny.bitfield)
+            permissions.bitfield &= ~overwrites_everyone.deny.bitfield
             permissions.bitfield |= overwrites_everyone.allow.bitfield
 
         allow = deny = 0
@@ -814,13 +818,15 @@ class Channel(Dataclass):
 
         overwrite_member = self._overwrites.get(member.id)
         if overwrite_member:
-            permissions.bitfield &= ~(overwrite_member.deny.bitfield)
+            permissions.bitfield &= ~overwrite_member.deny.bitfield
             permissions.bitfield |= overwrite_member.allow.bitfield
 
         return permissions
 
-    def permissions(self, obb: '_typing.Union[dt_member.Member, dt_role.Role]') -> \
-            'dt_permissions.Overwrite':
+    def permissions(
+            self,
+            obb: 'Optional[Union[dt_member.Member, dt_role.Role]]'
+    ) -> 'dt_permissions.Overwrite':
         """
         Gets the permission overwrites for the specified object.
 
@@ -863,11 +869,11 @@ class Channel(Dataclass):
 
         return self.permissions(self.guild.me)
 
-    def _copy(self):
+    def _copy(self) -> 'Channel':
         obb = copy.copy(self)
         obb._messages = ChannelMessageWrapper(obb)
         obb._overwrites = self._overwrites.copy()
-        return copy.copy(self)
+        return obb
 
     @deprecated(since="0.7.0", see_instead="Channel.messages.get_history", removal="0.9.0")
     def get_history(self, before: int = None,
@@ -890,7 +896,7 @@ class Channel(Dataclass):
         """
         return self.messages.get_history(before=before, after=after, limit=limit)
 
-    async def get_pins(self) -> '_typing.List[dt_message.Message]':
+    async def get_pins(self) -> 'List[dt_message.Message]':
         """
         Gets the pins for a channel.
 
@@ -912,7 +918,7 @@ class Channel(Dataclass):
         """
         return AsyncIteratorWrapper(self.get_webhooks)
 
-    async def get_webhooks(self) -> '_typing.List[dt_webhook.Webhook]':
+    async def get_webhooks(self) -> 'List[dt_webhook.Webhook]':
         """
         Gets the webhooks for this channel.
 
@@ -1006,7 +1012,13 @@ class Channel(Dataclass):
         await get_current_client().http.delete_webhook(webhook.id)
         return webhook
 
-    async def create_invite(self, **kwargs) -> 'dt_invite.Invite':
+    async def create_invite(
+            self, *,
+            max_age: Optional[int] = None,
+            max_uses: Optional[int] = None,
+            temporary: Optional[bool] = None,
+            unique: Optional[bool] = None,
+    ) -> 'dt_invite.Invite':
         """
         Creates an invite in this channel.
 
@@ -1021,14 +1033,16 @@ class Channel(Dataclass):
         if not self.effective_permissions(self.guild.me).create_instant_invite:
             raise PermissionsError("create_instant_invite")
 
-        inv = await get_current_client().http.create_invite(self.id, **kwargs)
-        invite = dt_invite.Invite(get_current_client(), **inv)
+        inv = await get_current_client().http.create_invite(
+            self.id, max_age=max_age, max_uses=max_uses, temporary=temporary, unique=unique
+        )
+        invite = dt_invite.Invite(**inv)
 
         return invite
 
     @deprecated(since="0.7.0", see_instead="Channel.messages.delete_messages",
                 removal="0.9.0")
-    async def delete_messages(self, messages: '_typing.List[dt_message.Message]') -> int:
+    async def delete_messages(self, messages: 'List[dt_message.Message]') -> int:
         """
         Deletes messages from a channel.
         This is the low-level delete function - for the high-level function, see
@@ -1055,7 +1069,7 @@ class Channel(Dataclass):
     async def purge(self, limit: int = 100, *,
                     author: 'dt_member.Member' = None,
                     content: str = None,
-                    predicate: '_typing.Callable[[dt_message.Message], bool]' = None,
+                    predicate: 'Callable[[dt_message.Message], bool]' = None,
                     fallback_from_bulk: bool = False):
         """
         Purges messages from a channel.
@@ -1106,7 +1120,7 @@ class Channel(Dataclass):
     @property
     @asynccontextmanager
     @safe_generator
-    async def typing(self) -> _typing.AsyncContextManager[None]:
+    async def typing(self) -> AsyncContextManager[None]:
         """
         :return: A context manager that sends typing repeatedly.
 
@@ -1119,7 +1133,6 @@ class Channel(Dataclass):
 
             await channel.messages.send("Long action:", res)
         """
-        running = anyio.create_event()
 
         async def runner():
             await self.send_typing()
@@ -1127,7 +1140,6 @@ class Channel(Dataclass):
                 await self.send_typing()
 
         async with anyio.create_task_group() as tg:
-            tg: anyio.TaskGroup
             await tg.spawn(runner)
             try:
                 yield
@@ -1153,11 +1165,13 @@ class Channel(Dataclass):
         """
         return await self.messages.send(content, tts=tts, embed=embed)
 
-    async def upload(self, fp: '_typing.Union[bytes, str, PathLike, _typing.IO]',
-                     *,
-                     filename: str = None,
-                     message_content: '_typing.Optional[str]' = None,
-                     message_embed: '_typing.Optional[Embed]' = None) -> 'dt_message.Message':
+    async def upload(
+            self, fp: 'Union[bytes, str, PathLike, IO]',
+            *,
+            filename: str = None,
+            message_content: 'Optional[str]' = None,
+            message_embed: 'Optional[Embed]' = None
+    ) -> 'dt_message.Message':
         """
         Uploads a message to this channel.
 

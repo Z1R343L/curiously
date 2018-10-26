@@ -237,7 +237,7 @@ class GuildChannelWrapper(_WrapperBase):
             return default
 
     async def create(self, name: str, type_: 'dt_channel.ChannelType' = None,
-                     permission_overwrites: 'typing.List[dt_permissions.Overwrite]' = None,
+                     permission_overwrites: 'List[dt_permissions.Overwrite]' = None,
                      *,
                      parent: 'dt_channel.Channel' = None,
                      bitrate: int = 64, user_limit: int = 0,

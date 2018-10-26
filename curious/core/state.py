@@ -22,9 +22,8 @@ Defines :class:`.State`.
 import collections
 import copy
 import logging
-import typing
 from types import MappingProxyType
-from typing import Dict
+from typing import Any, Dict, Generator, Mapping, Optional, Type, TypeVar, Union
 
 from curious.core import gateway
 from curious.dataclasses.channel import Channel, ChannelType
@@ -42,11 +41,11 @@ from curious.dataclasses.user import BotUser, User
 from curious.dataclasses.voice_state import VoiceState
 from curious.dataclasses.webhook import Webhook
 
-UserType = typing.TypeVar("UserType", bound=User)
+UserType = TypeVar("UserType", bound=User)
 logger = logging.getLogger("curious.state")
 
 
-def int_or_none(val, default: typing.Any) -> typing.Union[int, None]:
+def int_or_none(val, default: Any) -> Optional[int]:
     """
     Returns int or None.
     """
@@ -102,7 +101,7 @@ class State(object):
             guild._finished_chunking.clear()
 
     @property
-    def guilds(self) -> typing.Mapping[int, Guild]:
+    def guilds(self) -> Mapping[int, Guild]:
         """
         :return: A mapping of int -> :class:`.Guild`.
         """
@@ -128,7 +127,7 @@ class State(object):
         return [guild for guild in self.guilds.values() if guild.shard_id == shard_id]
 
     # get_all_* methods
-    def get_all_channels(self) -> typing.Generator[Channel, None, None]:
+    def get_all_channels(self) -> Generator[Channel, None, None]:
         """
         :return: A generator that yields all :class:`.Channel`s the bot can see.
         """
@@ -136,7 +135,7 @@ class State(object):
             for channel in guild.channels.values():
                 yield channel
 
-    def get_all_members(self) -> typing.Generator[Member, None, None]:
+    def get_all_members(self) -> Generator[Member, None, None]:
         """
         :return: A generator that yields all :class:`.Member`s the bot can see.
         """
@@ -144,7 +143,7 @@ class State(object):
             for member in guild.members.values():
                 yield member
 
-    def get_all_roles(self) -> typing.Generator[Role, None, None]:
+    def get_all_roles(self) -> Generator[Role, None, None]:
         """
         :return: A generator that yields all :class:`.Role`s the bot can see.
         """
@@ -152,7 +151,7 @@ class State(object):
             for role in guild.roles.values():
                 yield role
 
-    def find_member_or_user(self, user_id: int) -> typing.Union[Member, User]:
+    def find_member_or_user(self, user_id: int) -> Union[Member, User]:
         """
         Finds a member or user by ID.
 
@@ -167,7 +166,7 @@ class State(object):
 
         return self._users.get(user_id)
 
-    def find_channel(self, channel_id: int) -> typing.Union[Channel, None]:
+    def find_channel(self, channel_id: int) -> Optional[Channel]:
         """
         Finds a channel by ID.  
         This will search all guild channels, as well as private channels.
@@ -287,7 +286,7 @@ class State(object):
         return channel
 
     def make_user(self, user_data: dict, *,
-                  user_klass: typing.Type[UserType] = User,
+                  user_klass: Type[UserType] = User,
                   override_cache: bool = False) -> UserType:
         """
         Creates a new user and caches it.

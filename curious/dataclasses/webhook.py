@@ -18,8 +18,7 @@ Wrappers for Webhook objects.
 
 .. currentmodule:: curious.dataclasses.webhook
 """
-
-import typing
+from typing import List, Optional
 
 from curious.core import get_current_client
 from curious.dataclasses import channel as dt_channel, embed as dt_embed, guild as dt_guild, \
@@ -51,26 +50,26 @@ class Webhook(Dataclass):
         super().__init__(kwargs.get("webhook_id", kwargs.get("id")))
 
         #: The user object associated with this webhook.
-        self.user = None  # type: dt_user.User
+        self.user: dt_user.User = None
 
         #: The ID of the Guild associated with this object.
-        self.guild_id = None  # type: int
+        self.guild_id: int = None
 
         #: The ID of the Channel associated with this object.
-        self.channel_id = None  # type: int
+        self.channel_id: int = None
 
         #: The token associated with this webhook.
         #: This is None if the webhook was received from a Message object.
-        self.token = kwargs.get("token", None)  # type: str
+        self.token: Optional[str] = kwargs.get("token", None)
 
         #: The owner of this webhook.
-        self.owner = None  # type: dt_user.User
+        self.owner: Optional[dt_user.User] = None
 
         #: The default name of this webhook.
-        self.default_name = None  # type: str
+        self.default_name: str = None
 
         #: The default avatar of this webhook.
-        self._default_avatar = None  # type: str
+        self._default_avatar: str = None
 
     def __repr__(self) -> str:
         return "<Webhook id={} name={} channel={} owner={}>".format(self.id, self.name,
@@ -104,14 +103,14 @@ class Webhook(Dataclass):
         return self.user.name or self.default_name
 
     @property
-    def guild(self) -> 'dt_guild.Guild':
+    def guild(self) -> 'Optional[dt_guild.Guild]':
         """
         :return: The :class:`.Guild` this webhook is in.
         """
         return get_current_client().guilds.get(self.guild_id)
 
     @property
-    def channel(self) -> 'dt_channel.Channel':
+    def channel(self) -> 'Optional[dt_channel.Channel]':
         """
         :return: The :class:`.Channel` this webhook is in.
         """
@@ -187,8 +186,8 @@ class Webhook(Dataclass):
 
     async def execute(self, *,
                       content: str = None, username: str = None, avatar_url: str = None,
-                      embeds: 'typing.List[dt_embed.Embed]' = None, wait: bool = False) \
-            -> typing.Union[None, str]:
+                      embeds: 'List[dt_embed.Embed]' = None, wait: bool = False) \
+            -> Optional[str]:
         """
         Executes the webhook.
 

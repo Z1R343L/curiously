@@ -24,9 +24,8 @@ import anyio
 import collections
 import enum
 import logging
-import typing
 from types import MappingProxyType
-from typing import Union
+from typing import Any, Iterable, Mapping, MutableMapping, Tuple, Union
 
 from curious.core import chunker as md_chunker
 from curious.core.event import EventManager, event as ev_dec, scan_events
@@ -110,7 +109,7 @@ class Client(object):
         :param bot_type: A union of :class:`.BotType` that defines the type of this bot.
         """
         #: The mapping of `shard_id -> gateway` objects.
-        self._gateways = {}  # type: typing.MutableMapping[int, GatewayHandler]
+        self._gateways: MutableMapping[int, GatewayHandler] = {}
 
         #: The number of shards this client has.
         self.shard_count = 0
@@ -163,7 +162,7 @@ class Client(object):
         return self.state._user
 
     @property
-    def guilds(self) -> 'typing.Mapping[int, dt_guild.Guild]':
+    def guilds(self) -> 'Mapping[int, dt_guild.Guild]':
         """
         :return: A mapping of int -> :class:`.Guild` that this client can see.
         """
@@ -203,7 +202,7 @@ class Client(object):
         return c
 
     @property
-    def gateways(self) -> 'typing.Mapping[int, GatewayHandler]':
+    def gateways(self) -> 'Mapping[int, GatewayHandler]':
         """
         :return: A read-only view of the current gateways for this client. 
         """
@@ -219,7 +218,7 @@ class Client(object):
         return self.state.find_channel(channel_id)
 
     async def get_gateway_url(self, get_shard_count: bool = True) \
-            -> typing.Union[str, typing.Tuple[str, int]]:
+            -> Union[str, Tuple[str, int]]:
         """
         :return: The gateway URL for this bot.
         """
@@ -228,7 +227,7 @@ class Client(object):
         else:
             return await self.http.get_gateway_url()
 
-    def guilds_for(self, shard_id: int) -> 'typing.Iterable[dt_guild.Guild]':
+    def guilds_for(self, shard_id: int) -> 'Iterable[dt_guild.Guild]':
         """
         Gets the guilds for this shard.
 
@@ -275,7 +274,7 @@ class Client(object):
 
         return await self.events.fire_event(event_name, *args, **kwargs)
 
-    async def wait_for(self, *args, **kwargs) -> typing.Any:
+    async def wait_for(self, *args, **kwargs) -> Any:
         """
         Shortcut for :meth:`.EventManager.wait_for`.
         """
@@ -304,7 +303,7 @@ class Client(object):
     # HTTP Functions
     async def edit_profile(self, *,
                            username: str = None,
-                           avatar: bytes = None):
+                           avatar: bytes = None) -> None:
         """
         Edits the profile of this bot.
 
@@ -329,7 +328,7 @@ class Client(object):
 
         await self.http.edit_user(username, avatar)
 
-    async def edit_avatar(self, path: str):
+    async def edit_avatar(self, path: str) -> None:
         """
         A higher-level way to change your avatar.
         This allows you to provide a path to the avatar file instead of having to read it in 
@@ -338,7 +337,7 @@ class Client(object):
         :param path: The path-like object to the avatar file.
         """
         with open(path, 'rb') as f:
-            return await self.edit_profile(avatar=f.read())
+            await self.edit_profile(avatar=f.read())
 
     async def get_user(self, user_id: int) -> User:
         """
@@ -448,7 +447,7 @@ class Client(object):
         return " ".join(final)
 
     @ev_dec(name="ready")
-    async def handle_ready(self):
+    async def handle_ready(self) -> None:
         """
         Handles a READY event, dispatching a ``shards_ready`` event when all shards are ready.
         """
@@ -463,7 +462,7 @@ class Client(object):
         await self.events.fire_event("shards_ready", gateway=self._gateways[ctx.shard_id],
                                      client=self)
 
-    async def run_shard(self, shard_id: int):
+    async def run_shard(self, shard_id: int) -> None:
         """
         Runs a shard.
         """
@@ -486,7 +485,7 @@ class Client(object):
                     for event in to_dispatch:
                         await self.events.fire_event(event[0], *event[1:], gateway=gw)
 
-    async def start_sharded(self, shard_count: int):
+    async def start_sharded(self, shard_count: int) -> None:
         """
         Starts the bot. This is an internal method - you want :meth:`.Client.run_async`.
 
@@ -514,7 +513,7 @@ class Client(object):
             for shard in range(0, shard_count):
                 await main_group.spawn(self.run_shard, shard)
 
-    async def run_async(self, *, shard_count: int = 1, autoshard: bool = True):
+    async def run_async(self, *, shard_count: int = 1, autoshard: bool = True) -> None:
         """
         Runs the client asynchronously.
 

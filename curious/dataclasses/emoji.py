@@ -18,8 +18,7 @@ Wrappers for custom emojis in guilds.
 
 .. currentmodule:: curious.dataclasses.emoji
 """
-
-import typing
+from typing import List
 
 from curious.core import get_current_client
 from curious.dataclasses import guild as dt_guild, role as dt_role
@@ -32,26 +31,26 @@ class Emoji(Dataclass):
     """
     __slots__ = ("id", "name", "role_ids", "require_colons", "managed", "guild_id", "animated")
 
-    def __init__(self, **kwargs):
+    def __init__(self, **kwargs) -> None:
         super().__init__(int(kwargs.get("id")))
 
         #: The name of this emoji.
-        self.name = kwargs.get("name", None)  # type: str
+        self.name: str = kwargs.get("name")
 
         #: A list of role IDs that this emoji can be used by.
-        self.role_ids = kwargs.get("roles", [])  # type: typing.List[int]
+        self.role_ids: List[int] = kwargs.get("roles", [])
 
         #: If this emoji requires colons to use.
-        self.require_colons = kwargs.get("require_colons", False)  # type: bool
+        self.require_colons: bool = kwargs.get("require_colons", False)
 
         #: If this emoji is managed or not.
-        self.managed = kwargs.get("managed", False)  # type: bool
+        self.managed: bool = kwargs.get("managed", False)
 
         #: The ID of the guild this emoji is associated with.
-        self.guild_id = None  # type: int
+        self.guild_id: int = None
 
         #: If this emoji is animated or not.
-        self.animated = kwargs.get("animated", False)  # type: bool
+        self.animated: bool = kwargs.get("animated", False)
 
     def __eq__(self, other) -> bool:
         if isinstance(other, str):
@@ -70,7 +69,7 @@ class Emoji(Dataclass):
 
     async def edit(self, *,
                    name: str = None,
-                   roles: 'typing.List[dt_role.Role]' = None) -> 'Emoji':
+                   roles: 'List[dt_role.Role]' = None) -> 'Emoji':
         """
         Edits this emoji.
 
@@ -99,7 +98,7 @@ class Emoji(Dataclass):
         return get_current_client().guilds.get(self.guild_id)
 
     @property
-    def roles(self) -> 'typing.List[dt_role.Role]':
+    def roles(self) -> 'List[dt_role.Role]':
         """
         :return: A list of :class:`.Role` this emoji can be used by.
         """

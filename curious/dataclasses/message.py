@@ -18,9 +18,10 @@ Wrappers for Message objects.
 
 .. currentmodule:: curious.dataclasses.message
 """
+import datetime
 import enum
 import re
-import typing
+from typing import List, Optional, Union
 
 from curious.core import get_current_client
 from curious.dataclasses import channel as dt_channel, emoji as dt_emoji, guild as dt_guild, \
@@ -29,6 +30,7 @@ from curious.dataclasses import channel as dt_channel, emoji as dt_emoji, guild 
 from curious.dataclasses.attachment import Attachment
 from curious.dataclasses.bases import Dataclass
 from curious.dataclasses.embed import Embed
+from curious.dataclasses.reaction import Reaction
 from curious.exc import CuriousError, ErrorCode, HTTPException, PermissionsError
 from curious.util import AsyncIteratorWrapper, to_datetime
 
@@ -80,31 +82,33 @@ class Message(Dataclass):
         super().__init__(kwargs.get("id"))
 
         #: The content of the message.
-        self.content = kwargs.get("content", None)  # type: str
+        self.content: str = kwargs.get("content", None)
 
         #: The ID of the guild this message is in.
-        self.guild_id = None
+        self.guild_id: int = None
 
         #: The ID of the channel the message was sent in.
-        self.channel_id = int(kwargs.get("channel_id", 0))  # type: int
+        self.channel_id: int = int(kwargs.get("channel_id", 0))
 
         #: The ID of the author.
-        self.author_id = int(kwargs.get("author", {}).get("id", 0)) or None  # type: int
+        self.author_id: int = int(kwargs.get("author", {}).get("id", 0)) or None
 
         #: The author of this message. Can be one of: :class:`.Member`, :class:`.Webhook`,
         #: :class:`.User`.
-        self.author = None  # type: typing.Union[dt_member.Member, dt_webhook.Webhook]
+        self.author: Union[dt_member.Member, dt_webhook.Webhook, dt_user.User] = None
 
         type_ = kwargs.get("type", 0)
         #: The type of this message.
-        self.type = MessageType(type_)
+        self.type: MessageType = MessageType(type_)
 
         #: The true timestamp of this message, a :class:`datetime.datetime`.
         #: This is not the snowflake timestamp.
-        self.created_at = to_datetime(kwargs.get("timestamp", None))
+        self.created_at: datetime.datetime = to_datetime(kwargs.get("timestamp", None))
 
         #: The edited timestamp of this message.
         #: This can sometimes be None.
+        self.edited_at: Optional[datetime.datetime] = None
+
         edited_timestamp = kwargs.get("edited_timestamp", None)
         if edited_timestamp is not None:
             self.edited_at = to_datetime(edited_timestamp)
@@ -112,26 +116,27 @@ class Message(Dataclass):
             self.edited_at = None
 
         #: The list of :class:`.Embed` objects this message contains.
-        self.embeds = []
+        self.embeds: List[Embed] = []
+
         for embed in kwargs.get("embeds", []):
             self.embeds.append(Embed(**embed))
 
         #: The list of :class:`.Attachment` this message contains.
-        self.attachments = []
+        self.attachments: List[Attachment] = []
 
         for attachment in kwargs.get("attachments", []):
             self.attachments.append(Attachment(**attachment))
 
-        #: The mentions for this message.
+        #: The raw mentions for this message.
         #: This is UNORDERED.
-        self._mentions = kwargs.get("mentions", [])
+        self._mentions: List[str] = kwargs.get("mentions", [])
 
-        #: The role mentions for this message.
+        #: The raw role mentions for this message.
         #: This is UNORDERED.
-        self._role_mentions = kwargs.get("mention_roles", [])
+        self._role_mentions: List[str] = kwargs.get("mention_roles", [])
 
         #: The reactions for this message.
-        self.reactions = []
+        self.reactions: List[Reaction] = []
 
     def __repr__(self) -> str:
         return "<{0.__class__.__name__} id={0.id} content='{0.content}'>".format(self)
@@ -154,7 +159,7 @@ class Message(Dataclass):
         return get_current_client().state.find_channel(self.channel_id)
 
     @property
-    def mentions(self) -> 'typing.List[dt_member.Member]':
+    def mentions(self) -> 'List[dt_member.Member]':
         """
         Returns a list of :class:`.Member` that were mentioned in this message.
         
@@ -167,7 +172,7 @@ class Message(Dataclass):
         return self._resolve_mentions(self._mentions, "member")
 
     @property
-    def role_mentions(self) -> 'typing.List[dt_role.Role]':
+    def role_mentions(self) -> 'List[dt_role.Role]':
         """
         Returns a list of :class:`.Role` that were mentioned in this message.
         
@@ -181,7 +186,7 @@ class Message(Dataclass):
         return self._resolve_mentions(self._role_mentions, "role")
 
     @property
-    def channel_mentions(self) -> 'typing.List[dt_channel.Channel]':
+    def channel_mentions(self) -> 'List[dt_channel.Channel]':
         """
         Returns a list of :class:`.Channel` that were mentioned in this message.
         
@@ -194,7 +199,7 @@ class Message(Dataclass):
         return self._resolve_mentions(mentions, "channel")
 
     @property
-    def emojis(self) -> 'typing.List[dt_emoji.Emoji]':
+    def emojis(self) -> 'List[dt_emoji.Emoji]':
         """
         Returns a list of :class:`.Emoji` that was found in this message.
         """
@@ -229,7 +234,7 @@ class Message(Dataclass):
         """
         return await get_current_client().clean_content(self.content)
 
-    async def get_invites(self) -> 'typing.List[dt_invite.Invite]':
+    async def get_invites(self) -> 'List[dt_invite.Invite]':
         """
         Gets a list of valid invites in this message.
         """
@@ -256,10 +261,11 @@ class Message(Dataclass):
         """
         return AsyncIteratorWrapper(self.get_invites)
 
-    def _resolve_mentions(self,
-                          mentions: typing.List[typing.Union[dict, str]],
-                          type_: str) \
-            -> 'typing.List[typing.Union[dt_channel.Channel, dt_role.Role, dt_member.Member]]':
+    def _resolve_mentions(
+            self,
+            mentions: List[Union[dict, str]],
+            type_: str
+    ) -> 'List[Union[dt_channel.Channel, dt_role.Role, dt_member.Member]]':
         """
         Resolves the mentions for this message.
         
@@ -301,7 +307,7 @@ class Message(Dataclass):
 
         return final_mentions
 
-    def reacted(self, emoji: 'typing.Union[dt_emoji.Emoji, str]') -> bool:
+    def reacted(self, emoji: 'Union[dt_emoji.Emoji, str]') -> bool:
         """
         Checks if this message was reacted to with the specified emoji.
 
@@ -391,8 +397,10 @@ class Message(Dataclass):
         await get_current_client().http.unpin_message(self.channel.id, self.id)
         return self
 
-    async def get_who_reacted(self, emoji: 'typing.Union[dt_emoji.Emoji, str]') \
-            -> 'typing.List[typing.Union[dt_user.User, dt_member.Member]]':
+    async def get_who_reacted(
+            self,
+            emoji: 'Union[dt_emoji.Emoji, str]'
+    ) -> 'List[Union[dt_user.User, dt_member.Member]]':
         """
         Fetches who reacted to this message.
 
@@ -419,7 +427,7 @@ class Message(Dataclass):
 
         return result
 
-    async def react(self, emoji: 'typing.Union[dt_emoji.Emoji, str]'):
+    async def react(self, emoji: 'Union[dt_emoji.Emoji, str]') -> None:
         """
         Reacts to a message with an emoji.
 
@@ -441,7 +449,7 @@ class Message(Dataclass):
 
         await get_current_client().http.add_reaction(self.channel.id, self.id, emoji)
 
-    async def unreact(self, reaction: 'typing.Union[dt_emoji.Emoji, str]',
+    async def unreact(self, reaction: 'Union[dt_emoji.Emoji, str]',
                       victim: 'dt_member.Member' = None):
         """
         Removes a reaction from a user.

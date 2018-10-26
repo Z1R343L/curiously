@@ -27,10 +27,9 @@ import imghdr
 import inspect
 import textwrap
 import types
-import typing
 import warnings
 from multidict import MultiDict
-from typing import Any, Awaitable, Callable, List, TypeVar
+from typing import Any, Awaitable, Callable, Generic, List, Optional, TypeVar
 
 NO_ITEM = object()
 DISCORD_EPOCH = 1420070400000
@@ -76,7 +75,7 @@ def remove_from_multidict(d: MultiDict, key: str, item: Any):
 T = TypeVar("T")
 
 
-class AsyncIteratorWrapper(typing.Generic[T], collections.AsyncIterator):
+class AsyncIteratorWrapper(Generic[T], collections.AsyncIterator):
     """
     Wraps a coroutine that returns a sequence of items into something that can iterated over
     asynchronously.
@@ -155,7 +154,7 @@ def base64ify(image_data: bytes):
     return "data:{};base64,{}".format(mimetype, b64_data)
 
 
-def to_datetime(timestamp: str) -> datetime.datetime:
+def to_datetime(timestamp: str) -> Optional[datetime.datetime]:
     """
     Converts a Discord-formatted timestamp to a datetime object.
 

@@ -29,7 +29,8 @@ if the data for each  is not cached by curious. Otherwise, full :class:`.Guild` 
 
 .. currentmodule:: curious.dataclasses.invite
 """
-import typing
+import datetime
+from typing import List, Optional, Union
 
 from curious import util
 from curious.core import get_current_client
@@ -48,28 +49,28 @@ class InviteGuild(Snowflaked):
         super().__init__(kwargs.get("id"))
 
         #: The name of this guild.
-        self.name = kwargs.get("name", None)  # type: str
+        self.name: str = kwargs.get("name", None)
 
         #: The splash hash of this guild.
-        self.splash_hash = kwargs.get("splash")  # type: str
+        self.splash_hash: str = kwargs.get("splash")
 
         #: The icon hash of this guild.
-        self._icon_hash = kwargs.get("icon")  # type: str
+        self._icon_hash: str = kwargs.get("icon")
 
         #: A list of features for this guild.
-        self.features = kwargs.get("features")  # type: typing.List[str]
+        self.features: List[str] = kwargs.get("features")
 
         #: The approximate member count for this guild.
-        self.member_count = kwargs.get("approximate_member_count")
+        self.member_count: int = kwargs.get("approximate_member_count")
 
         #: The approximate presence count.
-        self.presence_count = kwargs.get("approximate_presence_count")
+        self.presence_count: int = kwargs.get("approximate_presence_count")
 
         #: The number of text channels.
-        self.text_channel_count = kwargs.get("text_channel_count")
+        self.text_channel_count: int = kwargs.get("text_channel_count")
 
         #: The number of voice channels.
-        self.voice_channel_count = kwargs.get("voice_channel_count")
+        self.voice_channel_count: int = kwargs.get("voice_channel_count")
 
     def __repr__(self) -> str:
         return "<InviteGuild id={} name='{}'>".format(self.id, self.name)
@@ -99,14 +100,14 @@ class InviteChannel(Snowflaked):
     Represents an InviteChannel - a subset of a channel.
     """
 
-    def __init__(self, **kwargs):
+    def __init__(self, **kwargs) -> None:
         super().__init__(kwargs.get("id"))
 
         #: The name of this channel.
-        self.name = kwargs.get("name")
+        self.name: str = kwargs.get("name")
 
         #: The :class:`.ChannelType` of this channel.
-        self.type = dt_channel.ChannelType(kwargs.get("type"))
+        self.type: dt_channel.ChannelType = dt_channel.ChannelType(kwargs.get("type"))
 
     def __repr__(self) -> str:
         return "<InviteChannel name={}>".format(self.name)
@@ -119,24 +120,24 @@ class InviteMetadata(object):
 
     __slots__ = "uses", "max_uses", "max_age", "temporary", "created_at", "revoked",
 
-    def __init__(self, **kwargs):
+    def __init__(self, **kwargs) -> None:
         #: The number of times this invite was used.
-        self.uses = kwargs.get("uses", 0)  # type: int
+        self.uses: int = kwargs.get("uses", 0)
 
         #: The maximum number of uses this invite can use.
-        self.max_uses = kwargs.get("max_uses", 0)  # type: int
+        self.max_uses: int = kwargs.get("max_uses", 0)
 
         #: The maximum age of this invite.
-        self.max_age = kwargs.get("max_age", 0)  # type: int
+        self.max_age: int = kwargs.get("max_age", 0)
 
         #: Is this invite temporary?
-        self.temporary = kwargs.get("temporary", False)  # type: bool
+        self.temporary: bool = kwargs.get("temporary", False)
 
         #: When was this invite created at?
-        self.created_at = util.to_datetime(kwargs.get("created_at", None))
+        self.created_at: datetime.datetime = util.to_datetime(kwargs.get("created_at", None))
 
         #: Is this invite revoked?
-        self.revoked = kwargs.get("revoked", False)  # type: bool
+        self.revoked: bool = kwargs.get("revoked", False)
 
 
 class Invite(object):
@@ -144,29 +145,27 @@ class Invite(object):
     Represents an invite object.
     """
 
-    def __init__(self, **kwargs):
+    def __init__(self, **kwargs) -> None:
         #: The invite code.
-        self.code = kwargs.get("code")  # type: str
+        self.code: str = kwargs.get("code")
 
         #: The guild ID for this invite.
-        self.guild_id = int(kwargs["guild"]["id"])
+        self.guild_id: int = int(kwargs["guild"]["id"])
 
         #: The channel ID for this invite.
-        self.channel_id = int(kwargs["channel"]["id"])
+        self.channel_id: int = int(kwargs["channel"]["id"])
 
         #: The invite guild this is attached to.
         #: The actual guild object can be more easily fetched with `.guild`.
-        self._invite_guild = \
-            InviteGuild(**kwargs.get("guild"))  # type: typing.Union[InviteGuild, dt_guild.Guild]
+        self._invite_guild = InviteGuild(**kwargs.get("guild"))
 
         #: The invite channel this is attached to.
         #: The actual channel object can be more easily fetched with `.channel`.
-        self._invite_channel = \
-            InviteChannel(**kwargs.get("channel"))  # type: typing.Union[InviteChannel, dt_channel.Channel]
+        self._invite_channel = InviteChannel(**kwargs.get("channel"))
 
         #: The ID of the user that created this invite.
         #: This can be None for partnered invites.
-        self.inviter_id = None  # type: int
+        self.inviter_id: int = None
 
         if "inviter" in kwargs:
             self._inviter_data = kwargs["inviter"]
@@ -174,6 +173,8 @@ class Invite(object):
 
         #: The invite metadata object associated with this invite.
         #: This can be None if the invite has no metadata.
+        self._invite_metadata: Optional[InviteMetadata] = None
+
         if "uses" not in kwargs:
             self._invite_metadata = None
         else:
@@ -191,30 +192,34 @@ class Invite(object):
             client.state._check_decache_user(self.inviter_id)
 
     @property
-    def inviter(self) -> 'typing.Union[dt_member.Member, dt_user.User]':
+    def inviter(self) -> 'Union[dt_member.Member, dt_user.User]':
         """
         :return: The :class:`.Member` or :class:`.User` that made this invite.
         """
         client = get_current_client()
 
         if isinstance(self._invite_guild, InviteGuild):
-            return client.state.make_user(self._inviter_data)
+            u = client.state.make_user(self._inviter_data)
+            client.state._check_decache_user(u.id)
+            return u
 
-        u = self._invite_guild.members.get(self.inviter_id)
+        u = self.guild.members.get(self.inviter_id)
         if not u:
-            return client.state.make_user(self._inviter_data)
+            u = client.state.make_user(self._inviter_data)
+            client.state._check_decache_user(u.id)
+            return u
 
         return u
 
     @property
-    def guild(self) -> 'typing.Union[dt_guild.Guild, InviteGuild]':
+    def guild(self) -> 'Union[dt_guild.Guild, InviteGuild]':
         """
         :return: The guild this invite is associated with.
         """
         return get_current_client().state.guilds.get(self.guild_id, self._invite_guild)
 
     @property
-    def channel(self) -> 'typing.Union[dt_channel.Channel, InviteChannel]':
+    def channel(self) -> 'Union[dt_channel.Channel, InviteChannel]':
         """
         :return: The channel this invite is associated with.
         """
@@ -224,7 +229,7 @@ class Invite(object):
 
         return g.channels.get(self.channel_id, self._invite_channel)
 
-    async def delete(self):
+    async def delete(self) -> None:
         """
         Deletes this invite.
 

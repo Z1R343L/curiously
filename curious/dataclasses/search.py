@@ -20,8 +20,7 @@ Wrappers for Search objects.
 """
 import collections
 import functools
-import typing
-from typing import Iterator
+from typing import Any, Awaitable, Callable, Dict, Iterator, List, Optional, Tuple, Union
 
 from curious.core import get_current_client
 from curious.dataclasses import channel as dt_channel, guild as dt_guild, member as dt_member, \
@@ -35,7 +34,7 @@ class MessageGroup:
 
     __slots__ = "msgs",
 
-    def __init__(self, msgs: 'typing.List[dt_message.Message]'):
+    def __init__(self, msgs: 'List[dt_message.Message]'):
         self.msgs = msgs
 
     # generic magic methods
@@ -49,7 +48,7 @@ class MessageGroup:
         return "<MessageGroup msgs='{}'>".format(self.msgs)
 
     @property
-    def before(self) -> 'typing.Tuple[dt_message.Message, dt_message.Message]':
+    def before(self) -> 'Tuple[dt_message.Message, dt_message.Message]':
         """
         :return: The two :class:`.Message` objects that happen before the requested message.
         """
@@ -63,7 +62,7 @@ class MessageGroup:
         return self.msgs[2]
 
     @property
-    def after(self) -> 'typing.Tuple[dt_message.Message, dt_message.Message]':
+    def after(self) -> 'Tuple[dt_message.Message, dt_message.Message]':
         """
         :return: The two :class:`.Message` objects that happen after the requested message.
         """
@@ -206,9 +205,9 @@ class SearchQuery(object):
         # internal vars used for the search
         self._channel = channel
         self._query = None  # type: str
-        self._author = None  # type: typing.Union[dt_user.User, dt_member.Member]
+        self._author = None  # type: Union[dt_user.User, dt_member.Member]
 
-    def make_params(self) -> typing.Dict[str, str]:
+    def make_params(self) -> Dict[str, str]:
         """
         :return: The dict of parameters to send for this request. 
         """
@@ -239,7 +238,7 @@ class SearchQuery(object):
 
     # internal properties
     @property
-    def _http_meth(self) -> typing.Callable[[], dict]:
+    def _http_meth(self) -> Callable[[], Awaitable[Dict[Any, Any]]]:
         """
         :return: The built URL to execute this search query on. 
         """
@@ -250,14 +249,14 @@ class SearchQuery(object):
 
     # public properties
     @property
-    def guild(self) -> 'typing.Union[dt_guild.Guild, None]':
+    def guild(self) -> 'Optional[dt_guild.Guild]':
         """
         :return: The :class:`.Guild` this search query is searching.
         """
         return self._guild
 
     @property
-    def channel(self) -> 'typing.Union[dt_channel.Channel, None]':
+    def channel(self) -> 'Optional[dt_channel.Channel]':
         """
         The :class:`.Channel` that is being searched.
         
@@ -271,7 +270,7 @@ class SearchQuery(object):
         return self._channel
 
     @channel.setter
-    def channel(self, value):
+    def channel(self, value: 'dt_channel.Channel'):
         if not isinstance(value, dt_channel.Channel):
             raise TypeError("Must provide a Channel object")
 
@@ -297,7 +296,7 @@ class SearchQuery(object):
         return self._query
 
     @content.setter
-    def content(self, value):
+    def content(self, value: str):
         self._query = value
 
     @property
@@ -310,7 +309,7 @@ class SearchQuery(object):
         return SearchResults(self)
 
     # workhouse methods
-    async def execute(self, page: int = 0) -> 'typing.List[typing.List[dt_message.Message]]':
+    async def execute(self, page: int = 0) -> 'List[List[dt_message.Message]]':
         """
         Executes the search query.
         
@@ -326,7 +325,7 @@ class SearchQuery(object):
         params = self.make_params()
 
         # get the offset page
-        params["offset"] = page * 25
+        params["offset"] = str(page * 25)
         # make the http request
         res = await func(params)
 

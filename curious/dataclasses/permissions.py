@@ -20,13 +20,13 @@ This class uses some automatic generation to create the objects.
 
 .. currentmodule:: curious.dataclasses.permissions
 """
-import typing
+from typing import Optional, Union
 
 from curious.core import get_current_client
 from curious.dataclasses import channel as dt_channel, member as dt_member, role as dt_role
 from curious.exc import PermissionsError
 
-target_thint = 'typing.Union[dt_member.Member, dt_role.Role]'
+target_thint = 'Union[dt_member.Member, dt_role.Role]'
 
 
 # I'm far too lazy to type out each permission bit manually.
@@ -143,7 +143,7 @@ def build_permissions_class(name: str = "Permissions") -> type:
                        doc=_doc_base.format(name, bit)) for (name, bit) in permissions.items()
     }
 
-    def raise_for_permission(self, permission: typing.Union[str]) -> None:
+    def raise_for_permission(self, permission: str) -> None:
         """
         Raises :class:`.PermissionsError` if this permission does not have the required bit.
         """
@@ -186,7 +186,7 @@ def build_permissions_class(name: str = "Permissions") -> type:
 
 
 Permissions = build_permissions_class("Permissions")
-perm_thint = typing.Union[int, Permissions]
+perm_thint = Union[int, Permissions]
 
 
 class Overwrite(object):
@@ -228,8 +228,8 @@ class Overwrite(object):
         deny = deny or 0
         return Overwrite(allow, deny, obb=target, channel_id=channel.id)
 
-    def __init__(self, allow: typing.Union[int, Permissions], deny: typing.Union[int, Permissions],
-                 obb: 'typing.Union[dt_member.Member, dt_role.Role]',
+    def __init__(self, allow: Union[int, Permissions], deny: Union[int, Permissions],
+                 obb: 'Union[dt_member.Member, dt_role.Role]',
                  channel_id: int = None):
         """
         :param allow: A :class:`.Permissions` that this overwrite allows.
@@ -251,7 +251,7 @@ class Overwrite(object):
         self._immutable = False
 
     @property
-    def channel(self) -> 'typing.Union[dt_channel.Channel, None]':
+    def channel(self) -> 'Optional[dt_channel.Channel]':
         """
         :return: The :class:`.Channel` this overwrite represents.
         """
