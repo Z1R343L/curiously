@@ -1162,13 +1162,11 @@ class State(object):
 
         This event is effectively useless.
         """
+        yield "webhooks_update",
 
     # TODO: Flesh these out
     async def handle_channel_pins_update(self, gw: 'gateway.GatewayHandler', event_data: dict):
-        pass
-
-    async def handle_channel_pins_ack(self, gw: 'gateway.GatewayHandler', event_data: dict):
-        pass
+        yield "channel_pins_update",
 
     async def handle_channel_recipient_add(self, gw: 'gateway.GatewayHandler', event_data: dict):
         """
