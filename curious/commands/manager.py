@@ -31,7 +31,7 @@ from typing import Callable, Dict, Iterable, Tuple, Type, Union
 
 from curious import current_event_context
 from curious.commands.context import Context
-from curious.commands.exc import CommandsError
+from curious.commands.exc import CommandsError, ConditionFailedError
 from curious.commands.help import help_command
 from curious.commands.plugin import Plugin
 from curious.commands.ratelimit import RateLimiter
@@ -430,6 +430,9 @@ class CommandsManager(object):
         if len(self.client.events.event_listeners.getall("command_error")) > 1:
             self.client.events.remove_event("command_error", self.default_command_error)
             return
+
+        if isinstance(err, ConditionFailedError):
+            await err.ctx.channel.messages.send(f":x: Condition failed: {err.message}")
 
         fmtted = ''.join(traceback.format_exception(type(err), err, err.__traceback__))
         logger.error(f"Error in command!\n{fmtted}")
