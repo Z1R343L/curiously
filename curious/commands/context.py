@@ -172,7 +172,7 @@ class Context(object):
 
                 if not success[0]:
                     result.success = False
-                    result.error = success[1]
+                    result.message = success[1]
                     result.condition = condition
                     break
 
