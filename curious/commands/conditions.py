@@ -5,6 +5,7 @@ Commonly used conditions.
 """
 
 from curious.commands import Context, condition
+from curious.core import get_current_client
 
 
 def is_owner():
@@ -22,13 +23,14 @@ def is_owner():
     """
 
     def _condition(ctx: Context):
+        bot = get_current_client()
         # If the application info request has not been completed
         # yet we cannot guarantee the command could be ran.
-        if ctx.bot.application_info is None:
-            return False
+        if bot.application_info is None:
+            return False, "No application info downloaded yet."
 
-        owner = ctx.bot.application_info.owner
-        return ctx.message.author_id == owner.id
+        owner = bot.application_info.owner
+        return ctx.message.author_id == owner.id, "You are not the owner."
 
     return condition(_condition)
 
@@ -54,8 +56,13 @@ def author_has_permissions(bypass_owner: bool = True, **permissions):
 
     def _condition(ctx: Context):
         perms = ctx.channel.effective_permissions(ctx.author)
-        return all(getattr(perms, name, None) is value
-                   for name, value in permissions.items())
+
+        for name, value in permissions.items():
+            val = getattr(perms, name, None)
+            if val is not value:
+                return False, f"You do not have the required permission {name.upper()}."
+
+        return True
 
     return condition(_condition, bypass_owner=bypass_owner)
 
@@ -80,8 +87,11 @@ def bot_has_permissions(bypass_owner: bool = False, **permissions):
 
     def _condition(ctx: Context):
         perms = ctx.channel.me_permissions
-        return all(getattr(perms, name, None) is value
-                   for name, value in permissions.items())
+
+        for name, value in permissions.items():
+            val = getattr(perms, name, None)
+            if val is not value:
+                return False, f"I do not have the required permission {name.upper()}."
 
     return condition(_condition, bypass_owner=bypass_owner)
 
@@ -114,7 +124,11 @@ def author_has_roles(*roles: str, bypass_owner: bool = True):
             return False
 
         author_roles = {role.name for role in ctx.author.roles}
-        return all(role in author_roles for role in roles)
+        for role in roles:
+            if role not in author_roles:
+                return False, f"You do not have the required role '{role}'."
+
+        return True
 
     return condition(_condition, bypass_owner=bypass_owner)
 
@@ -143,7 +157,11 @@ def bot_has_roles(*roles: str, bypass_owner: bool = False):
             return False
 
         bot_roles = {role.name for role in ctx.guild.me.roles}
-        return all(role in bot_roles for role in roles)
+        for role in roles:
+            if role not in bot_roles:
+                return False, f"You do not have the required role '{role}'."
+
+        return True
 
     return condition(_condition, bypass_owner=bypass_owner)
 
@@ -168,6 +186,6 @@ def is_guild_owner(bypass_owner: bool = True):
         if ctx.guild is None:
             return False
 
-        return ctx.message.author_id == ctx.guild.owner_id
+        return ctx.message.author_id == ctx.guild.owner_id, "You are not the owner of this guild."
 
     return condition(_condition, bypass_owner=bypass_owner)
