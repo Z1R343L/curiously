@@ -35,7 +35,7 @@ from curious.dataclasses.guild import ContentFilterLevel, Guild, MFALevel, Notif
 from curious.dataclasses.member import Member
 from curious.dataclasses.message import Message
 from curious.dataclasses.permissions import Permissions
-from curious.dataclasses.presence import Presence, Status
+from curious.dataclasses.presence import Presence
 from curious.dataclasses.reaction import Reaction
 from curious.dataclasses.role import Role
 from curious.dataclasses.user import BotUser, User
@@ -1169,46 +1169,6 @@ class State(object):
 
     async def handle_channel_pins_ack(self, gw: 'gateway.GatewayHandler', event_data: dict):
         pass
-
-    # Userbot only events.
-    async def handle_user_settings_update(self, gw: 'gateway.GatewayHandler', event_data: dict):
-        """
-        Called when the current user's settings update.
-        """
-        old_settings = self._user.settings.copy()
-
-        dict.update(self._user.settings, **event_data)
-        # make sure to update the guild order
-        guild_order = event_data.get("guild_positions")
-        if guild_order:
-            self._guilds.order = [int(x) for x in guild_order]
-
-        # update status, if applicable
-        new_status = Status(self._user.settings.get("status", old_settings.get("status", "ONLINE")))
-        for guild in self.guilds.values():
-            if new_status.strength > guild.me.status.strength:
-                guild.me.status = new_status
-
-        yield "user_settings_update", old_settings, self._user.settings,
-
-    async def handle_message_ack(self, gw: 'gateway.GatewayHandler', event_data: dict):
-        """
-        Called when a message is acknowledged.
-        """
-        channel = self.find_channel(int(event_data.get("channel_id", 0)))
-        try:
-            message = self.find_message(int(event_data.get("message_id", 0)))
-        except (ValueError, TypeError):
-            # message_id is None, wtf?
-            return
-
-        if channel is None:
-            return
-
-        if message is None:
-            return
-
-        yield "message_ack", channel, message,
 
     async def handle_channel_recipient_add(self, gw: 'gateway.GatewayHandler', event_data: dict):
         """

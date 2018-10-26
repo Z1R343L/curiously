@@ -29,7 +29,7 @@ import json
 import logging
 from anyio import TaskGroup
 from async_generator import asynccontextmanager
-from dataclasses import dataclass  # use a 3.6 backport if available
+from dataclasses import dataclass
 from lomond.errors import WebSocketClosed, WebSocketClosing, WebSocketUnavailable
 from lomond.events import Binary, Closed, Connected, Connecting, Text
 from typing import Any, AsyncContextManager, AsyncGenerator, List, Union
