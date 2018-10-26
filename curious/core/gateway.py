@@ -434,6 +434,7 @@ class GatewayHandler(object):
             yield "gateway_heartbeat_received",
 
         elif opcode == GatewayOp.HEARTBEAT_ACK:
+            self.logger.info("Received heartbeat_ack")
             self.heartbeat_stats.heartbeat_acks += 1
             self.heartbeat_stats.last_ack_time = time.monotonic()
             yield "gateway_heartbeat_ack",

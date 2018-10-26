@@ -91,7 +91,8 @@ def encode_multipart(fields, files, boundary=None):
     [('Content-Length', '193'), ('Content-Type', 'multipart/form-data; boundary=BOUNDARY')]
     >>> len(body)
     193
-    Copied from: https://code.activestate.com/recipes/578668-encode-multipart-form-data-for-uploading-files-via/
+    Copied from: https://code.activestate.com/recipes/578668-encode-multipart-form-data-for
+    -uploading-files-via/
     """
     _BOUNDARY_CHARS = string.ascii_letters + string.digits
 
@@ -735,10 +736,12 @@ class HTTPClient(object):
 
         # The Discord API docs say that payload_json needs to be url-encoded, but that is a lie
         # it must be a normal json string with can contain JSON unicode-escapes (which 
-        # dumps does when ensure_ascii is True; which is the default, but just it case the default changes
+        # dumps does when ensure_ascii is True; which is the default, but just it case the
+        # default changes
         # in the future, we give it explicitly)
         payload = {
-            "payload_json": json.dumps(payload_json, ensure_ascii=True, separators=(',', ':'))}
+            "payload_json": json.dumps(payload_json, ensure_ascii=True, separators=(',', ':'))
+        }
 
         body, headers = encode_multipart(payload, files)
         data = await self.post(url, "messages:{}".format(channel_id),
@@ -1189,7 +1192,8 @@ class HTTPClient(object):
 
     async def create_channel(self, guild_id: int, name: str, type: int, *,
                              bitrate: int = None, user_limit: int = None,
-                             parent_id: int = None, permission_overwrites: list = None):
+                             parent_id: int = None, permission_overwrites: list = None,
+                             rate_limit_per_user: int = None):
         """
         Creates a new channel.
 
@@ -1224,11 +1228,14 @@ class HTTPClient(object):
         data = await self.post(url, bucket="guild_channels:{}".format(guild_id), json=payload)
         return data
 
-    async def edit_channel(self, channel_id: int, *,
-                           name: str = None, position: int = None,
-                           topic: str = None,
-                           bitrate: int = None, user_limit: int = -1,
-                           rate_limit_per_user: int = None):
+    async def edit_channel(
+            self, channel_id: int, *,
+            name: str = None, position: int = None,
+            topic: str = None,
+            bitrate: int = None, user_limit: int = -1,
+            rate_limit_per_user: int = None,
+            parent_id: int = -1
+    ):
         """
         Edits a channel.
 
@@ -1239,6 +1246,7 @@ class HTTPClient(object):
         :param bitrate: The new bitrate of the channel.
         :param user_limit: The user limit of the channel.
         :param rate_limit_per_user: The rate limit per user.
+        :param parent_id: The parent ID for this channel.
         """
         url = Endpoints.CHANNEL_BASE.format(channel_id=channel_id)
         payload = {}
@@ -1260,6 +1268,9 @@ class HTTPClient(object):
 
         if rate_limit_per_user is not None:
             payload["rate_limit_per_user"] = rate_limit_per_user
+
+        if parent_id != -1:
+            payload["parent_id"] = parent_id
 
         data = await self.patch(url, bucket="channels:{}".format(channel_id), json=payload)
         return data
