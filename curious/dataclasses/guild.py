@@ -288,7 +288,6 @@ class GuildChannelWrapper(_WrapperBase):
             kwargs["parent_id"] = parent.id
 
         client = get_current_client()
-        # create a listener so we wait for the WS before editing
         channel_data = await client.http.create_channel(self._guild.id, **kwargs)
 
         # if it's a text channel and the topic was provided, automatically add it

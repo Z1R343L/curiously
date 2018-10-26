@@ -21,6 +21,7 @@ Wrappers for custom emojis in guilds.
 
 import typing
 
+from curious.core import get_current_client
 from curious.dataclasses import guild as dt_guild, role as dt_role
 from curious.dataclasses.bases import Dataclass
 
@@ -81,7 +82,7 @@ class Emoji(Dataclass):
             roles = [r.id for r in roles]
 
         await get_current_client().http.edit_guild_emoji(guild_id=self.guild_id, emoji_id=self.id,
-                                              name=name, roles=roles)
+                                                         name=name, roles=roles)
         return self
 
     async def delete(self) -> None:
