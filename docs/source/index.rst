@@ -18,6 +18,8 @@ Advantages of Curious
       requests
     - Powerful; curious exposes every layer of interaction with the Discord API for your usage
     - async; Based on top off the ``curio`` or ``trio`` libraries for a pleasant async experience.
+    - Stable; curious-based bots can stay up for months on end without reboots, memory leaks or
+    other such issues.
 
 
 Installation
@@ -35,6 +37,8 @@ Or for the latest development version:
 .. code-block:: bash
 
     $ pip install -U git+https://github.com/Fuyukai/curious.git#egg=curious
+
+It is recommended you use a better
 
 Examples
 --------

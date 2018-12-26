@@ -49,13 +49,20 @@ This document displays the differences between each release of curious.
 
     - This will break every single event handler.
 
+ - Make it so that bots can automatically re-shard themselves. This ensures bots are more stable.
+
+ - Error out with a better error if an invalid token is provided.
+
+ - Add support for viewing flags and user premium status.
+
 
 0.7.9 (Released 2018-08-05)
 ---------------------------
 
 .. note::
 
-    This will be the final release of the 0.7 branch.
+    This will be the final release of the 0.7 branch. If you wish to use any more fixes, install
+    directly from git.
 
  - Remove :meth:`.Channel.connect`.
 
