@@ -20,8 +20,9 @@ This contains a definition for :class:`.Client` which is used to interface prima
 
 .. currentmodule:: curious.core.client
 """
-import anyio
 import collections
+
+import anyio
 import enum
 import logging
 from types import MappingProxyType
@@ -39,6 +40,7 @@ from curious.dataclasses.presence import Game, Status
 from curious.dataclasses.user import BotUser, User
 from curious.dataclasses.webhook import Webhook
 from curious.dataclasses.widget import Widget
+from curious.exc import Unauthorized
 from curious.util import base64ify, coerce_agen, finalise
 
 logger = logging.getLogger("curious.client")
@@ -69,6 +71,25 @@ class BotType(enum.IntEnum):
 
     #: Self bot. This signifies the bot only responds to itself.
     SELF_BOT = 64
+
+
+class InvalidTokenException(ValueError):
+    """
+    Raised when the bot's token is invalid.
+    """
+
+    def __init__(self, token: str):
+        self.token = token
+
+
+class ReshardingNeeded(Exception):
+    """
+    Raised when resharding is needed. This should not be caught.
+    """
+
+    def __repr__(self):
+        return "Discord rejected the connection because the bot needs more shards. If you are " \
+               "seeing this, autosharding is disabled and curious could not change shard count."
 
 
 class Client(object):
@@ -476,7 +497,18 @@ class Client(object):
                     name, *params = event
                     to_dispatch = [event]
 
-                    if name == "gateway_dispatch_received":
+                    if name == "websocket_closed":
+                        code: int = params[0]
+                        reason: str = params[1]
+
+                        logger.info(f"Shard {shard_id} closed - {code}: {reason}")
+                        if code == 4004:
+                            raise InvalidTokenException(self._token)
+                        elif code == 4011:
+                            raise ReshardingNeeded
+                        # usually the rest can be handled appropriately
+
+                    elif name == "gateway_dispatch_received":
                         handler = f"handle_{params[0].lower()}"
                         handler = getattr(self.state, handler)
                         subevents = await coerce_agen(handler(gw, *params[1:]))
@@ -485,18 +517,10 @@ class Client(object):
                     for event in to_dispatch:
                         await self.events.fire_event(event[0], *event[1:], gateway=gw)
 
-    async def start_sharded(self, shard_count: int) -> None:
+    async def manage_all_shards(self, shard_count: int):
         """
-        Starts the bot. This is an internal method - you want :meth:`.Client.run_async`.
-
-        :param shard_count: The number of shards to boot.
+        Runs the bot's shards.
         """
-        from curious.core import _current_client
-        _current_client.set(self)
-
-        if self.bot_type & BotType.BOT:
-            self.application_info = AppInfo(**(await self.http.get_app_info(None)))
-
         # update ready state
         for shard_id in range(shard_count):
             self._ready_state[shard_id] = False
@@ -513,12 +537,46 @@ class Client(object):
             for shard in range(0, shard_count):
                 await main_group.spawn(self.run_shard, shard)
 
-    async def run_async(self, *, shard_count: int = 1, autoshard: bool = True) -> None:
+                if shard_count >= 2:
+                    logger.info(f"Sleeping 5 seconds before connecting to shard {shard}")
+                    await anyio.sleep(5)
+
+    async def run_bot_in_sharded_mode(self, shard_count: int, *,
+                                      allow_resharding: bool = True) -> None:
+        """
+        Starts the bot. This is an internal method - you want :meth:`.Client.run_async`.
+
+        :param shard_count: The number of shards to boot.
+        :param allow_resharding: If the bot can automatically be resharded.
+        """
+        from curious.core import _current_client
+        _current_client.set(self)
+
+        try:
+            self.application_info = AppInfo(**(await self.http.get_app_info(None)))
+        except Unauthorized:
+            raise InvalidTokenException(self._token) from None
+
+        while True:
+            try:
+                await self.manage_all_shards(shard_count)
+            except ReshardingNeeded:
+                if allow_resharding:
+                    shard_count = await self.get_gateway_url(get_shard_count=True)
+                    self.shard_count = shard_count
+                    continue
+
+                raise
+
+    async def run_async(self, *, shard_count: int = 1, autoshard: bool = True,
+                        allow_resharding: bool = True) -> None:
         """
         Runs the client asynchronously.
 
         :param shard_count: The number of shards to boot.
         :param autoshard: If the bot should be autosharded.
+        :param allow_resharding: If the bot is allowed to recalculate it's shard count in the \
+            event of a 4011 error.
         """
         if autoshard:
             url, shard_count = await self.get_gateway_url(get_shard_count=True)
@@ -527,4 +585,6 @@ class Client(object):
 
         self._gw_url = url
         self.shard_count = shard_count
-        return await self.start_sharded(shard_count)
+
+        return await self.run_bot_in_sharded_mode(shard_count,
+                                                  allow_resharding=autoshard or allow_resharding)

@@ -69,12 +69,8 @@ from curious.dataclasses.voice_state import VoiceState
 from curious.dataclasses.webhook import Webhook
 from curious.dataclasses.widget import Widget, WidgetChannel, WidgetGuild, WidgetMember
 
-from curious.core.client import Client
+from curious.core.client import Client, InvalidTokenException
 from curious.core.httpclient import audit_log_reason
 
 from curious.exc import ErrorCode, CuriousError, Forbidden, NotFound, Unauthorized, \
     HierarchyError, PermissionsError, HTTPException
-
-# for asks
-# import multio
-# multio.init('curio')

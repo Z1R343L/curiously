@@ -323,18 +323,18 @@ class GatewayHandler(object):
                 if isinstance(event, Closed):
                     await self._stop_heartbeat_events()
                     self.logger.info("The websocket has closed")
-                    yield "websocket_closed",
+                    yield "websocket_closed", event.code, event.reason
 
                 elif isinstance(event, Connecting):
                     self.logger.info("The websocket is opening...")
                     # we need to reset the data buffer and zlib inflater
                     self._databuffer.clear()
                     self._decompressor = zlib.decompressobj()
-                    yield "websocket_opened",
+                    yield "websocket_opened", event.url
 
                 elif isinstance(event, Connected):
                     self.logger.info("The websocket has connected")
-                    yield "websocket_connected"
+                    yield "websocket_connected", event.url, event.proxy
 
                 elif isinstance(event, (Text, Binary)):
                     gen = self.handle_data_event(event)
