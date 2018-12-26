@@ -18,11 +18,11 @@ Wrappers for Guild objects.
 
 .. currentmodule:: curious.dataclasses.guild
 """
+import collections
 from math import ceil
 
 import abc
 import anyio
-import collections
 import copy
 import datetime
 import enum
@@ -519,7 +519,7 @@ class GuildBan:
     reason: str
 
     #: The victim of the ban.
-    victim: 'dt_user.User'
+    victim: dt_user.User
 
 
 class GuildBanContainer(object):

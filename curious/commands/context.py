@@ -141,8 +141,7 @@ class Context(object):
         """
         Checks if a command can be ran.
 
-        :return: If it can be ran, the error message (if any) and the condition that failed (if
-        any).
+        :return: If it can be ran, the error message and the condition that failed (if any).
         """
         result = ConditionStatus(success=True)
 

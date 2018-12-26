@@ -16,8 +16,6 @@
 """
 Wrappers for Permission objects.
 
-This class uses some automatic generation to create the objects.
-
 .. currentmodule:: curious.dataclasses.permissions
 """
 from typing import Optional, Union
@@ -29,66 +27,17 @@ from curious.exc import PermissionsError
 target_thint = 'Union[dt_member.Member, dt_role.Role]'
 
 
-# I'm far too lazy to type out each permission bit manually.
-# So here's a helper method.
-def build_permissions_class(name: str = "Permissions") -> type:
+# RIP the generator.
+class Permissions(object):
     """
-    Builds the permissions class automagically.
-    This should ***not*** be used by normal user code - it is designed for internal usage by 
-    curious.
-
-    :param name: The name of the class.
-    :return: A new type representing the permissions class.
-    """
-    # Closure methods.
-    __doc__ = """
     Represents the permissions a user can have.
     This type is automatically generated based upon a set of constant permission bits.
 
-    Every permission is accessible via a property getter and setter. The raw permissions value is 
-    accessible via ``bitfield``.
+    Every permission is accessible via a property getter and setter. The raw permissions value is
+    accessible via :attr:`.Permissions.bitfield`.
     """
 
-    def __init__(self, value: int = 0,
-                 **kwargs):
-        """
-        Creates a new Permissions object.
-
-        :param value: The bitfield value of the permissions object.
-        """
-        self.bitfield = value
-        for perm, value in kwargs.items():
-            if perm not in permissions:
-                raise ValueError("Unknown permission", perm)
-
-            setattr(self, perm, value)
-
-    def __new__(cls, value: int = 0,
-                **kwargs):
-        if isinstance(value, cls):
-            return value
-
-        return super(Permissions, cls).__new__(cls)
-
-    def _get_bit(self, bit: int) -> bool:
-        """
-        Gets a bit from the internal bitfield of the permissions.
-        """
-
-        return bool((self.bitfield >> bit) & 1)
-
-    def _set_bit(self, bit: int, value: bool):
-        if value:
-            self.bitfield |= (1 << bit)
-        else:
-            self.bitfield &= ~(1 << bit)
-
-    # Operator overloads.
-    def __eq__(self, other):
-        return self.bitfield == other.bitfield
-
-    # This is a dict because discord skips some permissions.
-    permissions = {
+    PERMISSION_MAPPING = {
         "create_instant_invite": 0,
         "kick_members": 1,
         "ban_members": 2,
@@ -120,72 +69,388 @@ def build_permissions_class(name: str = "Permissions") -> type:
         # rest are unused
     }
 
-    # Create a bunch of property objects for each permission.
-    def _get_permission_getter(name: str, bit: int):
-        def _junk_function(self) -> bool:
-            return self._get_bit(bit)
+    @classmethod
+    def __new__(cls, value: int = 0,
+                **kwargs):
+        if isinstance(value, cls):
+            return value
 
-        _junk_function.__name__ = name
-        return _junk_function
+        return super(Permissions, cls).__new__(cls)
 
-    def _get_permission_setter(name: str, bit: int):
-        def _junk_function(self, value: bool):
-            return self._set_bit(bit, value)
-
-        _junk_function.__name__ = name
-        return _junk_function
-
-    _doc_base = ":return: If this member has the {} permission (bit {})."
-
-    properties = {
-        name: property(fget=_get_permission_getter(name, bit),
-                       fset=_get_permission_setter(name, bit),
-                       doc=_doc_base.format(name, bit)) for (name, bit) in permissions.items()
-    }
-
-    def raise_for_permission(self, permission: str) -> None:
+    def __init__(self, value: int = 0,
+                 **kwargs):
         """
-        Raises :class:`.PermissionsError` if this permission does not have the required bit.
+        Creates a new Permissions object.
+
+        :param value: The bitfield value of the permissions object.
+        """
+        self.bitfield = value
+        for perm, value in kwargs.items():
+            if perm not in self.PERMISSION_MAPPING:
+                raise ValueError("Unknown permission", perm)
+
+            setattr(self, perm, value)
+
+    def raise_for_permission(self, permission: str):
+        """
+        Raises an error if the specified permission is not set.
         """
         if not getattr(self, permission):
             raise PermissionsError(permission)
 
-    # Create some useful classmethods.
+    def _get_bit(self, bit: int) -> bool:
+        """
+        Gets a bit from the internal bitfield of the permissions.
+        """
+        return bool((self.bitfield >> bit) & 1)
+
+    def _set_bit(self, bit: int, value: bool):
+        if value:
+            self.bitfield |= (1 << bit)
+        else:
+            self.bitfield &= ~(1 << bit)
+
     @classmethod
-    def all(cls):
+    def all(cls) -> 'Permissions':
         """
         :return: A new Permissions object with all permissions.
         """
         return cls(9007199254740991)
 
     @classmethod
-    def none(cls):
+    def none(cls) -> 'Permissions':
         """
         :return: A new permissions object with no permissions.
         """
         return cls(0)
 
-    # Create the namespace dict to use in the type declaration.
-    namespace = {
-        "__init__": __init__,
-        "__new__": __new__,
-        "_set_bit": _set_bit,
-        "_get_bit": _get_bit,
-        "__eq__": __eq__,
-        "__repr__": lambda self: "<Permissions value={}>".format(self.bitfield),
-        "all": all,
-        "none": none,
-        "raise_for_permission": raise_for_permission,
-        "__slots__": ("bitfield",),
-        **properties
-    }
-    new_class = type(name, (object,), namespace)
-    new_class.__doc__ = __doc__
+    # Operator overloads.
+    def __eq__(self, other) -> bool:
+        if isinstance(other, int):
+            return self.bitfield == other
+        elif isinstance(self, Permissions):
+            return self.bitfield == other.bitfield
+        else:
+            return NotImplemented
 
-    return new_class
+    def __repr__(self) -> str:
+        # todo: make this better
+        return "<Permissions value={}>".format(self.bitfield)
+
+    def __str__(self):
+        return self.__repr__()
+
+    # Autogenerated
+
+    @property
+    def create_instant_invite(self) -> bool:
+        """
+        :return: If this member has the CREATE_INSTANT_INVITE permission (bit 0)
+        """
+        return self._get_bit(0)
+
+    @create_instant_invite.setter
+    def create_instant_invite(self, value: bool) -> None:
+        self._set_bit(0, value)
+
+    @property
+    def kick_members(self) -> bool:
+        """
+        :return: If this member has the KICK_MEMBERS permission (bit 1)
+        """
+        return self._get_bit(1)
+
+    @kick_members.setter
+    def kick_members(self, value: bool) -> None:
+        self._set_bit(1, value)
+
+    @property
+    def ban_members(self) -> bool:
+        """
+        :return: If this member has the BAN_MEMBERS permission (bit 2)
+        """
+        return self._get_bit(2)
+
+    @ban_members.setter
+    def ban_members(self, value: bool) -> None:
+        self._set_bit(2, value)
+
+    @property
+    def administrator(self) -> bool:
+        """
+        :return: If this member has the ADMINISTRATOR permission (bit 3)
+        """
+        return self._get_bit(3)
+
+    @administrator.setter
+    def administrator(self, value: bool) -> None:
+        self._set_bit(3, value)
+
+    @property
+    def manage_channels(self) -> bool:
+        """
+        :return: If this member has the MANAGE_CHANNELS permission (bit 4)
+        """
+        return self._get_bit(4)
+
+    @manage_channels.setter
+    def manage_channels(self, value: bool) -> None:
+        self._set_bit(4, value)
+
+    @property
+    def manage_server(self) -> bool:
+        """
+        :return: If this member has the MANAGE_SERVER permission (bit 5)
+        """
+        return self._get_bit(5)
+
+    @manage_server.setter
+    def manage_server(self, value: bool) -> None:
+        self._set_bit(5, value)
+
+    @property
+    def add_reactions(self) -> bool:
+        """
+        :return: If this member has the ADD_REACTIONS permission (bit 6)
+        """
+        return self._get_bit(6)
+
+    @add_reactions.setter
+    def add_reactions(self, value: bool) -> None:
+        self._set_bit(6, value)
+
+    @property
+    def view_audit_log(self) -> bool:
+        """
+        :return: If this member has the VIEW_AUDIT_LOG permission (bit 7)
+        """
+        return self._get_bit(7)
+
+    @view_audit_log.setter
+    def view_audit_log(self, value: bool) -> None:
+        self._set_bit(7, value)
+
+    @property
+    def read_messages(self) -> bool:
+        """
+        :return: If this member has the READ_MESSAGES permission (bit 10)
+        """
+        return self._get_bit(10)
+
+    @read_messages.setter
+    def read_messages(self, value: bool) -> None:
+        self._set_bit(10, value)
+
+    @property
+    def send_messages(self) -> bool:
+        """
+        :return: If this member has the SEND_MESSAGES permission (bit 11)
+        """
+        return self._get_bit(11)
+
+    @send_messages.setter
+    def send_messages(self, value: bool) -> None:
+        self._set_bit(11, value)
+
+    @property
+    def send_tts_messages(self) -> bool:
+        """
+        :return: If this member has the SEND_TTS_MESSAGES permission (bit 12)
+        """
+        return self._get_bit(12)
+
+    @send_tts_messages.setter
+    def send_tts_messages(self, value: bool) -> None:
+        self._set_bit(12, value)
+
+    @property
+    def manage_messages(self) -> bool:
+        """
+        :return: If this member has the MANAGE_MESSAGES permission (bit 13)
+        """
+        return self._get_bit(13)
+
+    @manage_messages.setter
+    def manage_messages(self, value: bool) -> None:
+        self._set_bit(13, value)
+
+    @property
+    def embed_links(self) -> bool:
+        """
+        :return: If this member has the EMBED_LINKS permission (bit 14)
+        """
+        return self._get_bit(14)
+
+    @embed_links.setter
+    def embed_links(self, value: bool) -> None:
+        self._set_bit(14, value)
+
+    @property
+    def attach_files(self) -> bool:
+        """
+        :return: If this member has the ATTACH_FILES permission (bit 15)
+        """
+        return self._get_bit(15)
+
+    @attach_files.setter
+    def attach_files(self, value: bool) -> None:
+        self._set_bit(15, value)
+
+    @property
+    def read_message_history(self) -> bool:
+        """
+        :return: If this member has the READ_MESSAGE_HISTORY permission (bit 16)
+        """
+        return self._get_bit(16)
+
+    @read_message_history.setter
+    def read_message_history(self, value: bool) -> None:
+        self._set_bit(16, value)
+
+    @property
+    def mention_everyone(self) -> bool:
+        """
+        :return: If this member has the MENTION_EVERYONE permission (bit 17)
+        """
+        return self._get_bit(17)
+
+    @mention_everyone.setter
+    def mention_everyone(self, value: bool) -> None:
+        self._set_bit(17, value)
+
+    @property
+    def use_external_emojis(self) -> bool:
+        """
+        :return: If this member has the USE_EXTERNAL_EMOJIS permission (bit 18)
+        """
+        return self._get_bit(18)
+
+    @use_external_emojis.setter
+    def use_external_emojis(self, value: bool) -> None:
+        self._set_bit(18, value)
+
+    @property
+    def voice_connect(self) -> bool:
+        """
+        :return: If this member has the VOICE_CONNECT permission (bit 20)
+        """
+        return self._get_bit(20)
+
+    @voice_connect.setter
+    def voice_connect(self, value: bool) -> None:
+        self._set_bit(20, value)
+
+    @property
+    def voice_speak(self) -> bool:
+        """
+        :return: If this member has the VOICE_SPEAK permission (bit 21)
+        """
+        return self._get_bit(21)
+
+    @voice_speak.setter
+    def voice_speak(self, value: bool) -> None:
+        self._set_bit(21, value)
+
+    @property
+    def voice_mute_members(self) -> bool:
+        """
+        :return: If this member has the VOICE_MUTE_MEMBERS permission (bit 22)
+        """
+        return self._get_bit(22)
+
+    @voice_mute_members.setter
+    def voice_mute_members(self, value: bool) -> None:
+        self._set_bit(22, value)
+
+    @property
+    def voice_deafen_members(self) -> bool:
+        """
+        :return: If this member has the VOICE_DEAFEN_MEMBERS permission (bit 23)
+        """
+        return self._get_bit(23)
+
+    @voice_deafen_members.setter
+    def voice_deafen_members(self, value: bool) -> None:
+        self._set_bit(23, value)
+
+    @property
+    def voice_move_members(self) -> bool:
+        """
+        :return: If this member has the VOICE_MOVE_MEMBERS permission (bit 24)
+        """
+        return self._get_bit(24)
+
+    @voice_move_members.setter
+    def voice_move_members(self, value: bool) -> None:
+        self._set_bit(24, value)
+
+    @property
+    def voice_use_voice_activation(self) -> bool:
+        """
+        :return: If this member has the VOICE_USE_VOICE_ACTIVATION permission (bit 25)
+        """
+        return self._get_bit(25)
+
+    @voice_use_voice_activation.setter
+    def voice_use_voice_activation(self, value: bool) -> None:
+        self._set_bit(25, value)
+
+    @property
+    def change_nickname(self) -> bool:
+        """
+        :return: If this member has the CHANGE_NICKNAME permission (bit 26)
+        """
+        return self._get_bit(26)
+
+    @change_nickname.setter
+    def change_nickname(self, value: bool) -> None:
+        self._set_bit(26, value)
+
+    @property
+    def manage_nicknames(self) -> bool:
+        """
+        :return: If this member has the MANAGE_NICKNAMES permission (bit 27)
+        """
+        return self._get_bit(27)
+
+    @manage_nicknames.setter
+    def manage_nicknames(self, value: bool) -> None:
+        self._set_bit(27, value)
+
+    @property
+    def manage_roles(self) -> bool:
+        """
+        :return: If this member has the MANAGE_ROLES permission (bit 28)
+        """
+        return self._get_bit(28)
+
+    @manage_roles.setter
+    def manage_roles(self, value: bool) -> None:
+        self._set_bit(28, value)
+
+    @property
+    def manage_webhooks(self) -> bool:
+        """
+        :return: If this member has the MANAGE_WEBHOOKS permission (bit 29)
+        """
+        return self._get_bit(29)
+
+    @manage_webhooks.setter
+    def manage_webhooks(self, value: bool) -> None:
+        self._set_bit(29, value)
+
+    @property
+    def manage_emojis(self) -> bool:
+        """
+        :return: If this member has the MANAGE_EMOJIS permission (bit 30)
+        """
+        return self._get_bit(30)
+
+    @manage_emojis.setter
+    def manage_emojis(self, value: bool) -> None:
+        self._set_bit(30, value)
 
 
-Permissions = build_permissions_class("Permissions")
 perm_thint = Union[int, Permissions]
 
 

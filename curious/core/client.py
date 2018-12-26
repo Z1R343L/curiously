@@ -166,7 +166,6 @@ class Client(object):
         self._gw_url = None  # type: str
 
         #: The application info for this bot. Instance of :class:`.AppInfo`.
-        #: This will be None for user bots.
         self.application_info = None  # type: AppInfo
 
         #: The task manager used for this bot.
