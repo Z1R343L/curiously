@@ -265,8 +265,7 @@ class GatewayHandler(object):
         return await self.send(payload)
 
     async def send_status(self, *, status: int = None, name: str = None, url: str = None,
-                          type_: int = None,
-                          afk: bool = None):
+                          type_: int = None):
         """
         Sends a PRESENCE_UPDATE.
 
@@ -274,7 +273,6 @@ class GatewayHandler(object):
         :param name: The name of the status to send.
         :param url: The URL to include if applicable.
         :param type_: The type of the status to send.
-        :param afk: If the account is to be marked as AFK.
         """
         payload = {
             "op": GatewayOp.PRESENCE,
@@ -292,9 +290,6 @@ class GatewayHandler(object):
                 game["url"] = url
 
             payload["d"]["game"] = game
-
-        if afk is not None:
-            payload["d"].update(afk=afk, since=int(time.time() * 1000))
 
         return await self.send(payload)
 

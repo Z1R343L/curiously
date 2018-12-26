@@ -318,7 +318,7 @@ class Client(object):
         return await gateway.send_status(
             name=game.name if game else None, type_=game.type if game else None,
             url=game.url if game else None,
-            status=status.value, afk=afk
+            status=status.value,
         )
 
     # HTTP Functions
