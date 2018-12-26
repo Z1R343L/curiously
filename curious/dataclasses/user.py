@@ -20,6 +20,8 @@ Wrappers for User objects.
 """
 
 import datetime
+from enum import Enum, IntEnum
+from typing import Optional
 
 from curious.core import get_current_client
 from curious.dataclasses import channel as dt_channel, guild as dt_guild, message as dt_message
@@ -48,10 +50,10 @@ class AvatarUrl(object):
         """
         if not self._user.avatar_hash:
             base_url = f"https://cdn.discordapp.com/embed/avatars/" \
-                       f"{int(self._user.discriminator) % 5}"
+                f"{int(self._user.discriminator) % 5}"
         else:
             base_url = f"https://cdn.discordapp.com/avatars/" \
-                       f"{self._user.id}/{self._user.avatar_hash}"
+                f"{self._user.id}/{self._user.avatar_hash}"
 
         return f"{base_url}.{self._format}?size={self._size}"
 
@@ -92,6 +94,65 @@ class AvatarUrl(object):
         return str(self) < str(other)
 
 
+class PremiumType(IntEnum):
+    """
+    Represents the premium types.
+    """
+    NONE = 0
+    NITRO_CLASSIC = 1
+    NITRO = 2
+
+
+class HypesquadHouse(Enum):
+    """
+    Represents the hypesquad houses.
+    """
+    BRAVERY = 0
+    BRILLIANCE = 1
+    BALANCE = 2
+    UNKNOWN = 3
+
+
+class UserFlags(object):
+    """
+    Represents the flags for a user.
+    """
+    __slots__ = "_flags",
+
+    FLAG_NONE = 0
+    FLAG_HYPESQUAD_EVENTS = 1 << 2
+    FLAG_HOUSE_BRAVERY = 1 << 6
+    FLAG_HOUSE_BRILLIANCE = 1 << 7
+    FLAG_HOUSE_BALANCE = 1 << 8
+
+    def __init__(self, flag_int: int):
+        self._flags = flag_int
+
+    @property
+    def is_hypesquad(self) -> bool:
+        """
+        :return: If this user has the hypesquad flag.
+        """
+        return (self._flags & self.FLAG_HYPESQUAD_EVENTS) != 0
+
+    @property
+    def house(self) -> Optional[HypesquadHouse]:
+        """
+        :return: What hypesquad house this user is in.
+        """
+        if not self.is_hypesquad:
+            return None
+
+        if self._flags & self.FLAG_HOUSE_BALANCE:
+            return HypesquadHouse.BALANCE
+        elif self._flags & self.FLAG_HOUSE_BRAVERY:
+            return HypesquadHouse.BALANCE
+        elif self._flags & self.FLAG_HOUSE_BRILLIANCE:
+            return HypesquadHouse.BRILLIANCE
+        else:
+            return HypesquadHouse.UNKNOWN
+
+
 class User(Dataclass):
     """
     This represents a bare user - i.e, somebody without a guild attached.
@@ -100,32 +161,45 @@ class User(Dataclass):
     :ivar id: The ID of this user.
     """
 
-    __slots__ = ("username", "discriminator", "avatar_hash", "verified", "mfa_enabled", "bot")
+    __slots__ = ("username", "discriminator", "avatar_hash", "verified", "mfa_enabled", "bot",
+                 "flags", "_flags_raw", "premium_type")
 
     def __init__(self, **kwargs):
         super().__init__(kwargs.get("id"))
 
         #: The username of this user.
-        self.username = kwargs.get("username", None)
+        self.username: str = kwargs["username"]
 
         #: The discriminator of this user.
         #: Note: This is a string, not an integer.
-        self.discriminator = kwargs.get("discriminator", None)
+        self.discriminator: str = kwargs.get("discriminator", "0000")
 
         #: The avatar hash of this user.
-        self.avatar_hash = kwargs.get("avatar", None)
+        self.avatar_hash: Optional[str] = kwargs.get("avatar", None)
 
         #: If this user is verified or not.
-        self.verified = kwargs.get("verified", None)
+        self.verified: Optional[bool] = kwargs.get("verified", None)
 
         #: If this user has MFA enabled or not.
-        self.mfa_enabled = kwargs.get("mfa_enabled", None)
+        self.mfa_enabled: Optional[bool] = kwargs.get("mfa_enabled", None)
 
         #: If this user is a bot.
-        self.bot = kwargs.get("bot", False)
+        self.bot: bool = kwargs.get("bot", False)
+
+        #: The premium type for this user.
+        self.premium_type = PremiumType(kwargs.get("premium_type", 0))
+
+        #: The raw flags int for this user.
+        self._flags_raw: int = kwargs.get("flags", 0)
+
+        #: The user flags object for this user.
+        self.flags = UserFlags(self._flags_raw)
 
     @property
     def user(self) -> 'User':
+        """
+        Compatability propertly with :class:`.Member`.
+        """
         return self
 
     def _copy(self):
