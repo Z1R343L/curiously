@@ -276,7 +276,10 @@ class GatewayHandler(object):
         """
         payload = {
             "op": GatewayOp.PRESENCE,
-            "d": {}
+            "d": {
+                "afk": False,  # needed
+                "since": 42069,  # also needed but is bullshit because discord gives 4001 if missing
+            }
         }
         if status is not None:
             payload["d"]["status"] = status
