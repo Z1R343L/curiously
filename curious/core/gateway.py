@@ -371,7 +371,7 @@ class GatewayHandler(object):
 
         await self.task_group.spawn(heartbeater)
 
-    async def _stop_heartbeat_events(self) -> None:
+    async def _stop_heartbeat_events(self, *, reset_counts: bool = False) -> None:
         """
         Cancels any current heartbeat events.
         """
@@ -411,6 +411,7 @@ class GatewayHandler(object):
         if opcode == GatewayOp.HELLO:
             heartbeat_interval = event_data.get("heartbeat_interval", 45000) / 1000.0
             self.logger.debug("Heartbeating every {} seconds.".format(heartbeat_interval))
+            await self._stop_heartbeat_events(reset_counts=False)
             await self.send_heartbeat()
             await self._start_heatbeat_events(heartbeat_interval)
             trace = ", ".join(event_data["_trace"])
