@@ -1371,6 +1371,10 @@ class HTTPClient(object):
             url = Endpoints.GUILD_MEMBER_NICK_ME.format(guild_id=guild_id)
         else:
             url = Endpoints.GUILD_MEMBER.format(guild_id=guild_id, member_id=member_id)
+
+        if nickname is None:
+            nickname = ""  # undocumented
+
         payload = {
             "nick": nickname
         }
