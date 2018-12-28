@@ -43,6 +43,10 @@ class UniversalWrapper:
         self._ws = ws
 
         for item in websocket:
+            # for some reason lomond doesn't exit the loop??
+            if self._cancelled.is_set():
+                break
+
             anyio.run_async_from_thread(self._queue.put, item)
 
         anyio.run_async_from_thread(self._queue.put, self._DONE)
