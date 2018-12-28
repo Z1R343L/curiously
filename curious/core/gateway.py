@@ -31,7 +31,7 @@ from anyio import TaskGroup
 from async_generator import asynccontextmanager
 from dataclasses import dataclass
 from lomond.errors import WebSocketClosed, WebSocketClosing, WebSocketUnavailable
-from lomond.events import Binary, Closed, Connected, Connecting, Text
+from lomond.events import Binary, Closing, Connected, Connecting, Text
 from typing import Any, AsyncContextManager, AsyncGenerator, List, Union
 
 from curious.core._ws_wrapper.universal_wrapper import UniversalWrapper
@@ -315,7 +315,7 @@ class GatewayHandler(object):
         """
         async with finalise(self.websocket.run()) as agen:
             async for event in agen:
-                if isinstance(event, Closed):
+                if isinstance(event, Closing):
                     await self._stop_heartbeat_events()
                     self.logger.info("The websocket has closed")
                     yield "websocket_closed", event.code, event.reason
