@@ -69,7 +69,7 @@ class Permissions(object):
         # rest are unused
     }
 
-    @classmethod
+    @staticmethod
     def __new__(cls, value: int = 0,
                 **kwargs):
         if isinstance(value, cls):
