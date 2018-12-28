@@ -414,7 +414,7 @@ class GatewayHandler(object):
             await self.send_heartbeat()
             await self._start_heatbeat_events(heartbeat_interval)
             trace = ", ".join(event_data["_trace"])
-            self.logger.info(f"Connected to Discord servers {trace}")
+            self.logger.info(f"Connected to Discord server(s) '{trace}'")
 
             try:
                 if self.session.session_id is None:
