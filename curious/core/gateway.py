@@ -96,10 +96,10 @@ class HeartbeatStats:
     heartbeat_acks: int = 0
 
     #: Internal time when the last heartbeat was sent.
-    last_heartbeat_time: int = 0
+    last_heartbeat_time: float = 0
 
     #: Internal time when the last heartbeat_ack was received.
-    last_ack_time: int = 0
+    last_ack_time: float = 0
 
     @property
     def gw_time(self) -> float:
