@@ -452,6 +452,7 @@ class GatewayHandler(object):
             else:
                 self.logger.warning("Received INVALIDATE_SESSION with d False, re-identifying.")
                 self.session.sequence = 0
+                self.heartbeat_stats = HeartbeatStats()
                 self.session.session_id = None
                 await self.send_identify()
 
