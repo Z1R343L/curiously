@@ -80,6 +80,9 @@ class _GatewayState:
     #: The current sequence.
     sequence: int = 0
 
+    #: If the session is currently authenticated (used for zombie logic on resumes).
+    authenticated: bool = False
+
 
 @dataclass
 class HeartbeatStats:
@@ -218,7 +221,8 @@ class GatewayHandler(object):
         self.heartbeat_stats.heartbeats += 1
         self.heartbeat_stats.last_heartbeat_time = time.monotonic()
 
-        if self.heartbeat_stats.heartbeats > self.heartbeat_stats.heartbeat_acks + 1:
+        if self.heartbeat_stats.heartbeats > self.heartbeat_stats.heartbeat_acks + 1\
+                and self.session.session_id is not None and self.session.authenticated:
             self.logger.warning("Connection has zombied, reconnecting.")
 
             # Note: The 1006 close code signifies an error.
@@ -332,6 +336,7 @@ class GatewayHandler(object):
 
                 elif isinstance(event, Connected):
                     self.logger.info("The websocket has connected")
+                    self.session.authenticated = False
                     yield "websocket_connected", event.url, event.proxy
 
                 elif isinstance(event, (Text, Binary)):
@@ -405,7 +410,6 @@ class GatewayHandler(object):
         # switch based on opcode
         if opcode == GatewayOp.HELLO:
             heartbeat_interval = event_data.get("heartbeat_interval", 45000) / 1000.0
-
             self.logger.debug("Heartbeating every {} seconds.".format(heartbeat_interval))
             await self.send_heartbeat()
             await self._start_heatbeat_events(heartbeat_interval)
@@ -459,6 +463,7 @@ class GatewayHandler(object):
                 return
 
             if event == "READY":
+                self.session.authenticated = True
                 # hijack the session id
                 self.session.session_id = event_data["session_id"]
 
