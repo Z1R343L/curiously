@@ -306,7 +306,7 @@ class State(object):
 
         return user
 
-    def make_message(self, event_data: dict, cache: bool = True) -> Message:
+    def make_message(self, event_data: dict, cache: bool = True) -> Optional[Message]:
         """
         Constructs a new message object.
         
@@ -453,7 +453,9 @@ class State(object):
             old_member = member._copy()
 
         # Update the member's presence
-        member.presence = Presence(status=event_data.get("status"), game=event_data.get("game", {}))
+        member.presence = Presence(status=event_data.get("status"),
+                                   game=event_data.get("game", {}),
+                                   client_status=event_data.get("client_status", {}))
 
         # copy the roles if it exists
         if old_member is not None:

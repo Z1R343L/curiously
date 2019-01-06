@@ -113,12 +113,43 @@ class Game(object):
         return "<Game name='{}' type={} url={}>".format(self.name, self.type, self.url)
 
 
+class ClientStatus(object):
+    """
+    Represents the specific client status for a user. This shows what status a user has for each
+    platform (desktop, web, mobile).
+    """
+
+    def __init__(self, **client_status):
+        self._client_status = client_status
+
+    @property
+    def desktop(self) -> Status:
+        """
+        :return: The :class:`.Status` for this user on the desktop.
+        """
+        return Status(self._client_status.get("desktop", "offline"))
+
+    @property
+    def mobile(self) -> Status:
+        """
+        :return: The :class:`.Status` for this user on mobile.
+        """
+        return Status(self._client_status.get("mobile", "offline"))
+
+    @property
+    def web(self) -> Status:
+        """
+        :return: The :class:`.Status` for this user on the web.
+        """
+        return Status(self._client_status.get("web", "offline"))
+
+
 class Presence(object):
     """
     Represents a presence on a member.
     """
 
-    __slots__ = "_status", "_game"
+    __slots__ = "_status", "_game", "client_status"
 
     def __init__(self, **kwargs) -> None:
         """
@@ -130,6 +161,9 @@ class Presence(object):
         # prevent dupe code by using our setter
         self.status = kwargs.get("status", Status.OFFLINE)
 
+        #: The :class:`.ClientStatus` for this prescence.
+        self.client_status = ClientStatus(**kwargs.get("client_status", {}))
+
         game = kwargs.get("game", None)
         #: The :class:`.Game` for this presence.
         self._game = None  # type: Game
@@ -137,7 +171,7 @@ class Presence(object):
         # NB: this does a property set to ensure the types are right.
         self.game = game
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return "<Presence status={} game='{}'>".format(self.status, self.game)
 
     @property
@@ -174,6 +208,27 @@ class Presence(object):
             value = Game(**value)
 
         self._game = value
+
+    @property
+    def desktop(self) -> Status:
+        """
+        :return: The :class:`.Status` for this user on the desktop.
+        """
+        return self.client_status.desktop
+
+    @property
+    def mobile(self) -> Status:
+        """
+        :return: The :class:`.Status` for this user on mobile.
+        """
+        return self.client_status.mobile
+
+    @property
+    def web(self) -> Status:
+        """
+        :return: The :class:`.Status` for this user on the web.
+        """
+        return self.client_status.web
 
     @property
     def strength(self) -> int:
@@ -272,4 +327,3 @@ class RichPresence(object):
             self._rich_fields["party"] = {"size": size}
         else:
             self._rich_fields["party"]["size"] = size
-
