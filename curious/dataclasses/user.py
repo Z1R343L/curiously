@@ -18,7 +18,7 @@ Wrappers for User objects.
 
 .. currentmodule:: curious.dataclasses.user
 """
-
+import copy
 import datetime
 from enum import Enum, IntEnum
 from typing import Optional
@@ -226,15 +226,7 @@ class User(Dataclass):
         return self
 
     def _copy(self):
-        new_object = object.__new__(self.__class__)
-        new_object.id = self.id
-        new_object.username = self.username
-        new_object.discriminator = self.discriminator
-        new_object.avatar_hash = self.avatar_hash
-        new_object.verified = self.verified
-        new_object.mfa_enabled = self.mfa_enabled
-        new_object.bot = self.bot
-
+        new_object = copy.copy(self)
         return new_object
 
     @property
