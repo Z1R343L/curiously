@@ -120,13 +120,36 @@ class UserFlags(object):
     __slots__ = "_flags",
 
     FLAG_NONE = 0
+    FLAG_DISCORD_EMPLOYEE = 1 << 0
+    FLAG_DISCORD_PARTNER = 1 << 1
     FLAG_HYPESQUAD_EVENTS = 1 << 2
+    FLAG_BUG_HUNTER = 1 << 3
     FLAG_HOUSE_BRAVERY = 1 << 6
     FLAG_HOUSE_BRILLIANCE = 1 << 7
     FLAG_HOUSE_BALANCE = 1 << 8
+    FLAG_EARLY_SUPPORTER = 1 << 9
 
     def __init__(self, flag_int: int):
         self._flags = flag_int
+
+    @property
+    def raw(self) -> int:
+        """
+        :return: The raw flag integer for this set of flags.
+        """
+        return self._flags
+
+    def __repr__(self) -> str:
+        return repr(self._flags)
+
+    def __str__(self) -> str:
+        return str(self._flags)
+
+    def __and__(self, other) -> int:
+        return self._flags & other
+
+    def __or__(self, other) -> int:
+        return self._flags & other
 
     @property
     def is_hypesquad(self) -> bool:
