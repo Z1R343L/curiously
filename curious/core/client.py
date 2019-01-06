@@ -25,6 +25,7 @@ import collections
 import anyio
 import enum
 import logging
+from os import PathLike
 from types import MappingProxyType
 from typing import Any, Iterable, Mapping, MutableMapping, Tuple, Union
 
@@ -237,7 +238,7 @@ class Client(object):
         :return: The gateway URL for this bot.
         """
         if get_shard_count:
-            return await self.http.get_shard_count()
+            return await self.http.get_gateway_url_bot()
         else:
             return await self.http.get_gateway_url()
 
@@ -321,8 +322,8 @@ class Client(object):
         """
         Edits the profile of this bot.
 
-        The user is **not** edited in-place - instead, you must wait for the `USER_UPDATE` event to
-        be fired on the websocket.
+        The user is **not** edited in-place - instead, you must wait for the ``USER_UPDATE`` event
+        to be fired on the websocket.
 
         :param username: The new username of the bot.
         :param avatar: The bytes-like object that represents the new avatar you wish to use.
@@ -342,7 +343,7 @@ class Client(object):
 
         await self.http.edit_user(username, avatar)
 
-    async def edit_avatar(self, path: str) -> None:
+    async def edit_avatar(self, path: Union[str, PathLike]) -> None:
         """
         A higher-level way to change your avatar.
         This allows you to provide a path to the avatar file instead of having to read it in 
@@ -509,7 +510,7 @@ class Client(object):
                     for event in to_dispatch:
                         await self.events.fire_event(event[0], *event[1:], gateway=gw)
 
-    async def manage_all_shards(self, shard_count: int):
+    async def manage_all_shards(self, shard_count: int) -> None:
         """
         Runs the bot's shards.
         """
