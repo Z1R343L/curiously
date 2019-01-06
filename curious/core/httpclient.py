@@ -264,7 +264,6 @@ class HTTPClient(object):
     """
 
     def __init__(self, token: str, *,
-                 bot: bool = True,
                  max_connections: int = 10):
         #: The token used for all requests.
         self.token = token
@@ -273,7 +272,7 @@ class HTTPClient(object):
         from curious import USER_AGENT
         headers = {
             "User-Agent": USER_AGENT,
-            "Authorization": "{}{}".format("Bot " if bot else "", self.token)
+            "Authorization": f"Bot {token}"
         }
 
         self.endpoints = Endpoints()
@@ -284,7 +283,6 @@ class HTTPClient(object):
 
         self._rate_limits = weakref.WeakValueDictionary()
         self._ratelimit_remaining = lru(1024)
-        self._is_bot = bot
 
     def get_ratelimit_lock(self, bucket: object) -> 'anyio.Lock':
         """
@@ -541,23 +539,22 @@ class HTTPClient(object):
         return await self.request(("PATCH", bucket), method="PATCH", path=url, *args, **kwargs)
 
     # Non-generic methods
-    async def get_gateway_url(self):
+    async def get_gateway_url(self) -> str:
         """
-        It is not recommended to use this method - use :meth:`HTTPClient.get_shard_count` instead. 
-        That method provides the gateway URL as well.
+        It is not recommended to use this method - use :meth:`HTTPClient.get_gateway_url_bot`
+        instead.
 
         :return: The websocket gateway URL to get.
         """
         data = await self.get(Endpoints.GATEWAY, "gateway")
         return data["url"]
 
-    async def get_shard_count(self):
+    async def get_gateway_url_bot(self) -> Tuple[str, int]:
         """
+        Gets the gateway URL, and the recommended number of shards for this bot.
+
         :return: The recommended number of shards for this bot.
         """
-        if not self._is_bot:
-            raise Forbidden(None, {"code": 20002, "message": "Only bots can use this endpoint"})
-
         data = await self.get(Endpoints.GATEWAY_BOT, "gateway")
         return data["url"], data["shards"]
 

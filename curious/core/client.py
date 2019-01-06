@@ -55,9 +55,6 @@ class BotType(enum.IntEnum):
     #: Regular bot. This signifies that the client should log in as a bot account.
     BOT = 1
 
-    #: User bot. This signifies that the client should log in as a user account.
-    USERBOT = 2
-
     # 4 is reserved
 
     #: No bot responses. This signifies that the client should respond to ONLY USER messages.
@@ -122,7 +119,7 @@ class Client(object):
     ]
 
     def __init__(self, token: str, *,
-                 state_klass: type = None,
+                 state_klass=None,
                  bot_type: int = (BotType.BOT | BotType.ONLY_USER)):
         """
         :param token: The current token for this bot.
@@ -148,9 +145,6 @@ class Client(object):
         #: The bot type for this bot.
         self.bot_type = bot_type
 
-        if self.bot_type & BotType.BOT and self.bot_type & BotType.USERBOT:
-            raise ValueError("Bot cannot be a bot and a userbot at the same time")
-
         #: The current :class:`.EventManager` for this bot.
         self.events = EventManager()
         #: The current :class:`.Chunker` for this bot.
@@ -160,7 +154,7 @@ class Client(object):
         self._ready_state = {}
 
         #: The :class:`.HTTPClient` used for this bot.
-        self.http = HTTPClient(self._token, bot=bool(self.bot_type & BotType.BOT))
+        self.http = HTTPClient(self._token)
 
         #: The cached gateway URL.
         self._gw_url = None  # type: str
@@ -413,8 +407,7 @@ class Client(object):
         :param guild_id: The ID of the guild to get the widget of. 
         :return: A :class:`.Widget` object.
         """
-        data = await self.http.get_widget_data(guild_id)
-        return Widget(**data)
+        return Widget(**await self.http.get_widget_data(guild_id))
 
     async def clean_content(self, content: str) -> str:
         """
