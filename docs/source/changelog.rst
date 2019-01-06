@@ -55,6 +55,10 @@ This document displays the differences between each release of curious.
 
  - Add support for viewing flags and user premium status.
 
+ - Add :class:`.PartialEmoji` when full emoji data is not available.
+
+ - Add :class:`.UserStatus` for user statuses.
+
 
 0.7.9 (Released 2018-08-05)
 ---------------------------
