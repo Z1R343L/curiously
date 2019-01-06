@@ -28,7 +28,7 @@ from curious.dataclasses.bases import Dataclass
 class PartialEmoji(Dataclass):
     """
     Represents a partial emoji - an emoji with data missing. Used for reactions if the emoji no
-    longer exists.
+    longer exists, or for :attr:`.Message.emoji` for nitro/removed emojis.
     """
 
     __slots__ = ("id", "name", "guild_id", "animated")

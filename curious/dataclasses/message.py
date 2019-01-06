@@ -199,7 +199,7 @@ class Message(Dataclass):
         return self._resolve_mentions(mentions, "channel")
 
     @property
-    def emojis(self) -> 'List[dt_emoji.Emoji]':
+    def emojis(self) -> 'List[Union[dt_emoji.PartialEmoji, dt_emoji.Emoji]]':
         """
         Returns a list of :class:`.Emoji` that was found in this message.
         """
@@ -207,9 +207,12 @@ class Message(Dataclass):
         emojis = []
 
         for (name, i) in matches:
-            e = self.guild.emojis.get(int(i))
+            emoji_id = int(i)
+            e = self.guild.emojis.get(emoji_id)
             if e:
                 emojis.append(e)
+            else:
+                emojis.append(dt_emoji.PartialEmoji(name=name, id=emoji_id, guild_id=self.guild_id))
 
         return emojis
 
