@@ -20,19 +20,21 @@ Wrappers for Reaction objects.
 """
 from typing import Union
 
-from curious.dataclasses import emoji as dt_emoji
+from curious.dataclasses import emoji as dt_emoji, member as dt_member, message as dt_message, \
+    user as dt_user
 
 
 class Reaction(object):
     """
     Represents a reaction.
     """
+
     def __init__(self, **kwargs) -> None:
         #: The :class:`.Message` this reaction is for.
-        self.message = None
+        self.message: dt_message.Message = None
 
         #: The emoji that represents this reaction.
-        self.emoji: Union[str, dt_emoji.Emoji] = None
+        self.emoji: Union[str, dt_emoji.PartialEmoji, dt_emoji.Emoji] = None
 
         #: The number of times this message was reacted to.
         self.count: int = kwargs.get("count", 1)  # 1 is better than 0
@@ -48,10 +50,16 @@ class Reaction(object):
             return NotImplemented
 
         if self.message.id != other.message.id:
-            return NotImplemented
+            return False
 
         return self.emoji == other.emoji
 
     def __hash__(self) -> int:
         # naiive
         return hash(self.message) + hash(self.emoji)
+
+    async def get_users(self) -> 'List[Union[dt_user.User, dt_member.Member]]':
+        """
+        Gets the list of users who reacted with this reaction to this message.
+        """
+        return await self.message.get_who_reacted(self.emoji)

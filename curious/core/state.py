@@ -20,6 +20,7 @@ Defines :class:`.State`.
 """
 
 import collections
+
 import copy
 import logging
 from types import MappingProxyType
@@ -28,7 +29,7 @@ from typing import Any, Dict, Generator, Mapping, Optional, Type, TypeVar, Union
 from curious.core import gateway
 from curious.dataclasses.channel import Channel, ChannelType
 from curious.dataclasses.embed import Embed
-from curious.dataclasses.emoji import Emoji
+from curious.dataclasses.emoji import Emoji, PartialEmoji
 from curious.dataclasses.guild import ContentFilterLevel, Guild, MFALevel, NotificationLevel, \
     VerificationLevel
 from curious.dataclasses.member import Member
@@ -769,9 +770,11 @@ class State(object):
             reaction = Reaction()
 
             if "id" in emoji and emoji["id"] is not None:
-                emoji_obb = message.guild.emojis.get(int(emoji["id"]))
+                emoji_id = int(emoji["id"])
+                emoji_obb = message.guild.emojis.get(emoji_id)
                 if emoji_obb is None:
-                    emoji_obb = Emoji(id=emoji["id"], name=emoji["name"])
+                    emoji_obb = PartialEmoji(id=emoji_id, name=emoji["name"])
+
             else:
                 emoji_obb = emoji.get("name", None)
 
