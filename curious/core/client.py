@@ -484,6 +484,8 @@ class Client(object):
                                   shard_id=shard_id, shard_count=self.shard_count) as gw:
             # gw: GatewayHandler
             self._gateways[shard_id] = gw
+            from curious.core import _current_shard
+            _current_shard.set(shard_id)
 
             async with finalise(gw.events()) as agen:
                 async for event in agen:
@@ -504,7 +506,7 @@ class Client(object):
                     elif name == "gateway_dispatch_received":
                         handler = f"handle_{params[0].lower()}"
                         handler = getattr(self.state, handler)
-                        subevents = await coerce_agen(handler(gw, *params[1:]))
+                        subevents = await coerce_agen(handler(*params[1:]))
                         to_dispatch += subevents
 
                     for event in to_dispatch:

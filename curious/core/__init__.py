@@ -39,6 +39,8 @@ if typing.TYPE_CHECKING:
 
 _current_client = contextvars.ContextVar("current_client")
 
+_current_shard = contextvars.ContextVar("current_shard")
+
 
 def get_current_client() -> 'Client':
     """
