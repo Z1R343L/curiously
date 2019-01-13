@@ -20,7 +20,8 @@ Wrappers for Status objects.
 """
 
 import enum
-from typing import List
+from dataclasses import dataclass
+from typing import List, Optional, Union
 
 
 class Status(enum.Enum):
@@ -54,7 +55,7 @@ class Status(enum.Enum):
 strengths = [Status.OFFLINE, Status.INVISIBLE, Status.IDLE, Status.DND, Status.ONLINE]
 
 
-class GameType(enum.IntEnum):
+class ActivityType(enum.IntEnum):
     """
     Represents a game's type.
     """
@@ -70,13 +71,16 @@ class GameType(enum.IntEnum):
     #: Shows the ``Watching`` text.
     WATCHING = 3
 
+    #: An unknown activity.
+    UNKNOWN = 999999
 
-class Game(object):
+
+class BasicActivity(object):
     """
     Represents a game object.
     """
 
-    __slots__ = "type", "url", "name"
+    __slots__ = "_raw_type", "type", "url", "name"
 
     def __init__(self, **kwargs) -> None:
         """
@@ -84,12 +88,15 @@ class Game(object):
         :param url: The URL for the game, if streaming.
         :param type: A :class:`.GameType` for this game.
         """
+        #: The raw activity type.
+        self._raw_type = kwargs.get("type", 0)
+
         #: The type of game this is.
-        self.type = GameType.PLAYING  # type: GameType
+        self.type: ActivityType = ActivityType.PLAYING
         try:
-            self.type = GameType(kwargs.get("type", 0))
+            self.type = ActivityType(kwargs.get("type", 0))
         except ValueError:
-            self.type = kwargs.get("type", 0)
+            self.type = ActivityType.UNKNOWN
 
         #: The stream URL this game is for.
         self.url = kwargs.get("url", None)  # type: str
@@ -110,7 +117,121 @@ class Game(object):
         return d
 
     def __repr__(self) -> str:
-        return "<Game name='{}' type={} url={}>".format(self.name, self.type, self.url)
+        return f"<{type(self).__name__} name='{self.name}' type={self.type} url={self.url}>"
+
+
+@dataclass(frozen=True)
+class ActivityTimestamps:
+    """
+    Represents the timestamps for an activity.
+    """
+    #: The start timestamp for this activity.
+    start: Optional[int] = None
+
+    #: The end timestamp for this activity.
+    end: Optional[int] = None
+
+
+@dataclass(frozen=True)
+class ActivityParty:
+    """
+    Represents the party for an activity.
+    """
+    #: The ID of the party.
+    id: Optional[str] = None
+
+    #: The size of the party.
+    size: Optional[List[int]] = None
+
+
+@dataclass(frozen=True)
+class ActivityAssets:
+    """
+    Represents the assets for an activity.
+    """
+    #: The id for a large asset of the activity
+    large_image: Optional[str] = None
+
+    #: Text displayed when hovering over the large image of the activity
+    large_text: Optional[str] = None
+
+    #: The id for a small asset of the activity
+    small_image: Optional[str] = None
+
+    #: Text displayed when hovering over the small image of the activity
+    small_text: Optional[str] = None
+
+
+@dataclass(frozen=True)
+class ActivitySecrets:
+    """
+    Represents the secrets for an activity.
+    """
+    join: Optional[str] = None
+    spectate: Optional[str] = None
+    match: Optional[str] = None
+
+
+class RichActivity(BasicActivity):
+    """
+    Represents a rich presence activity.
+    """
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+
+        if 'application_id' not in kwargs:
+            appid = None
+        else:
+            appid = int(kwargs["application_id"])
+
+        #: The application ID for this rich activity.
+        self.application_id: Optional[int] = appid
+
+        #: The details for this rich activity.
+        self.details: Optional[str] = kwargs.get("details")
+
+        #: The state for this rich activity.
+        self.state: Optional[str] = kwargs.get("state")
+
+        #: If this rich activity is instanced.
+        self.instanced: bool = kwargs.get("instanced", False)
+
+        timestamps = kwargs.get("timestamps")
+        if not timestamps:
+            ts = None
+        else:
+            ts = ActivityTimestamps(**timestamps)
+
+        #: The timestamps for this activity.
+        self.timestamps: Optional[ActivityTimestamps] = ts
+
+        party = kwargs.get("party")
+        if not party:
+            p = None
+        else:
+            p = ActivityParty(**party)
+
+        #: The party for this activity.
+        self.party: Optional[ActivityParty] = p
+
+        assets = kwargs.get("assets")
+        if not assets:
+            a = None
+        else:
+            a = ActivityAssets(**assets)
+
+        #: The assets for this activity.
+        self.assets: Optional[ActivityAssets] = a
+
+        secrets = kwargs.get("secrets")
+        if not secrets:
+            s = None
+        else:
+            s = ActivitySecrets(**secrets)
+
+        #: The secrets for this activity.
+        self.secrets: Optional[ActivitySecrets] = s
 
 
 class ClientStatus(object):
@@ -149,7 +270,7 @@ class Presence(object):
     Represents a presence on a member.
     """
 
-    __slots__ = "_status", "_game", "client_status"
+    __slots__ = "_status", "game", "client_status", "activities"
 
     def __init__(self, **kwargs) -> None:
         """
@@ -165,11 +286,25 @@ class Presence(object):
         self.client_status = ClientStatus(**kwargs.get("client_status", {}))
 
         game = kwargs.get("game", None)
-        #: The :class:`.Game` for this presence.
-        self._game = None  # type: Game
+        if game:
+            if 'application_id' in game:
+                game = RichActivity(**game)
+            else:
+                game = BasicActivity(**game)
 
-        # NB: this does a property set to ensure the types are right.
-        self.game = game
+        #: The game object for this presence.
+        self.game: Optional[Union[BasicActivity, RichActivity]] = game
+
+        #: The list of activities for this presence.
+        self.activities: List[Union[BasicActivity, RichActivity]] = []
+
+        for activity in kwargs.get("activities", []):
+            if 'application_id' in activity:
+                ac = RichActivity(**activity)
+            else:
+                ac = BasicActivity(**activity)
+
+            self.activities.append(ac)
 
     def __repr__(self) -> str:
         return "<Presence status={} game='{}'>".format(self.status, self.game)
@@ -190,24 +325,6 @@ class Presence(object):
             value = Status(value)
 
         self._status = value
-
-    @property
-    def game(self) -> Game:
-        """
-        :return: The :class:`.Game` associated with this presence.
-        """
-        return self._game
-
-    @game.setter
-    def game(self, value):
-        if value is None:
-            self._game = None
-            return
-
-        if not isinstance(value, Game):
-            value = Game(**value)
-
-        self._game = value
 
     @property
     def desktop(self) -> Status:
@@ -236,94 +353,3 @@ class Presence(object):
         :return: The strength for this status.
         """
         return self.status.strength
-
-
-def _make_property(field: str, doc: str = None, max_size: int = None) -> property:
-    def _getter(self):
-        return self._rich_fields.get(field)
-
-    def _setter(self, value: str):
-        if max_size is not None and len(value) > max_size:
-            raise ValueError("Field '{}' cannot be longer than {} characters"
-                             .format(field, max_size))
-
-        self._rich_fields[field] = value
-
-    prop = property(_getter, _setter, doc=doc)
-    return prop
-
-
-class RichPresence(object):
-    """
-    Represents a Rich Presence. This class can be created safely for usage with :class:`.IPCClient`.
-    """
-
-    # typedef struct DiscordRichPresence {
-    #     const char* state; /* max 128 bytes */
-    #     const char* details; /* max 128 bytes */
-    #     int64_t startTimestamp;
-    #     int64_t endTimestamp;
-    #     const char* largeImageKey; /* max 32 bytes */
-    #     const char* largeImageText; /* max 128 bytes */
-    #     const char* smallImageKey; /* max 32 bytes */
-    #     const char* smallImageText; /* max 128 bytes */
-    #     const char* partyId; /* max 128 bytes */
-    #     int partySize;
-    #     int partyMax;
-    #     const char* matchSecret; /* max 128 bytes */
-    #     const char* joinSecret; /* max 128 bytes */
-    #     const char* spectateSecret; /* max 128 bytes */
-    #     int8_t instance;
-    # } DiscordRichPresence;
-    def __init__(self, **fields):
-        """
-        :param fields: The rich presence fields.
-        """
-        self._rich_fields = fields
-
-    state = _make_property("state", "The state for this presence.", 128)
-    details = _make_property("details", "The details for this presence.", 128)
-
-    @property
-    def assets(self) -> dict:
-        """
-        The assets for this rich presence. Returns a dict of
-        (large_image, large_text, small_image, small_text).
-        """
-        return self._rich_fields.get("assets", {})
-
-    @assets.setter
-    def assets(self, value: dict):
-        for key in value.keys():
-            if key not in ('large_image', 'large_text', 'small_image', 'small_text'):
-                raise ValueError("Bad asset key: {}".format(key))
-
-        self._rich_fields["assets"] = value
-
-    @property
-    def party_id(self) -> str:
-        """
-        The party ID for this rich presence.
-        """
-        return self._rich_fields.get("party", {}).get("id")
-
-    @party_id.setter
-    def party_id(self, value):
-        if "party" not in self._rich_fields:
-            self._rich_fields["party"] = {"id": value}
-        else:
-            self._rich_fields["party"]["id"] = value
-
-    @property
-    def party_size(self) -> List[int]:
-        """
-        The size of the party for this rich presence. An array of [size, max].
-        """
-        return self._rich_fields.get("party", {}).get("size")
-
-    @party_size.setter
-    def party_size(self, size: List[int]):
-        if "party" not in self._rich_fields:
-            self._rich_fields["party"] = {"size": size}
-        else:
-            self._rich_fields["party"]["size"] = size

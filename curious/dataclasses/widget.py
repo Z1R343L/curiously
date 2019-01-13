@@ -24,7 +24,7 @@ from typing import Mapping, MutableMapping, Union
 from curious.core import get_current_client
 from curious.dataclasses import channel as dt_channel, guild as dt_guild
 from curious.dataclasses.bases import Dataclass
-from curious.dataclasses.presence import Game, Status
+from curious.dataclasses.presence import BasicActivity, Status
 
 
 class WidgetChannel(Dataclass):
@@ -76,7 +76,7 @@ class WidgetMember(Dataclass):
         game = kwargs.get("game")
         if game is None:
             game = {}
-        self.game = Game(**game) if game else None
+        self.game = BasicActivity(**game) if game else None
 
         #: The :class:`.Status` associated with this member.
         self.status = Status(kwargs.get("status"))

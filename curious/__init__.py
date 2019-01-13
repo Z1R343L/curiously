@@ -59,7 +59,7 @@ from curious.dataclasses.guild import ContentFilterLevel, Guild, GuildChannelWra
 from curious.dataclasses.invite import Invite, InviteChannel, InviteGuild, InviteMetadata
 from curious.dataclasses.member import Member
 from curious.dataclasses.message import Message, MessageType
-from curious.dataclasses.presence import Game, Presence, Status, GameType
+from curious.dataclasses.presence import BasicActivity, Presence, Status, ActivityType
 from curious.dataclasses.permissions import Permissions, Overwrite
 from curious.dataclasses.reaction import Reaction
 from curious.dataclasses.role import Role

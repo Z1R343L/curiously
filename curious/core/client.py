@@ -37,7 +37,7 @@ from curious.dataclasses import channel as dt_channel, guild as dt_guild
 from curious.dataclasses.appinfo import AppInfo
 from curious.dataclasses.invite import Invite
 from curious.dataclasses.message import CHANNEL_REGEX, EMOJI_REGEX, MENTION_REGEX
-from curious.dataclasses.presence import Game, Status
+from curious.dataclasses.presence import BasicActivity, Status
 from curious.dataclasses.user import BotUser, User
 from curious.dataclasses.webhook import Webhook
 from curious.dataclasses.widget import Widget
@@ -296,7 +296,8 @@ class Client(object):
         return await self.events.wait_for(*args, **kwargs)
 
     # Gateway functions
-    async def change_status(self, game: Game = None, status: Status = Status.ONLINE,
+    async def change_status(self, game: BasicActivity = None,
+                            status: Status = Status.ONLINE,
                             afk: bool = False,
                             shard_id: int = 0):
         """

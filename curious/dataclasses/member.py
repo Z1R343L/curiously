@@ -19,16 +19,17 @@ Wrappers for Member objects (Users with guilds).
 .. currentmodule:: curious.dataclasses.member
 """
 import collections
+
 import copy
 import datetime
-from typing import List, Optional
+from typing import List, Optional, Union
 
 from curious.core import get_current_client
 from curious.dataclasses import guild as dt_guild, role as dt_role, user as dt_user, \
     voice_state as dt_vs
 from curious.dataclasses.bases import Dataclass
 from curious.dataclasses.permissions import Permissions
-from curious.dataclasses.presence import Game, Presence, Status
+from curious.dataclasses.presence import BasicActivity, Presence, RichActivity, Status
 from curious.exc import HierarchyError, PermissionsError
 from curious.util import to_datetime
 
@@ -364,9 +365,9 @@ class Member(Dataclass):
         return self.presence.status if self.presence else Status.OFFLINE
 
     @property
-    def game(self) -> Optional[Game]:
+    def game(self) -> Optional[Union[BasicActivity, RichActivity]]:
         """
-        :return: The current :class:`.Game` this member is playing.
+        :return: The current :class:`.BasicActivity` this member is playing.
         """
         if not self.presence:
             return None
