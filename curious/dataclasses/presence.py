@@ -117,7 +117,8 @@ class BasicActivity(object):
         return d
 
     def __repr__(self) -> str:
-        return f"<{type(self).__name__} name='{self.name}' type={self.type} url={self.url}>"
+        type_ = self.type.name
+        return f"<{type(self).__name__} name='{self.name}' type={type_} url={self.url}>"
 
 
 @dataclass(frozen=True)
