@@ -59,6 +59,14 @@ This document displays the differences between each release of curious.
 
  - Add :class:`.UserStatus` for user statuses.
 
+ - Rename :class:`.Game` to :class:`.BasicActivity`.
+
+ - Add :class:`.RichActivity`.
+
+ - Make presence games a Union of (Basic|Rich)Activity.
+
+ - Add :attr:`.Presence.activities`.
+
 
 0.7.9 (Released 2018-08-05)
 ---------------------------
