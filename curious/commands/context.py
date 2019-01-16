@@ -278,6 +278,9 @@ class Context(object):
         if origin is not None:
             annotation = origin
 
+        if hasattr(annotation, "cmd_convert"):
+            return lambda ann, ctx, i: annotation.cmd_convert(ctx, i)
+
         if annotation in self._converters:
             return self._converters[annotation]
 
