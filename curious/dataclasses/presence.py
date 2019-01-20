@@ -21,7 +21,7 @@ Wrappers for Status objects.
 
 import enum
 from dataclasses import dataclass
-from typing import List, Optional, Union
+from typing import Any, Dict, List, Optional, Union
 
 
 class Status(enum.Enum):
@@ -233,6 +233,42 @@ class RichActivity(BasicActivity):
 
         #: The secrets for this activity.
         self.secrets: Optional[ActivitySecrets] = s
+
+    def to_dict(self) -> Dict[str, Any]:
+        base = {
+            "state": self.state,
+            "details": self.details,
+            "instance": self.instanced
+        }
+
+        if self.timestamps:
+            base["timestamps"] = {
+                "start": self.timestamps.start,
+                "end": self.timestamps.end,
+            }
+
+        if self.secrets:
+            base["secrets"] = {
+                "join": self.secrets.join,
+                "match": self.secrets.match,
+                "spectate": self.secrets.spectate,
+            }
+
+        if self.party:
+            base["party"] = {
+                "id": self.party.id,
+                "size": self.party.size,
+            }
+
+        if self.assets:
+            base["assets"] = {
+                "large_image": self.assets.large_image,
+                "large_text": self.assets.large_text,
+                "small_image": self.assets.small_image,
+                "small_text": self.assets.small_text,
+            }
+
+        return base
 
 
 class ClientStatus(object):
