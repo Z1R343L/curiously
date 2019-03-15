@@ -18,9 +18,11 @@ Misc utilities shared throughout the library.
 
 .. currentmodule:: curious.util
 """
+import collections
+from _contextvars import ContextVar
+
 import anyio
 import base64
-import collections
 import datetime
 import functools
 import imghdr
@@ -33,6 +35,26 @@ from typing import Any, Awaitable, Callable, Generic, List, Optional, TypeVar
 
 NO_ITEM = object()
 DISCORD_EPOCH = 1420070400000
+
+
+class ContextVarProxy(object):
+    def __init__(self, cvar: ContextVar):
+        self._cvar = cvar
+
+    def __getattr__(self, item):
+        return getattr(self._cvar.get(), item)
+
+    def __setattr__(self, key, value):
+        if key == "_cvar":
+            return super().__setattr__(key, value)
+
+        setattr(self._cvar.get(), key, value)
+
+    def __repr__(self):
+        return f"<Proxy for {repr(self._cvar)}>"
+
+    def __str__(self):
+        return str(self._cvar)
 
 
 class Promise(object):
@@ -348,9 +370,9 @@ def deprecated(*, since: str, see_instead, removal: str):
         if doc is not None:
             original_doc = textwrap.dedent(func.__doc__)
             func.__doc__ = f"**This function is deprecated since {since}.** " \
-                           f"See :meth:`.{see_instead}` instead.  \n" \
-                           f"It will be removed at version {removal}.\n\n" \
-                           f"{original_doc}"
+                f"See :meth:`.{see_instead}` instead.  \n" \
+                f"It will be removed at version {removal}.\n\n" \
+                f"{original_doc}"
 
         def wrapper(*args, **kwargs):
             warnings.warn(f"    This function is deprecated since {since}. "

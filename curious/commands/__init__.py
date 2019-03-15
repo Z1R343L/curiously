@@ -33,7 +33,11 @@ Commands helpers.
     exc
     converters
 """
-from curious.commands.context import Context
+from curious.commands.context import Context, current_command_context
 from curious.commands.decorators import command, condition
 from curious.commands.manager import CommandsManager
 from curious.commands.plugin import Plugin
+
+from curious.util import ContextVarProxy
+
+ctx = ContextVarProxy(current_command_context)

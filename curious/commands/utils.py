@@ -18,6 +18,7 @@ Misc utilities used in commands related things.
 .. currentmodule:: curious.commands.utils
 """
 import collections
+
 import inspect
 import typing_inspect
 from typing import Callable, Iterable, List, Union
@@ -63,10 +64,6 @@ async def _convert(ctx, tokens: List[str], signature: inspect.Signature):
 
     args_it = iter(tokens)
     for n, (name, param) in enumerate(signature.parameters.items()):
-        if n == 0:
-            # Don't convert the `ctx` argument.
-            continue
-
         assert isinstance(param, inspect.Parameter)
         # We loop over the signature parameters because it's easier to use those to consume.
         # Get the next argument from args.

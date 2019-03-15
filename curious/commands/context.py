@@ -18,6 +18,7 @@ Class for the commands context.
 
 .. currentmodule:: curious.commands.context
 """
+import contextvars
 import inspect
 import types
 import typing_inspect
@@ -38,6 +39,9 @@ from curious.dataclasses.member import Member
 from curious.dataclasses.message import Message
 from curious.dataclasses.role import Role
 from curious.dataclasses.user import User
+
+#: The current command context that a command is being ran in.
+current_command_context = contextvars.ContextVar("current_command_context")
 
 
 @dataclass()
@@ -183,38 +187,45 @@ class Context(object):
 
         :return: If a command was successfully found.
         """
-        # 1) Find the command object
-        command_callable = await self.find_command()
+        token = current_command_context.set(self)
 
-        if command_callable is None:
-            raise CommandNotFound(self, self.root_command_name)
-
-        self.command_object = command_callable
-
-        # 2) Check if we're ratelimited.
-        # This can save any condition roundtrips.
-        await self.manager.ratelimiter.ensure_ratelimits(self, command_callable)
-
-        # 3) Check if the command can be ran.
-        status = await self.can_run(command_callable)
-        if not status.success:
-            err = ConditionFailedError(self, status.condition, status.message)
-            if status.inner:
-                raise err from status.inner
-
-            raise err
-
-        # 4) Convert the arguments.
-        converted_args, converted_kwargs = await self._get_converted_args(command_callable)
-
-        # 5) Invoke the command.
         try:
-            result = await self._run_command(command_callable, *converted_args, **converted_kwargs)
-        except Exception as e:
-            raise CommandInvokeError(self) from e
+            # 1) Find the command object
+            command_callable = await self.find_command()
 
-        # 6) Process the result of the command, if available.
-        await self._process_result(result)
+            if command_callable is None:
+                raise CommandNotFound(self, self.root_command_name)
+
+            self.command_object = command_callable
+
+            # 2) Check if we're ratelimited.
+            # This can save any condition roundtrips.
+            await self.manager.ratelimiter.ensure_ratelimits(self, command_callable)
+
+            # 3) Check if the command can be ran.
+            status = await self.can_run(command_callable)
+            if not status.success:
+                err = ConditionFailedError(self, status.condition, status.message)
+                if status.inner:
+                    raise err from status.inner
+
+                raise err
+
+            # 4) Convert the arguments.
+            converted_args, converted_kwargs = await self._get_converted_args(command_callable)
+
+            # 5) Invoke the command.
+            try:
+                result = await self._run_command(
+                    command_callable, *converted_args, **converted_kwargs
+                )
+            except Exception as e:
+                raise CommandInvokeError(self) from e
+
+            # 6) Process the result of the command, if available.
+            await self._process_result(result)
+        finally:
+            current_command_context.reset(token)
 
     async def _process_result(self, result: Any):
         """
@@ -313,4 +324,4 @@ class Context(object):
         """
         Overridable method that allows doing something before running a command.
         """
-        return await cbl(self, *args, **kwargs)
+        return await cbl(*args, **kwargs)
