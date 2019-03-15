@@ -8,7 +8,7 @@ install_requires = [
     "pylru==1.0.9",
     "oauthlib>=2.0.2,<2.1.0",
     "pytz>=2017.3",
-    "asks>=2.2.0",
+    "asks>=2.3.1",
     "multidict>=4.1.0,<4.2.0",
     "anyio",
     "outcome",
