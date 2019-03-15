@@ -19,7 +19,6 @@ Misc utilities shared throughout the library.
 .. currentmodule:: curious.util
 """
 import collections
-from _contextvars import ContextVar
 
 import anyio
 import base64
@@ -30,6 +29,7 @@ import inspect
 import textwrap
 import types
 import warnings
+from contextvars import ContextVar
 from multidict import MultiDict
 from typing import Any, Awaitable, Callable, Generic, List, Optional, TypeVar
 
