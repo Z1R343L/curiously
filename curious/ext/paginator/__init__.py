@@ -19,7 +19,7 @@ A reactions-based paginator.
 import anyio
 import typing
 
-from curious.core.event import ListenerExit
+from curious.core.event.manager import ListenerExit
 from curious.dataclasses.channel import Channel
 from curious.dataclasses.embed import Embed
 from curious.dataclasses.member import Member
@@ -121,7 +121,7 @@ class ReactionsPaginator(object):
         """
         self._running = True
 
-        async def consume_reaction(ctx, message: Message, author: Member, reaction: Reaction):
+        async def consume_reaction(message: Message, author: Member, reaction: Reaction):
             """
             Consumes reaction events and places them on a queue.
             """
