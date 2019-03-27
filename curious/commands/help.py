@@ -20,7 +20,7 @@ Home of the default help command.
 """
 import inspect
 
-from curious.commands import Context
+from curious.commands.context import Context, current_command_context
 from curious.commands.exc import CommandsError
 from curious.commands.utils import get_full_name, get_usage
 
@@ -37,9 +37,9 @@ async def _get_command_list(ctx: Context, command, *, include_root: bool = True)
 
     # XXX: Don't add command names if they're subcommands.
     if not command.cmd_subcommand and include_root:
-        l = [command.cmd_name]
+        c_list = [command.cmd_name]
     else:
-        l = []
+        c_list = []
 
     for subcommand in command.cmd_subcommands:
         # don't do hidden subcommands
@@ -57,12 +57,12 @@ async def _get_command_list(ctx: Context, command, *, include_root: bool = True)
             continue
 
         if include_root:
-            l.append(get_full_name(subcommand))
+            c_list.append(get_full_name(subcommand))
         else:
-            l.append(subcommand.cmd_name)
-        l.extend(await _get_command_list(ctx, subcommand))
+            c_list.append(subcommand.cmd_name)
+        c_list.extend(await _get_command_list(ctx, subcommand))
 
-    return l
+    return c_list
 
 
 async def _get_command_list_from_plugin(ctx: Context, plugin):
@@ -165,7 +165,6 @@ async def help_for_one(ctx: Context, command):
     if description is None:
         description = "No description."
 
-
     if subcommands:
         subcommands_fmtted = " | ".join(f"`{x}`" for x in subcommands)
         return f"{preamble}{description}\n\n**Subcommands:** {subcommands_fmtted}"
@@ -173,10 +172,12 @@ async def help_for_one(ctx: Context, command):
         return f"{preamble}{description}"
 
 
-async def help_command(ctx: Context, *, command: str = None):
+async def help_command(*, command: str = None):
     """
     The default help command.
     """
+    ctx = current_command_context.get()
+
     if command is None:
         # Let the ruling classes tremble at a Communistic revolution.
         # The proletarians have nothing to lose but their chains. They have a world to win.

@@ -33,11 +33,15 @@ Commands helpers.
     exc
     converters
 """
+from typing import Union
+
+from curious.commands._convenience import *
+from curious.commands._magic import *
 from curious.commands.context import Context, current_command_context
 from curious.commands.decorators import command, condition
 from curious.commands.manager import CommandsManager
 from curious.commands.plugin import Plugin
-
 from curious.util import ContextVarProxy
 
-ctx = ContextVarProxy(current_command_context)
+# lie blatantly
+ctx: Union[Context, ContextVarProxy[Context]] = ContextVarProxy(current_command_context)  # type: ignore

@@ -18,43 +18,77 @@ Misc utilities shared throughout the library.
 
 .. currentmodule:: curious.util
 """
-import collections
-
-import anyio
 import base64
+import collections
 import datetime
 import functools
 import imghdr
 import inspect
 import textwrap
 import types
+import typing
 import warnings
 from contextvars import ContextVar
-from multidict import MultiDict
 from typing import Any, Awaitable, Callable, Generic, List, Optional, TypeVar
+
+import anyio
+from multidict import MultiDict
 
 NO_ITEM = object()
 DISCORD_EPOCH = 1420070400000
 
+CTX_TYPE = typing.TypeVar("CTX_TYPE")
 
-class ContextVarProxy(object):
-    def __init__(self, cvar: ContextVar):
+
+class ContextVarProxy(typing.Generic[CTX_TYPE]):
+    """
+    A simple context-variable proxy. This proxies all getattrs to
+    """
+
+    def __init__(self, cvar: ContextVar, *, attrib: str = None):
         self._cvar = cvar
+        self._attrib = attrib
 
-    def __getattr__(self, item):
-        return getattr(self._cvar.get(), item)
+    def unwrap(self) -> CTX_TYPE:
+        """
+        Unwraps the context var proxy.
 
-    def __setattr__(self, key, value):
-        if key == "_cvar":
+        :return: The raw value underneath this object.
+        """
+        return self._cvar.get()
+
+    def __getattr__(self, item) -> Any:
+        unwrapped = self._cvar.get()
+        if self._attrib is not None:
+            unwrapped = getattr(unwrapped, self._attrib)
+
+        return getattr(unwrapped, item)
+
+    def __setattr__(self, key: str, value: Any):
+        if key in ["_cvar", "_attrib"]:
             return super().__setattr__(key, value)
 
-        setattr(self._cvar.get(), key, value)
+        unwrapped = self._cvar.get()
+        if self._attrib is not None:
+            unwrapped = getattr(unwrapped, self._attrib)
 
-    def __repr__(self):
-        return f"<Proxy for {repr(self._cvar)}>"
+        setattr(unwrapped, key, value)
 
-    def __str__(self):
+    def __repr__(self) -> str:
+        fullstring = f"<Proxy for {repr(self._cvar)}"
+        if self._attrib is not None:
+            fullstring += f" (attrib={self._attrib})"
+
+        return fullstring
+
+    def __str__(self) -> str:
         return str(self._cvar)
+
+    def __eq__(self, other) -> bool:
+        if isinstance(other, ContextVar) and self._cvar != other:
+            return self._cvar.get() == other.get()
+
+        return self._cvar == other
 
 
 class Promise(object):
