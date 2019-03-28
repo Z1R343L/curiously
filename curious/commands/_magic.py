@@ -39,10 +39,10 @@ uu = Union[User, Member]
 author: Union[uu, ContextVarProxy[uu]] = ContextVarProxy(curr, attrib="author")  # type: ignore
 
 #: The channel magic-variable.
-channel: Union[Channel, ContextVarProxy[Channel]] = ContextVarProxy(curr, attrib="channel")
+channel: Union[Channel, ContextVarProxy[Channel]] = ContextVarProxy(curr, attrib="channel")  # type: ignore
 
 #: The message magic-variable.
-message: Union[Message, ContextVarProxy[Message]] = ContextVarProxy(curr, attrib="message")
+message: Union[Message, ContextVarProxy[Message]] = ContextVarProxy(curr, attrib="message")  # type: ignore
 
 #: The guild magic-variable.
-guild: Union[Guild, ContextVarProxy[Guild]] = ContextVarProxy(curr, attrib="guild")
+guild: Union[Guild, ContextVarProxy[Guild]] = ContextVarProxy(curr, attrib="guild")  # type: ignore
