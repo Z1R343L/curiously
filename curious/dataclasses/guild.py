@@ -18,19 +18,19 @@ Wrappers for Guild objects.
 
 .. currentmodule:: curious.dataclasses.guild
 """
-import collections
-from math import ceil
-
 import abc
-import anyio
+import collections
 import copy
 import datetime
 import enum
 from dataclasses import dataclass
+from math import ceil
 from os import PathLike
 from types import MappingProxyType
 from typing import Any, AsyncGenerator, Dict, Generator, Iterable, Iterator, List, Mapping, \
     Optional, Tuple, TypeVar, Union
+
+import anyio
 
 from curious.core import get_current_client
 from curious.core.httpclient import Endpoints
@@ -658,10 +658,13 @@ class Guild(Dataclass):
     """
 
     __slots__ = (
-        "id", "unavailable", "name", "afk_timeout", "region",
+        "id", "unavailable", "name", "description", "afk_timeout", "region",
         "mfa_level", "verification_level", "notification_level", "content_filter_level", "features",
-        "shard_id", "_roles", "_members", "_channels", "_emojis", "member_count", "_voice_states",
-        "_large", "_chunks_left", "_finished_chunking", "icon_hash", "splash_hash",
+        "shard_id", "_roles", "_members", "_channels", "_emojis",
+        "member_count", "max_members", "max_presences",
+        "_voice_states",
+        "_large", "_chunks_left", "_finished_chunking",
+        "icon_hash", "splash_hash",
         "owner_id", "afk_channel_id", "system_channel_id", "widget_channel_id",
         "voice_client",
         "channels", "roles", "emojis", "bans",
@@ -678,38 +681,41 @@ class Guild(Dataclass):
 
         # Placeholder values.
         #: The name of this guild.
-        self.name = None  # type: str
+        self.name = ""  # type: str
+
+        #: The description of this guild.
+        self.description: str = ""
 
         #: The icon hash of this guild.
         #: Used to construct the icon URL later.
-        self.icon_hash = None  # type: str
+        self.icon_hash: Optional[str] = None
 
         #: The splash hash of this guild.
         #: Used to construct the splash URL later.
-        self.splash_hash = None  # type: str
+        self.splash_hash: Optional[str] = None
 
         #: The AFK channel ID of this guild.
-        self.afk_channel_id = None  # type: int
+        self.afk_channel_id: Optional[int] = None
 
         #: The ID of the system channel for this guild.
         #: This is where welcome messages and the likes are sent.
         #: Effective replacement for default channel for bots.
-        self.system_channel_id = None  # type: int
+        self.system_channel_id: Optional[int] = None
 
         #: The widget channel ID for this guild.
-        self.widget_channel_id = None  # type: int
+        self.widget_channel_id: Optional[int] = None
 
         #: The owner ID of this guild.
         self.owner_id = None  # type: int
 
         #: The AFK timeout for this guild. None if there's no AFK timeout.
-        self.afk_timeout = None  # type: int
+        self.afk_timeout: Optional[int] = None
 
         #: The voice region of this guild.
         self.region = None  # type: str
 
         #: The features this guild has.
-        self.features = None  # type: List[str]
+        self.features: List[str] = []
 
         #: The MFA level of this guild.
         self.mfa_level = MFALevel.DISABLED
@@ -738,8 +744,14 @@ class Guild(Dataclass):
         #: This is automatically updated.
         self.member_count = 0  # type: int
 
+        #: The maximum number of members this guild can have.
+        self.max_members: int = 0
+
+        #: The maximum number of presences this guild can have.
+        self.max_presences: int = 0
+
         #: Is this guild a large guild according to Discord?
-        self._large = None  # type: bool
+        self._large = False  # type: bool
 
         #: Has this guild finished chunking?
         self._finished_chunking = anyio.create_event()
@@ -1022,9 +1034,10 @@ class Guild(Dataclass):
             # We can't use any of the extra data here, so don't bother.
             return self
 
-        self.name = data.get("name")  # type: str
-        self.icon_hash = data.get("icon")  # type: str
-        self.splash_hash = data.get("splash")  # type: str
+        self.name = data.get("name")
+        self.description = data.get("description")
+        self.icon_hash = data.get("icon")
+        self.splash_hash = data.get("splash")
         self.owner_id = int(data.get("owner_id", 0)) or None  # type: int
         self._large = data.get("large", None)
         self.features = data.get("features", [])
@@ -1043,6 +1056,8 @@ class Guild(Dataclass):
         self.content_filter_level = ContentFilterLevel(data.get("explicit_content_filter", 0))
 
         self.member_count = data.get("member_count", 0)
+        self.max_members = data.get("max_members", 0)
+        self.max_presences = data.get("max_presences", 0)
 
         # Create all the Role objects for the server.
         for role_data in data.get("roles", []):
