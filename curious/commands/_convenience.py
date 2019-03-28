@@ -25,6 +25,8 @@ from curious.dataclasses.message import Message
 __all__ = [
     "send_message",
     "upload",
+    "reply",
+    "private_reply",
 ]
 
 
