@@ -18,18 +18,18 @@ Wrappers for Channel objects.
 
 .. currentmodule:: curious.dataclasses.channel
 """
-import time
-from math import floor
-
-import anyio
 import collections
 import copy
 import enum
 import pathlib
-from async_generator import asynccontextmanager
+import time
+from math import floor
 from os import PathLike
 from types import MappingProxyType
 from typing import Any, AsyncContextManager, Callable, Dict, IO, List, Mapping, Optional, Union
+
+import anyio
+from async_generator import asynccontextmanager
 
 from curious.core import get_current_client
 from curious.dataclasses import guild as dt_guild, invite as dt_invite, member as dt_member, \
@@ -60,6 +60,9 @@ class ChannelType(enum.IntEnum):
 
     #: Represents a category channel.
     CATEGORY = 4
+
+    #: Represents a news channel.
+    NEWS = 5
 
     def has_messages(self) -> bool:
         """
