@@ -21,13 +21,13 @@ This contains a definition for :class:`.Client` which is used to interface prima
 .. currentmodule:: curious.core.client
 """
 import collections
-
-import anyio
 import enum
 import logging
 from os import PathLike
 from types import MappingProxyType
 from typing import Any, Iterable, Mapping, MutableMapping, Tuple, Union
+
+import anyio
 
 from curious.core import chunker as md_chunker
 from curious.core.event import EventManager, event as ev_dec, scan_events
@@ -224,6 +224,10 @@ class Client(object):
         return MappingProxyType(self._gateways)
 
     async def _spawn_task_internal(self, cofunc):
+        if self.task_manager is None:
+            raise RuntimeError("Bot must be started to spawn any tasks, did you try and load "
+                               "plugins before running?")
+
         await self.task_manager.spawn(self.events._safety_wrapper, cofunc)
 
     def find_channel(self, channel_id: int) -> 'Union[None, dt_channel.Channel]':
