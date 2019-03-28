@@ -18,16 +18,17 @@ Contains the class for the commands manager for a client.
 
 .. currentmodule:: curious.commands.manager
 """
-import sys
-from collections import defaultdict
-
-import anyio
 import importlib
 import inspect
 import logging
+import pkgutil
+import sys
 import traceback
+from collections import defaultdict
 from functools import partial
 from typing import Callable, Dict, Iterable, Tuple, Type, Union
+
+import anyio
 
 from curious import current_event_context
 from curious.commands.context import Context
@@ -355,6 +356,17 @@ class CommandsManager(object):
 
         del sys.modules[import_path]
         del self._module_plugins[module]
+
+    async def discover_plugins(self, package: str):
+        """
+        Discovers plugins in the specified package, automatically loading them all.
+
+        This must be a relative path to the package, for example ``mybot/plugins``.
+        """
+        for moduleinfo in pkgutil.iter_modules([package]):
+            fullpath = moduleinfo.module_finder.path.replace("/", ".") + "." + moduleinfo.name
+            logger.info(f"Discovered file {fullpath}")
+            await self.load_plugins_from(fullpath)
 
     async def event_hook(self, *args, **kwargs):
         """
