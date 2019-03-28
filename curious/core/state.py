@@ -20,7 +20,6 @@ Defines :class:`.State`.
 """
 
 import collections
-
 import copy
 import logging
 from types import MappingProxyType
@@ -997,6 +996,7 @@ class State(object):
         channel.icon_hash = event_data.get("icon_hash", channel.icon_hash)
         channel.owner_id = int_or_none(event_data.get("owner_id"), channel.owner_id)
         channel.parent_id = int_or_none(event_data.get("parent_id"), channel.parent_id)
+        channel.type = ChannelType(event_data.get("type", channel.type.value))
 
         channel._update_overwrites(event_data.get("permission_overwrites", []))
         yield "channel_update", old_channel, channel,
