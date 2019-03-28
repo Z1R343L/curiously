@@ -67,6 +67,12 @@ This document displays the differences between each release of curious.
 
  - Add :attr:`.Presence.activities`.
 
+ - Make commands context-variable based. :class:`.Context` is now stored in a contextvar and not
+   passed to commands anymore.
+
+ - Add magic variables for :class:`.Context`, :attr:`.Context.author`, :attr:`.Context.guild`,
+   :attr:`.Context.message`, and :attr:`.Context.channel`.
+
 
 0.7.9 (Released 2018-08-05)
 ---------------------------
