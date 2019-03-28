@@ -40,6 +40,34 @@ async def send_message(content: str, **kwargs) -> Message:
     return await ctx.channel.messages.send(content=content, **kwargs)
 
 
+async def reply(content: str, *, delimiter: str = ", ", **kwargs) -> Message:
+    """
+    Replies to the user that invoked the command.
+
+    This passes arguments straight through to :meth:`.ChannelMessageWrapper.send`.
+
+    :param delimiter: The delimiter to use between the mention and the content.
+    :return: A :class:`.Message` that was sent to the channel.
+    """
+    ctx: Context = current_command_context.get()
+    author = ctx.message.author.mention
+    content = f"{author}{delimiter}{content}"
+    return await ctx.channel.messages.send(content=content, **kwargs)
+
+
+async def private_reply(content: str, **kwargs) -> Message:
+    """
+    Replies to the user that invoked the command in a private message.
+
+    This passes arguments straight through to :meth:`.ChannelMessageWrapper.send`.
+
+    :return: A :class:`.Message` tat was sent to the channel.
+    """
+    ctx: Context = current_command_context.get()
+    author = ctx.message.author
+    return await author.user.send(content=content, **kwargs)
+
+
 async def upload(fp: 'Union[bytes, str, PathLike, IO]', **kwargs) -> Message:
     """
     Uploads a message to the channel this command is running in.
