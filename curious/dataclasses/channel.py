@@ -64,6 +64,9 @@ class ChannelType(enum.IntEnum):
     #: Represents a news channel.
     NEWS = 5
 
+    #: Represents a store channel.
+    STORE = 6
+
     def has_messages(self) -> bool:
         """
         :return: If this channel type has messages.
