@@ -1144,6 +1144,7 @@ class Channel(Dataclass):
             await self.send_typing()
             while True:
                 await self.send_typing()
+                await anyio.sleep(4)
 
         async with anyio.create_task_group() as tg:
             await tg.spawn(runner)
