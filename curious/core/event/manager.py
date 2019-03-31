@@ -12,14 +12,15 @@
 #
 # You should have received a copy of the GNU Lesser General Public License
 # along with curious.  If not, see <http://www.gnu.org/licenses/>.
-import anyio
 import functools
 import inspect
 import logging
+from typing import Any, AsyncContextManager
+
+import anyio
 import outcome
 from async_generator import asynccontextmanager
 from multidict import MultiDict
-from typing import Any, AsyncContextManager
 
 from curious.core.event.context import EventContext, event_context
 from curious.util import Promise, remove_from_multidict, safe_generator
@@ -206,7 +207,12 @@ class EventManager(object):
                     raise ListenerExit
 
         self.add_temporary_listener(name=event_name, listener=listener)
-        output: outcome.Outcome = await p.wait()
+        try:
+            output: outcome.Outcome = await p.wait()
+        except Exception:  # cancellations or timeouts
+            self.remove_listener_early(event_name, listener=listener)
+            raise
+
         result = output.unwrap()
 
         # unwrap tuples, if applicable
