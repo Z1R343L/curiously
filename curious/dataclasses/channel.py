@@ -531,7 +531,7 @@ class ChannelMessageWrapper(object):
             return cached_message
 
         try:
-            data = client.http.get_message(self.channel.id, message_id)
+            data = await client.http.get_message(self.channel.id, message_id)
         except HTTPException as e:
             # transform into a CuriousError if it wasn't found
             if e.error_code == ErrorCode.UNKNOWN_MESSAGE:
