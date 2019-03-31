@@ -16,9 +16,11 @@
 """
 A reactions-based paginator.
 """
-import anyio
 import typing
 
+import anyio
+
+from curious.core import get_current_client
 from curious.core.event.manager import ListenerExit
 from curious.dataclasses.channel import Channel
 from curious.dataclasses.embed import Embed
@@ -52,7 +54,7 @@ class ReactionsPaginator(object):
         self.respond_to = respond_to
         self.title = title
 
-        self.bot = self.channel._bot  # hacky af
+        self.bot = get_current_client()
 
         # chunk the message up
         if isinstance(content, list):
