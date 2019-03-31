@@ -30,7 +30,7 @@ __all__ = [
 ]
 
 
-async def send_message(content: str, **kwargs) -> Message:
+async def send_message(content: str = None, **kwargs) -> Message:
     """
     Sends a message to the channel this command is running in.
 
@@ -42,7 +42,7 @@ async def send_message(content: str, **kwargs) -> Message:
     return await ctx.channel.messages.send(content=content, **kwargs)
 
 
-async def reply(content: str, *, delimiter: str = ", ", **kwargs) -> Message:
+async def reply(content: str = None, *, delimiter: str = ", ", **kwargs) -> Message:
     """
     Replies to the user that invoked the command.
 
@@ -57,7 +57,7 @@ async def reply(content: str, *, delimiter: str = ", ", **kwargs) -> Message:
     return await ctx.channel.messages.send(content=content, **kwargs)
 
 
-async def private_reply(content: str, **kwargs) -> Message:
+async def private_reply(content: str = None, **kwargs) -> Message:
     """
     Replies to the user that invoked the command in a private message.
 
