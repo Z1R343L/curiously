@@ -430,11 +430,11 @@ class CommandsManager(object):
             await ctx.run_contained_command()
         except CommandsError as e:
             reraise_ctx = ctx._make_reraise_ctx(e.event_name)
-            await self.client.events.fire_event("command_error", e, ctx=reraise_ctx)
-            await self.client.events.fire_event(e.event_name, e, ctx=reraise_ctx)
+            await self.client.events.fire_event("command_error", ctx, e, ctx=reraise_ctx)
+            await self.client.events.fire_event(e.event_name, ctx, e, ctx=reraise_ctx)
 
     @event("command_error")
-    async def default_command_error(self, err: CommandsError):
+    async def default_command_error(self, ctx, err: CommandsError):
         """
         Handles command errors by default.
         """
