@@ -1100,12 +1100,15 @@ class Guild(Dataclass):
                 voice_state.channel_id = vs_channel.id
                 voice_state.guild_id = self.id
 
-        for emoji in data.get("emojis", []):
+        self._handle_emojis(data.get("emojis", []))
+
+        return self
+
+    def _handle_emojis(self, emojis):
+        for emoji in emojis:
             emoji_obj = dt_emoji.Emoji(**emoji)
             self._emojis[emoji_obj.id] = emoji_obj
             emoji_obj.guild_id = self.id
-
-        return self
 
     @property
     def large(self) -> bool:
