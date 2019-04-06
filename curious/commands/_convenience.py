@@ -17,7 +17,7 @@
 Convenience functions that are shortcuts for various context variable actions.
 """
 from os import PathLike
-from typing import IO, Union
+from typing import AsyncContextManager, IO, Union
 
 from curious.commands.context import Context, current_command_context
 from curious.dataclasses.message import Message
@@ -80,3 +80,16 @@ async def upload(fp: 'Union[bytes, str, PathLike, IO]', **kwargs) -> Message:
     """
     ctx: Context = current_command_context.get()
     return await ctx.channel.messages.upload(fp=fp, **kwargs)
+
+
+def typing() -> AsyncContextManager[None]:
+    """
+    An context manager that sends typing events whilst the block of code within runs.
+
+    .. code-block:: python3
+
+        async with typing():
+            await some_long_operation()
+    """
+    ctx: Context = current_command_context.get()
+    return ctx.channel.typing
