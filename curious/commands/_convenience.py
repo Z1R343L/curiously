@@ -16,8 +16,9 @@
 """
 Convenience functions that are shortcuts for various context variable actions.
 """
+import inspect
 from os import PathLike
-from typing import AsyncContextManager, IO, Union
+from typing import AsyncContextManager, Awaitable, Callable, IO, Union
 
 from curious.commands.context import Context, current_command_context
 from curious.dataclasses.message import Message
@@ -80,6 +81,38 @@ async def upload(fp: 'Union[bytes, str, PathLike, IO]', **kwargs) -> Message:
     """
     ctx: Context = current_command_context.get()
     return await ctx.channel.messages.upload(fp=fp, **kwargs)
+
+
+async def wait_for_reply(
+        predicate: Callable[[Message], Union[Awaitable[bool], bool]] = None,
+) -> Message:
+    """
+    Waits for a reply from the author of this command.
+
+    This will only accept replies from the original author in the original channel the command
+    was ran in.
+
+    :param predicate: An optional callable predicate.
+    :return: The :class:`.Message` that was sent.
+    """
+    # this is called from at least 3 nested functions...
+    # can only imagine the cellvar fuckery going on
+    ctx: Context = current_command_context.get()
+
+    async def _real_pred_pt2(message: Message):
+        if message.author_id != ctx.message.author_id:
+            return False
+
+        if predicate:
+            res = predicate(message)
+            if inspect.isawaitable(res):
+                res = await res
+
+            return res
+
+        return True
+
+    return await ctx.channel.messages.wait_for_message(predicate=_real_pred_pt2)
 
 
 def typing() -> AsyncContextManager[None]:

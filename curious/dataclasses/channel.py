@@ -21,12 +21,15 @@ Wrappers for Channel objects.
 import collections
 import copy
 import enum
+import inspect
 import pathlib
 import time
 from math import floor
 from os import PathLike
 from types import MappingProxyType
-from typing import Any, AsyncContextManager, Callable, Dict, IO, List, Mapping, Optional, Union
+from typing import Any, AsyncContextManager, Awaitable, Callable, Dict, IO, List, Mapping, \
+    Optional, \
+    Union
 
 import anyio
 from async_generator import asynccontextmanager
@@ -416,11 +419,13 @@ class ChannelMessageWrapper(object):
 
         return len(ids)
 
-    async def purge(self, limit: int = 100, *,
-                    author: 'dt_member.Member' = None,
-                    content: str = None,
-                    predicate: 'Callable[[dt_message.Message], bool]' = None,
-                    fallback_from_bulk: bool = False) -> int:
+    async def purge(
+            self, limit: int = 100, *,
+            author: 'dt_member.Member' = None,
+            content: str = None,
+            predicate: 'Callable[[dt_message.Message], bool]' = None,
+            fallback_from_bulk: bool = False
+    ) -> int:
         """
         Purges messages from a channel.
         This will attempt to use ``bulk-delete`` if possible, but otherwise will use the normal
@@ -543,6 +548,35 @@ class ChannelMessageWrapper(object):
 
         return msg
 
+    async def wait_for_message(
+            self,
+            predicate: 'Callable[[dt_message.Message], Union[Awaitable[bool], bool]]' = None,
+    ) -> 'dt_message.Message':
+        """
+        Waits for a message in this channel.
+
+        :param predicate: An optional callable predicate. This must return True to accept the \
+            message.
+        :return: A :class:`.Message` that was sent in this channel.
+        """
+
+        async def _real_pred(message: dt_message.Message):
+            if message.channel_id != self.channel.id:
+                return False
+
+            if predicate:
+                res = predicate(message)
+                if inspect.isawaitable(res):
+                    res = await res
+
+                return res
+
+            return True
+
+        client = get_current_client()
+        result = await client.events.wait_for("message_create", predicate=_real_pred)
+        return result
+
 
 class Channel(Dataclass):
     """
@@ -620,7 +654,7 @@ class Channel(Dataclass):
 
     def __repr__(self) -> str:
         return f"<Channel id={self.id} name={self.name} type={self.type.name} " \
-               f"guild_id={self.guild_id}>"
+            f"guild_id={self.guild_id}>"
 
     __str__ = __repr__
 
