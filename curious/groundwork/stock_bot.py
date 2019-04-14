@@ -77,3 +77,10 @@ class StockBot(Client):
                     await self.manager.load_plugins_from(plugin)
                 except Exception:
                     logger.exception(f"Error loading plugin {plugin}!")
+
+        plugins_section = self.config.get("plugins", {})
+        for plugin, _ in self.manager.plugins.values():
+            plugin_name = getattr(plugin, "plugin_name", type(plugin).__name__)
+            plugin.plugin_config = plugins_section.get(plugin_name.lower(), {})
+            logger.info(f"Loaded configuration for plugin '{plugin_name}' with "
+                        f"{len(plugin.plugin_config)} key(s)")
