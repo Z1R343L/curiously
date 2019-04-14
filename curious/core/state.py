@@ -438,6 +438,10 @@ class State(object):
         except (ValueError, TypeError):
             return
 
+        if not 'username' in user:
+            # USELESS
+            return
+
         # deprecated - previously friend updates, but userbot support was removed
         if not guild:
             return
