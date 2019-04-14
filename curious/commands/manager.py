@@ -315,7 +315,11 @@ class CommandsManager(object):
 
         :param import_path: The import path to import.
         """
-        mod = importlib.import_module(import_path)
+
+        if isinstance(import_path, str):
+            mod = importlib.import_module(import_path)
+        else:
+            mod = import_path
 
         # define the predicate for the body scanner
         def predicate(item):
@@ -360,13 +364,14 @@ class CommandsManager(object):
     async def discover_plugins(self, package: str):
         """
         Discovers plugins in the specified package, automatically loading them all.
-
-        This must be a relative path to the package, for example ``mybot/plugins``.
         """
-        for moduleinfo in pkgutil.iter_modules([package]):
-            fullpath = moduleinfo.module_finder.path.replace("/", ".") + "." + moduleinfo.name
-            logger.info(f"Discovered file {fullpath}")
-            await self.load_plugins_from(fullpath)
+        pkg = importlib.import_module(package)
+
+        for moduleinfo in pkgutil.iter_modules(pkg.__path__, prefix=package + "."):
+            x = moduleinfo.module_finder.find_spec(moduleinfo.name)
+            mod = x.loader.load_module()
+            logger.info(f"Loaded module {mod}")
+            await self.load_plugins_from(mod)
 
     async def event_hook(self, *args, **kwargs):
         """
