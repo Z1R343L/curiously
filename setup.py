@@ -1,6 +1,6 @@
 import sys
-
 from pathlib import Path
+
 from setuptools import setup
 
 install_requires = [
@@ -16,6 +16,11 @@ install_requires = [
     "typing_inspect>=0.2.0",
 ]
 
+groundwork_requires = [
+    "coloredlogs",
+    "toml",
+]
+
 py36_requires = [
     "dataclasses>=0.3",  # PEP 557
     "contextvars>=2.1",
@@ -28,10 +33,11 @@ setup(
     name='discord-curious',
     use_scm_version={
         "version_scheme": "guess-next-dev",
-        "local_scheme": "dirty-tag"
+        "local_scheme": "dirty-tag",
     },
     packages=['curious', 'curious.core', 'curious.core._ws_wrapper', 'curious.core.event',
               'curious.commands', 'curious.dataclasses',
+              'curious.groundwork', 'curious.groundwork.stock_plugins'
               'curious.ext.paginator'],
     url='https://github.com/SunDwarf/curious',
     license='LGPLv3',
@@ -48,8 +54,10 @@ setup(
         "Programming Language :: Python :: 3.7",
         "Programming Language :: Python :: 3 :: Only",
         "Framework :: Trio",
-        "Development Status :: 4 - Beta"
+        "Development Status :: 4 - Beta",
     ],
     install_requires=install_requires,
-    extras_require={},
+    extras_require={
+        "groundwork": groundwork_requires,
+    },
 )
