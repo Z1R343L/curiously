@@ -438,7 +438,7 @@ class State(object):
         except (ValueError, TypeError):
             return
 
-        if not 'username' in user:
+        if 'username' not in user:
             # USELESS
             return
 
