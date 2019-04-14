@@ -35,10 +35,12 @@ setup(
         "version_scheme": "guess-next-dev",
         "local_scheme": "dirty-tag",
     },
-    packages=['curious', 'curious.core', 'curious.core._ws_wrapper', 'curious.core.event',
-              'curious.commands', 'curious.dataclasses',
-              'curious.groundwork', 'curious.groundwork.stock_plugins'
-              'curious.ext.paginator'],
+    packages=[
+        'curious', 'curious.core', 'curious.core._ws_wrapper', 'curious.core.event',
+        'curious.commands', 'curious.dataclasses',
+        'curious.groundwork', 'curious.groundwork.stock_plugins',
+        'curious.ext.paginator',
+    ],
     url='https://github.com/SunDwarf/curious',
     license='LGPLv3',
     author='Laura Dickinson',
@@ -59,5 +61,8 @@ setup(
     install_requires=install_requires,
     extras_require={
         "groundwork": groundwork_requires,
+    },
+    entry_points={
+        "console_scripts": ["curious=curious.groundwork.runner:main"]
     },
 )
