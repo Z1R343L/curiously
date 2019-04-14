@@ -534,6 +534,11 @@ class Client(object):
             self.task_manager = main_group
             self.events.task_manager = main_group
 
+            # fire a "starting" event
+            from curious.core.event import EventContext
+            ctx = EventContext(shard_id=None, event_name="starting")
+            await self.events.fire_event("starting", ctx=ctx)
+
             for shard in range(0, shard_count):
                 await main_group.spawn(self.run_shard, shard)
 
