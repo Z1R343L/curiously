@@ -256,7 +256,7 @@ class State(object):
         # ensure the webhook user is decached
         self._check_decache_user(user.id)
         user.bot = True
-        webhook = Webhook(webhook_id=webhook_id, **event_data)
+        webhook = Webhook(**event_data)
         webhook.guild_id = channel.guild_id
         webhook.channel_id = channel.id
         webhook.user = user
@@ -644,6 +644,7 @@ class State(object):
         guild = self._guilds.get(guild_id)
 
         if not guild:
+            return
             return
 
         old_guild = guild._copy()
