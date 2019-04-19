@@ -646,7 +646,6 @@ class State(object):
 
         if not guild:
             return
-            return
 
         old_guild = guild._copy()
         emojis = event_data.get("emojis", [])
