@@ -405,6 +405,7 @@ class State(object):
         """
         Called when the gateway connection is resumed.
         """
+        logger.info("Bot successfully resumed.")
         yield "resumed",
 
     async def handle_user_update(self, event_data: dict):
