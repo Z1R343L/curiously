@@ -262,6 +262,8 @@ class EventManager(object):
         else:
             ctx = kwargs.pop("ctx")
 
+        logger.debug(f"Firing event {event_name}")
+
         # clobber event name
         ctx.event_name = event_name
         # update current event context

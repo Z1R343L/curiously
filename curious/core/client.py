@@ -509,7 +509,10 @@ class Client(object):
                         # usually the rest can be handled appropriately
 
                     elif name == "gateway_dispatch_received":
-                        handler = f"handle_{params[0].lower()}"
+                        evt_name = params[0].lower()
+                        to_dispatch.append([evt_name + "_raw", *params[1:]])
+
+                        handler = f"handle_{evt_name}"
                         handler = getattr(self.state, handler)
                         subevents = await coerce_agen(handler(*params[1:]))
                         to_dispatch += subevents
