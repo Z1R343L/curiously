@@ -23,6 +23,8 @@ import enum
 from dataclasses import dataclass
 from typing import Any, Dict, List, Optional, Union
 
+from curious.dataclasses import emoji as dt_emoji
+
 
 class Status(enum.Enum):
     """
@@ -73,23 +75,27 @@ class ActivityType(enum.IntEnum):
     #: Shows the ``Watching`` text.
     WATCHING = 3
 
+    #: Shows the custom activity.
+    CUSTOM = 4
+
     #: An unknown activity.
     UNKNOWN = 999999
 
 
 class BasicActivity(object):
     """
-    Represents a game object.
+    Represents a basic activity with no extra fields.
     """
 
-    __slots__ = "_raw_type", "type", "url", "name"
+    __slots__ = "_raw_type", "type", "url", "name", "_raw_emoji", "emoji_id", "state",
 
     def __init__(self, **kwargs) -> None:
         """
-        :param name: The name for the game. 100 characters max.
+        :param name: The name for the activity.
         :param url: The URL for the game, if streaming.
         :param type: A :class:`.GameType` for this game.
         """
+        print(kwargs)
         #: The raw activity type.
         self._raw_type = kwargs.get("type", 0)
 
@@ -100,10 +106,30 @@ class BasicActivity(object):
         except ValueError:
             self.type = ActivityType.UNKNOWN
 
-        #: The stream URL this game is for.
-        self.url = kwargs.get("url", None)  # type: str
-        #: The name of the game being played.
-        self.name = kwargs.get("name", None)  # type: str
+        #: The stream URL this activity is for.
+        self.url: Optional[str] = kwargs.get("url", None)
+
+        #: The name of the activity.
+        self.name: Optional[str] = kwargs.get("name", None)
+
+        #: The state of the activity.
+        self.state: Optional[str] = kwargs.get("state", None)
+
+        self._raw_emoji = kwargs.get("emoji", {})
+
+        #: The emoji ID associated with this presence.
+        self.emoji_id: Optional[int] = int(self._raw_emoji.get("id", 0)) or None
+
+    @property
+    def emoji(self) -> "Union[dt_emoji.PartialEmoji, dt_emoji.Emoji]":
+        """
+        :return: The :class:`.Emoji` associated with this status.
+        """
+        emoji = dt_emoji.Emoji.find(self.emoji_id)
+        if emoji is not None:
+            return emoji
+
+        return dt_emoji.PartialEmoji(**self._raw_emoji)
 
     def to_dict(self) -> dict:
         """
@@ -119,8 +145,9 @@ class BasicActivity(object):
         return d
 
     def __repr__(self) -> str:
-        type_ = self.type.name
-        return f"<{type(self).__name__} name='{self.name}' type={type_} url={self.url}>"
+        return f"<{type(self).__name__} name={self.name!r} " \
+               f"type={self.type!r} url={self.url!r} " \
+               f"state={self.state!r}>"
 
 
 @dataclass(frozen=True)
@@ -197,9 +224,6 @@ class RichActivity(BasicActivity):
 
         #: The details for this rich activity.
         self.details: Optional[str] = kwargs.get("details")
-
-        #: The state for this rich activity.
-        self.state: Optional[str] = kwargs.get("state")
 
         #: If this rich activity is instanced.
         self.instanced: bool = kwargs.get("instanced", False)

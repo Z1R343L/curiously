@@ -85,6 +85,21 @@ class Emoji(PartialEmoji):
     Represents a custom emoji uploaded to a guild.
     """
 
+    @classmethod
+    def find(cls, emoji_id: int) -> "Optional[Emoji]":
+        """
+        Attempts to find an emoji on the current client.
+        """
+        client = get_current_client()
+        for guild in client.guilds.values():
+            try:
+                return guild.emojis[emoji_id]
+            except KeyError:
+                continue
+
+        return None
+
+
     __slots__ = ("id", "name", "role_ids", "require_colons", "managed", "guild_id", "animated")
 
     def __init__(self, **kwargs) -> None:

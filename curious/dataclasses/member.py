@@ -377,7 +377,7 @@ class Member(Dataclass):
         return self.presence.status if self.presence else Status.OFFLINE
 
     @property
-    def game(self) -> Optional[Union[BasicActivity, RichActivity]]:
+    def activity(self) -> Optional[Union[BasicActivity, RichActivity]]:
         """
         :return: The current :class:`.BasicActivity` this member is playing.
         """

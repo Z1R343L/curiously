@@ -37,7 +37,7 @@ from curious.dataclasses import channel as dt_channel, guild as dt_guild
 from curious.dataclasses.appinfo import AppInfo
 from curious.dataclasses.invite import Invite
 from curious.dataclasses.message import CHANNEL_REGEX, EMOJI_REGEX, MENTION_REGEX
-from curious.dataclasses.presence import BasicActivity, Status
+from curious.dataclasses.presence import Status, ActivityType
 from curious.dataclasses.user import BotUser, User
 from curious.dataclasses.webhook import Webhook
 from curious.dataclasses.widget import Widget
@@ -303,25 +303,29 @@ class Client(object):
     # Gateway functions
     async def change_status(
         self,
-        game: BasicActivity = None,
+        *,
+        name: str = None,
+        type: ActivityType = None,
+        url: str = None,
         status: Status = Status.ONLINE,
-        afk: bool = False,
         shard_id: int = 0,
     ):
         """
         Changes the bot's current status.
 
-        :param game: The game object to use. None for no game.
         :param status: The new status. Must be a :class:`.Status` object.
         :param afk: Is the bot AFK? Only useful for userbots.
         :param shard_id: The shard to change your status on.
         """
 
+        if type is None and name is not None:
+            type = ActivityType.PLAYING
+
         gateway = self._gateways[shard_id]
         return await gateway.send_status(
-            name=game.name if game else None,
-            type_=game.type if game else None,
-            url=game.url if game else None,
+            name=name,
+            type_=type,
+            url=url,
             status=status.value,
         )
 
