@@ -47,5 +47,8 @@ class Attachment(Dataclass):
         Downloads the attachment into bytes.
         """
         bucket = ("attachment", self.id)
+
+        from curious.core import get_current_client
+
         data = await get_current_client().http.request(bucket, method="GET", uri=self.proxy_url)
         return data

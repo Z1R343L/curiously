@@ -18,7 +18,7 @@ Wrappers for Application Info objects.
 
 .. currentmodule:: curious.dataclasses.appinfo
 """
-from typing import Union
+from typing import Optional
 
 from curious.core import get_current_client
 from curious.dataclasses import user as dt_user
@@ -34,7 +34,7 @@ class AppInfo(Dataclass):
         self._application = kwargs.get("application", {})
 
         #: The client ID of this application.
-        self.client_id = int(self._application.get("id", 0))
+        self.client_id: int = int(self._application.get("id", 0))
         super().__init__(self.client_id)
 
         if "owner" in self._application:
@@ -47,24 +47,24 @@ class AppInfo(Dataclass):
         self.owner: dt_user.User = owner
 
         #: The name of this application.
-        self.name = self._application.get("name", None)  # type: str
+        self.name: Optional[str] = self._application.get("name", None)
 
         #: The description of this application.
-        self.description = self._application.get("description", None)  # type: str
+        self.description: Optional[str] = self._application.get("description", None)
 
         #: Is this bot public?
-        self.public = self._application.get("bot_public", None)  # type: bool
+        self.public: Optional[bool] = self._application.get("bot_public", None)
 
         #: Does this bot require OAuth2 Code Grant?
-        self.requires_code_grant = self._application.get(
+        self.requires_code_grant: Optional[bool] = self._application.get(
             "bot_require_code_grant", None
-        )  # type: bool
+        )
 
         #: The icon hash for this application.
-        self._icon_hash = self._application.get("icon", None)  # type: str
+        self._icon_hash: Optional[str] = self._application.get("icon", None)
 
         #: The bot :class:`.User` associated with this application, if available.
-        self.bot = None  # type: dt_user.User
+        self.bot: Optional[dt_user.User] = None
 
         if "bot" in kwargs:
             self.bot = get_current_client().state.make_user(kwargs.get("bot", {}))
@@ -77,7 +77,7 @@ class AppInfo(Dataclass):
         )
 
     @property
-    def icon_url(self) -> Union[str, None]:
+    def icon_url(self) -> Optional[str]:
         """
         :return: The icon url for this bot.
         """

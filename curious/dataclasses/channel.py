@@ -235,7 +235,7 @@ class ChannelMessageWrapper(object):
 
     def __init__(self, channel: "Channel"):
         #: The :class:`.Channel` this container is used for.
-        self.channel = channel
+        self.channel: Channel = channel
 
     def __iter__(self) -> None:
         raise RuntimeError("Use `async for`")
@@ -612,20 +612,20 @@ class Channel(Dataclass):
         super().__init__(kwargs.get("id"))
 
         #: The name of this channel.
-        self.name: str = kwargs.get("name", None)
+        self.name: Optional[str] = kwargs.get("name", None)
 
         #: The topic of this channel.
-        self.topic: str = kwargs.get("topic", None)
+        self.topic: Optional[str] = kwargs.get("topic", None)
 
         #: The ID of the guild this is associated with.
-        self.guild_id: int = int(kwargs.get("guild_id", 0)) or None
+        self.guild_id: Optional[int] = int(kwargs.get("guild_id", 0)) or None
 
         parent_id = kwargs.get("parent_id")
         if parent_id is not None:
             parent_id = int(parent_id)
 
         #: The parent ID of this channel.
-        self.parent_id: int = parent_id
+        self.parent_id: Optional[int] = parent_id
 
         #: The :class:`.ChannelType` of channel this channel is.
         self.type = ChannelType(kwargs.get("type", 0))

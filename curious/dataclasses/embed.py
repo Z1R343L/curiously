@@ -20,6 +20,7 @@ Wrappers for Embed objects.
 """
 
 import datetime
+from typing import Optional, Mapping, List
 
 from curious.util import attrdict
 
@@ -47,29 +48,29 @@ class Embed(object):  # not an IDObject! Embeds don't have IDs.
             return attrdict(**kwargs[key])
 
         #: The title of this embed.
-        self.title = title
+        self.title: Optional[str] = title
 
         #: The description of this embed.
-        self.description = description
+        self.description: Optional[str] = description
 
         if colour is None:
             # for passing in from discord
             colour = kwargs.get("color")
 
         #: The colour of this embed.
-        self.colour = colour
+        self.colour: Optional[int] = colour
 
         #: The type of this embed.
-        self.type_ = type_
+        self.type_: Optional[str] = type_
 
         #: The URL for this embed.
-        self.url = url
+        self.url: Optional[str] = url
 
         #: The timestamp for this embed.
-        self.timestamp = timestamp  # type: datetime.datetime
+        self.timestamp: datetime.datetime = timestamp
 
         #: The fields for this embed.
-        self.fields = [attrdict(**x) for x in kwargs.get("fields", [])]
+        self.fields: List[Mapping[str, str]] = [attrdict(**x) for x in kwargs.get("fields", [])]
 
         #: The footer for this embed.
         self.footer = make_attrdict("footer")

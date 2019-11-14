@@ -20,6 +20,7 @@ Wrappers for Role objects.
 """
 import copy
 import functools
+from typing import Optional
 
 from curious.core import get_current_client
 from curious.dataclasses import (
@@ -80,28 +81,28 @@ class Role(Dataclass):
         super().__init__(kwargs.get("id"))
 
         #: The name of this role.
-        self.name = kwargs.get("name", None)
+        self.name: Optional[str] = kwargs.get("name", None)
 
         #: The colour of this role.
-        self.colour = kwargs.get("color", 0)
+        self.colour: int = kwargs.get("color", 0)
 
         #: Is this role hoisted?
-        self.hoisted = kwargs.get("hoist", False)
+        self.hoisted: bool = kwargs.get("hoist", False)
 
         #: Is this role mentionable?
-        self.mentionable = kwargs.get("mentionable", False)
+        self.mentionable: bool = kwargs.get("mentionable", False)
 
         #: The permissions of this role.
         self.permissions = dt_permissions.Permissions(kwargs.get("permissions", 0))
 
         #: Is this role managed?
-        self.managed = kwargs.get("managed", False)
+        self.managed: bool = kwargs.get("managed", False)
 
         #: The position of this role.
-        self.position = kwargs.get("position", 0)
+        self.position: int = kwargs.get("position", 0)
 
         #: The ID of the guild associated with this Role.
-        self.guild_id = int(kwargs.get("guild_id", 0))  # type: dt_guild.Guild
+        self.guild_id: int = int(kwargs.get("guild_id", 0))
 
     def __lt__(self, other: "Role") -> bool:
         if not isinstance(other, Role):
@@ -169,7 +170,7 @@ class Role(Dataclass):
         await member.roles.add(self)
         return self
 
-    async def remove_from(self, member: "dt_member.Member"):
+    async def remove_from(self, member: "dt_member.Member") -> "Role":
         """
         Removes this role from a member.
         
