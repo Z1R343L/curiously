@@ -55,13 +55,30 @@ from curious.dataclasses.bases import Dataclass, Snowflaked
 from curious.dataclasses.channel import Channel, ChannelType
 from curious.dataclasses.embed import Embed
 from curious.dataclasses.emoji import Emoji
-from curious.dataclasses.guild import ContentFilterLevel, Guild, GuildChannelWrapper, \
-    GuildEmojiWrapper, GuildRoleWrapper, MFALevel, NotificationLevel, VerificationLevel
+from curious.dataclasses.guild import (
+    ContentFilterLevel,
+    Guild,
+    GuildChannelWrapper,
+    GuildEmojiWrapper,
+    GuildRoleWrapper,
+    MFALevel,
+    NotificationLevel,
+    VerificationLevel,
+)
 from curious.dataclasses.invite import Invite, InviteChannel, InviteGuild, InviteMetadata
 from curious.dataclasses.member import Member
 from curious.dataclasses.message import Message, MessageType
-from curious.dataclasses.presence import BasicActivity, Presence, Status, ActivityType, \
-    RichActivity, ActivitySecrets, ActivityAssets, ActivityParty, ActivityTimestamps
+from curious.dataclasses.presence import (
+    BasicActivity,
+    Presence,
+    Status,
+    ActivityType,
+    RichActivity,
+    ActivitySecrets,
+    ActivityAssets,
+    ActivityParty,
+    ActivityTimestamps,
+)
 from curious.dataclasses.permissions import Permissions, Overwrite
 from curious.dataclasses.reaction import Reaction
 from curious.dataclasses.role import Role
@@ -74,5 +91,13 @@ from curious.dataclasses.widget import Widget, WidgetChannel, WidgetGuild, Widge
 from curious.core.client import Client, InvalidTokenException
 from curious.core.httpclient import audit_log_reason
 
-from curious.exc import ErrorCode, CuriousError, Forbidden, NotFound, Unauthorized, \
-    HierarchyError, PermissionsError, HTTPException
+from curious.exc import (
+    ErrorCode,
+    CuriousError,
+    Forbidden,
+    NotFound,
+    Unauthorized,
+    HierarchyError,
+    PermissionsError,
+    HTTPException,
+)

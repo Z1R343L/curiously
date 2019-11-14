@@ -21,14 +21,26 @@ Class for the commands context.
 import contextvars
 import inspect
 import types
-import typing_inspect
 from dataclasses import dataclass
 from typing import Any, Callable, List, Tuple, Type, Union
 
-from curious.commands.converters import convert_channel, convert_float, convert_int, convert_list, \
-    convert_member, convert_role, convert_union
-from curious.commands.exc import CommandInvokeError, CommandNotFound, CommandsError, \
-    ConditionFailedError
+import typing_inspect
+
+from curious.commands.converters import (
+    convert_channel,
+    convert_float,
+    convert_int,
+    convert_list,
+    convert_member,
+    convert_role,
+    convert_union,
+)
+from curious.commands.exc import (
+    CommandInvokeError,
+    CommandNotFound,
+    CommandsError,
+    ConditionFailedError,
+)
 from curious.commands.plugin import Plugin
 from curious.commands.utils import _convert
 from curious.core import get_current_client
@@ -60,6 +72,7 @@ class Context(object):
     """
     A class that represents the context for a command.
     """
+
     _converters = {
         Channel: convert_channel,
         Member: convert_member,
@@ -92,7 +105,7 @@ class Context(object):
         self.full_tokens: List[str] = []
 
         #: The command object that has been matched.
-        self.command_object: 'Callable[[Context, ...], Any]' = None
+        self.command_object: "Callable[[Context, ...], Any]" = None
 
         #: The plugin for this context.
         self.plugin: Plugin = None
@@ -281,7 +294,7 @@ class Context(object):
 
         return matched_command
 
-    def _lookup_converter(self, annotation: Type[Any]) -> 'Callable[[Any, Context, str], Any]':
+    def _lookup_converter(self, annotation: Type[Any]) -> "Callable[[Any, Context, str], Any]":
         """
         Looks up a converter for the specified annotation.
         """

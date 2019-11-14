@@ -107,11 +107,16 @@ class CommandsManager(object):
     These will then be available to the client.
     """
 
-    def __init__(self, client: 'md_client.Client', *,
-                 message_check=None,
-                 command_prefix: Union[str, Iterable[str],
-                                       Callable[[md_client.Client, Message], str]] = None,
-                 context_klass: Type[Context] = Context):
+    def __init__(
+        self,
+        client: "md_client.Client",
+        *,
+        message_check=None,
+        command_prefix: Union[
+            str, Iterable[str], Callable[[md_client.Client, Message], str]
+        ] = None,
+        context_klass: Type[Context] = Context,
+    ):
         """
         :param client: The :class:`.Client` to use with this manager.
         :param message_check: The message check function for this manager.
@@ -153,7 +158,7 @@ class CommandsManager(object):
         self._module_plugins = defaultdict(lambda: [])
 
     @classmethod
-    def with_client(cls, client: 'md_client.Client', **kwargs):
+    def with_client(cls, client: "md_client.Client", **kwargs):
         """
         Creates a manager and automatically registers events.
         """
@@ -170,10 +175,10 @@ class CommandsManager(object):
         self.client.events.add_event_hook(self.event_hook)
 
         from curious.commands.decorators import command
+
         self.commands["help"] = command(name="help")(help_command)
 
-    async def load_plugin(self, klass: Type[Plugin], *args,
-                          module: str = None):
+    async def load_plugin(self, klass: Type[Plugin], *args, module: str = None):
         """
         Loads a plugin.
 
@@ -273,8 +278,10 @@ class CommandsManager(object):
 
         for token in sp[1:]:
             try:
-                filtered = filter(lambda cmd: cmd.cmd_name == token or token in cmd.cmd_aliases,
-                                  command.cmd_subcommands)
+                filtered = filter(
+                    lambda cmd: cmd.cmd_name == token or token in cmd.cmd_aliases,
+                    command.cmd_subcommands,
+                )
                 command = next(filtered)
             except StopIteration:
                 return None
@@ -386,8 +393,9 @@ class CommandsManager(object):
                     if ctx.event_name not in handler.events:
                         continue
 
-                    cofunc = partial(self.client.events._safety_wrapper,
-                                     handler, ctx, *args, **kwargs)
+                    cofunc = partial(
+                        self.client.events._safety_wrapper, handler, ctx, *args, **kwargs
+                    )
 
                     await tg.spawn(cofunc)
 
@@ -451,7 +459,7 @@ class CommandsManager(object):
         if isinstance(err, ConditionFailedError):
             await err.ctx.channel.messages.send(f":x: Condition failed: {err.message}")
 
-        fmtted = ''.join(traceback.format_exception(type(err), err, err.__traceback__))
+        fmtted = "".join(traceback.format_exception(type(err), err, err.__traceback__))
         logger.error(f"Error in command!\n{fmtted}")
 
     @event("message_create")

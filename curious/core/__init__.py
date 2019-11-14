@@ -42,7 +42,7 @@ _current_client = contextvars.ContextVar("current_client")
 _current_shard = contextvars.ContextVar("current_shard")
 
 
-def get_current_client() -> 'Client':
+def get_current_client() -> "Client":
     """
     Gets the currently running client. Mostly for internal usage.
     """

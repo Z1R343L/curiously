@@ -24,7 +24,7 @@ from curious.core import get_current_client
 from curious.dataclasses import channel as dt_channel, member as dt_member, role as dt_role
 from curious.exc import PermissionsError
 
-target_thint = 'Union[dt_member.Member, dt_role.Role]'
+target_thint = "Union[dt_member.Member, dt_role.Role]"
 
 
 # RIP the generator.
@@ -70,15 +70,13 @@ class Permissions(object):
     }
 
     @staticmethod
-    def __new__(cls, value: int = 0,
-                **kwargs):
+    def __new__(cls, value: int = 0, **kwargs):
         if isinstance(value, cls):
             return value
 
         return super(Permissions, cls).__new__(cls)
 
-    def __init__(self, value: int = 0,
-                 **kwargs):
+    def __init__(self, value: int = 0, **kwargs):
         """
         Creates a new Permissions object.
 
@@ -106,19 +104,19 @@ class Permissions(object):
 
     def _set_bit(self, bit: int, value: bool):
         if value:
-            self.bitfield |= (1 << bit)
+            self.bitfield |= 1 << bit
         else:
             self.bitfield &= ~(1 << bit)
 
     @classmethod
-    def all(cls) -> 'Permissions':
+    def all(cls) -> "Permissions":
         """
         :return: A new Permissions object with all permissions.
         """
         return cls(9007199254740991)
 
     @classmethod
-    def none(cls) -> 'Permissions':
+    def none(cls) -> "Permissions":
         """
         :return: A new permissions object with no permissions.
         """
@@ -481,8 +479,14 @@ class Overwrite(object):
     __slots__ = "target", "channel_id", "allow", "deny", "_immutable"
 
     @classmethod
-    def overwrite_in(cls, channel: 'dt_channel.Channel', target: target_thint, *,
-                     allow: perm_thint = None, deny: perm_thint) -> 'Overwrite':
+    def overwrite_in(
+        cls,
+        channel: "dt_channel.Channel",
+        target: target_thint,
+        *,
+        allow: perm_thint = None,
+        deny: perm_thint,
+    ) -> "Overwrite":
         """
         :param channel: The :class:`.Channel` to create this overwrite in.
         :param target: The :class:`.Member` or :class:`.Role` to create this overwrite for.
@@ -493,9 +497,13 @@ class Overwrite(object):
         deny = deny or 0
         return Overwrite(allow, deny, obb=target, channel_id=channel.id)
 
-    def __init__(self, allow: Union[int, Permissions], deny: Union[int, Permissions],
-                 obb: 'Union[dt_member.Member, dt_role.Role]',
-                 channel_id: int = None):
+    def __init__(
+        self,
+        allow: Union[int, Permissions],
+        deny: Union[int, Permissions],
+        obb: "Union[dt_member.Member, dt_role.Role]",
+        channel_id: int = None,
+    ):
         """
         :param allow: A :class:`.Permissions` that this overwrite allows.
         :param deny: A :class:`.Permissions` that this overwrite denies.
@@ -516,17 +524,16 @@ class Overwrite(object):
         self._immutable = False
 
     @property
-    def channel(self) -> 'Optional[dt_channel.Channel]':
+    def channel(self) -> "Optional[dt_channel.Channel]":
         """
         :return: The :class:`.Channel` this overwrite represents.
         """
         return get_current_client().state.find_channel(self.channel_id)
 
     def __repr__(self) -> str:
-        return "<Overwrites for object={} channel={} allow={} deny={}>".format(self.target,
-                                                                               self.channel,
-                                                                               self.allow,
-                                                                               self.deny)
+        return "<Overwrites for object={} channel={} allow={} deny={}>".format(
+            self.target, self.channel, self.allow, self.deny
+        )
 
     def __getattr__(self, item) -> bool:
         """

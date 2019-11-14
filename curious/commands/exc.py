@@ -18,10 +18,9 @@ Defines commands-specific exceptions.
 
 .. currentmodule:: curious.commands.exc
 """
+import abc
 import time
 from math import ceil
-
-import abc
 from typing import Tuple
 
 from curious.exc import CuriousError
@@ -40,6 +39,7 @@ class ConditionFailedError(CommandsError):
     """
     Raised when a condition has failed.
     """
+
     event_name = "command_condition_failed"
 
     def __init__(self, ctx, condition, message: str):
@@ -57,6 +57,7 @@ class MissingArgumentError(CommandsError):
     """
     Raised when a command is missing an argument.
     """
+
     event_name = "command_missing_argument"
 
     def __init__(self, ctx, arg):
@@ -73,6 +74,7 @@ class CommandInvokeError(CommandsError):
     """
     Raised when a command has an error during invokation.
     """
+
     event_name = "command_invoke_failed"
 
     def __init__(self, ctx):
@@ -88,6 +90,7 @@ class ConversionFailedError(CommandsError):
     """
     Raised when conversion fails.
     """
+
     event_name = "command_conversion_failed"
 
     def __init__(self, ctx, arg: str, to_type: type, message: str = "Unknown error"):
@@ -111,6 +114,7 @@ class CommandRateLimited(CommandsError):
     """
     Raised when a command is ratelimited.
     """
+
     event_name = "command_rate_limited"
 
     def __init__(self, context, func, limit, bucket: Tuple[int, float]):
@@ -121,8 +125,10 @@ class CommandRateLimited(CommandsError):
 
     def __repr__(self) -> str:
         left = int(ceil(self.bucket[1] - time.monotonic()))
-        return f"The command {self.ctx.command_name} is currently rate limited for " \
-               f"{left} second(s)."
+        return (
+            f"The command {self.ctx.command_name} is currently rate limited for "
+            f"{left} second(s)."
+        )
 
     __str__ = __repr__
 
@@ -131,6 +137,7 @@ class CommandNotFound(CommandsError):
     """
     Raised when a command is not found.
     """
+
     event_name = "command_not_found"
 
     def __init__(self, context, name: str):

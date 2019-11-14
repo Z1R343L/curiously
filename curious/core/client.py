@@ -53,6 +53,7 @@ class BotType(enum.IntEnum):
     
     This will tell the commands handling how to respond, as well as how to log in.
     """
+
     #: Regular bot. This signifies that the client should log in as a bot account.
     BOT = 1
 
@@ -86,8 +87,10 @@ class ReshardingNeeded(Exception):
     """
 
     def __repr__(self):
-        return "Discord rejected the connection because the bot needs more shards. If you are " \
-               "seeing this, autosharding is disabled and curious could not change shard count."
+        return (
+            "Discord rejected the connection because the bot needs more shards. If you are "
+            "seeing this, autosharding is disabled and curious could not change shard count."
+        )
 
 
 class Client(object):
@@ -110,18 +113,13 @@ class Client(object):
             print("Bot logged in.")
 
     """
-    #: A list of events to ignore the READY status.
-    IGNORE_READY = [
-        "connect",
-        "guild_streamed",
-        "guild_chunk",
-        "guild_available",
-        "guild_sync"
-    ]
 
-    def __init__(self, token: str, *,
-                 state_klass=None,
-                 bot_type: int = (BotType.BOT | BotType.ONLY_USER)):
+    #: A list of events to ignore the READY status.
+    IGNORE_READY = ["connect", "guild_streamed", "guild_chunk", "guild_available", "guild_sync"]
+
+    def __init__(
+        self, token: str, *, state_klass=None, bot_type: int = (BotType.BOT | BotType.ONLY_USER)
+    ):
         """
         :param token: The current token for this bot.
         :param state_klass: The class to construct the connection state from.
@@ -138,6 +136,7 @@ class Client(object):
 
         if state_klass is None:
             from curious.core.state import State
+
             state_klass = State
 
         #: The current connection state for the bot.
@@ -177,7 +176,7 @@ class Client(object):
         return self.state._user
 
     @property
-    def guilds(self) -> 'Mapping[int, dt_guild.Guild]':
+    def guilds(self) -> "Mapping[int, dt_guild.Guild]":
         """
         :return: A mapping of int -> :class:`.Guild` that this client can see.
         """
@@ -189,7 +188,8 @@ class Client(object):
         :return: The invite URL for this bot.
         """
         return "https://discordapp.com/oauth2/authorize?client_id={}&scope=bot".format(
-            self.application_info.client_id)
+            self.application_info.client_id
+        )
 
     @property
     def events_handled(self) -> collections.Counter:
@@ -217,7 +217,7 @@ class Client(object):
         return c
 
     @property
-    def gateways(self) -> 'Mapping[int, GatewayHandler]':
+    def gateways(self) -> "Mapping[int, GatewayHandler]":
         """
         :return: A read-only view of the current gateways for this client. 
         """
@@ -225,19 +225,20 @@ class Client(object):
 
     async def _spawn_task_internal(self, cofunc):
         if self.task_manager is None:
-            raise RuntimeError("Bot must be started to spawn any tasks, did you try and load "
-                               "plugins before running?")
+            raise RuntimeError(
+                "Bot must be started to spawn any tasks, did you try and load "
+                "plugins before running?"
+            )
 
         await self.task_manager.spawn(self.events._safety_wrapper, cofunc)
 
-    def find_channel(self, channel_id: int) -> 'Union[None, dt_channel.Channel]':
+    def find_channel(self, channel_id: int) -> "Union[None, dt_channel.Channel]":
         """
         Finds a channel by channel ID.
         """
         return self.state.find_channel(channel_id)
 
-    async def get_gateway_url(self, get_shard_count: bool = True) \
-            -> Union[str, Tuple[str, int]]:
+    async def get_gateway_url(self, get_shard_count: bool = True) -> Union[str, Tuple[str, int]]:
         """
         :return: The gateway URL for this bot.
         """
@@ -246,7 +247,7 @@ class Client(object):
         else:
             return await self.http.get_gateway_url()
 
-    def guilds_for(self, shard_id: int) -> 'Iterable[dt_guild.Guild]':
+    def guilds_for(self, shard_id: int) -> "Iterable[dt_guild.Guild]":
         """
         Gets the guilds for this shard.
 
@@ -300,10 +301,13 @@ class Client(object):
         return await self.events.wait_for(*args, **kwargs)
 
     # Gateway functions
-    async def change_status(self, game: BasicActivity = None,
-                            status: Status = Status.ONLINE,
-                            afk: bool = False,
-                            shard_id: int = 0):
+    async def change_status(
+        self,
+        game: BasicActivity = None,
+        status: Status = Status.ONLINE,
+        afk: bool = False,
+        shard_id: int = 0,
+    ):
         """
         Changes the bot's current status.
 
@@ -315,15 +319,14 @@ class Client(object):
 
         gateway = self._gateways[shard_id]
         return await gateway.send_status(
-            name=game.name if game else None, type_=game.type if game else None,
+            name=game.name if game else None,
+            type_=game.type if game else None,
             url=game.url if game else None,
             status=status.value,
         )
 
     # HTTP Functions
-    async def edit_profile(self, *,
-                           username: str = None,
-                           avatar: bytes = None) -> None:
+    async def edit_profile(self, *, username: str = None, avatar: bytes = None) -> None:
         """
         Edits the profile of this bot.
 
@@ -334,7 +337,7 @@ class Client(object):
         :param avatar: The bytes-like object that represents the new avatar you wish to use.
         """
         if username:
-            if any(x in username for x in ('@', ':', '```')):
+            if any(x in username for x in ("@", ":", "```")):
                 raise ValueError("Username must not contain banned characters")
 
             if username in ("discordtag", "everyone", "here"):
@@ -356,7 +359,7 @@ class Client(object):
 
         :param path: The path-like object to the avatar file.
         """
-        with open(path, 'rb') as f:
+        with open(path, "rb") as f:
             await self.edit_profile(avatar=f.read())
 
     async def get_user(self, user_id: int) -> User:
@@ -395,8 +398,7 @@ class Client(object):
         """
         return self.state.make_webhook(await self.http.get_webhook(webhook_id))
 
-    async def get_invite(self, invite_code: str, *,
-                         with_counts: bool = True) -> Invite:
+    async def get_invite(self, invite_code: str, *, with_counts: bool = True) -> Invite:
         """
         Gets an invite by code.
 
@@ -431,8 +433,10 @@ class Client(object):
             if channel_match is not None:
                 channel_id = int(channel_match.groups()[0])
                 channel = self.state.find_channel(channel_id)
-                if channel is None or channel.type not in \
-                        [dt_channel.ChannelType.TEXT, dt_channel.ChannelType.VOICE]:
+                if channel is None or channel.type not in [
+                    dt_channel.ChannelType.TEXT,
+                    dt_channel.ChannelType.VOICE,
+                ]:
                     final.append("#deleted-channel")
                 else:
                     final.append(f"#{channel.name}")
@@ -471,6 +475,7 @@ class Client(object):
         Handles a READY event, dispatching a ``shards_ready`` event when all shards are ready.
         """
         from curious.core.event import current_event_context
+
         ctx = current_event_context()
 
         self._ready_state[ctx.shard_id] = True
@@ -478,18 +483,21 @@ class Client(object):
         if not all(self._ready_state.values()):
             return
 
-        await self.events.fire_event("shards_ready", gateway=self._gateways[ctx.shard_id],
-                                     client=self)
+        await self.events.fire_event(
+            "shards_ready", gateway=self._gateways[ctx.shard_id], client=self
+        )
 
     async def run_shard(self, shard_id: int) -> None:
         """
         Runs a shard.
         """
-        async with open_websocket(self._token, url=self._gw_url,
-                                  shard_id=shard_id, shard_count=self.shard_count) as gw:
+        async with open_websocket(
+            self._token, url=self._gw_url, shard_id=shard_id, shard_count=self.shard_count
+        ) as gw:
             # gw: GatewayHandler
             self._gateways[shard_id] = gw
             from curious.core import _current_shard
+
             _current_shard.set(shard_id)
 
             async with finalise(gw.events()) as agen:
@@ -539,6 +547,7 @@ class Client(object):
 
             # fire a "starting" event
             from curious.core.event import EventContext
+
             ctx = EventContext(shard_id=None, event_name="starting")
             await self.events.fire_event("starting", ctx=ctx)
 
@@ -549,8 +558,9 @@ class Client(object):
                     logger.info(f"Sleeping 5 seconds before connecting to shard {shard}")
                     await anyio.sleep(5)
 
-    async def run_bot_in_sharded_mode(self, shard_count: int, *,
-                                      allow_resharding: bool = True) -> None:
+    async def run_bot_in_sharded_mode(
+        self, shard_count: int, *, allow_resharding: bool = True
+    ) -> None:
         """
         Starts the bot. This is an internal method - you want :meth:`.Client.run_async`.
 
@@ -558,6 +568,7 @@ class Client(object):
         :param allow_resharding: If the bot can automatically be resharded.
         """
         from curious.core import _current_client
+
         _current_client.set(self)
 
         try:
@@ -576,8 +587,9 @@ class Client(object):
 
                 raise
 
-    async def run_async(self, *, shard_count: int = 1, autoshard: bool = True,
-                        allow_resharding: bool = True) -> None:
+    async def run_async(
+        self, *, shard_count: int = 1, autoshard: bool = True, allow_resharding: bool = True
+    ) -> None:
         """
         Runs the client asynchronously.
 
@@ -594,5 +606,6 @@ class Client(object):
         self._gw_url = url
         self.shard_count = shard_count
 
-        return await self.run_bot_in_sharded_mode(shard_count,
-                                                  allow_resharding=autoshard or allow_resharding)
+        return await self.run_bot_in_sharded_mode(
+            shard_count, allow_resharding=autoshard or allow_resharding
+        )

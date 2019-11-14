@@ -20,8 +20,12 @@ Wrappers for Reaction objects.
 """
 from typing import Union
 
-from curious.dataclasses import emoji as dt_emoji, member as dt_member, message as dt_message, \
-    user as dt_user
+from curious.dataclasses import (
+    emoji as dt_emoji,
+    member as dt_member,
+    message as dt_message,
+    user as dt_user,
+)
 
 
 class Reaction(object):
@@ -58,7 +62,7 @@ class Reaction(object):
         # naiive
         return hash(self.message) + hash(self.emoji)
 
-    async def get_users(self) -> 'List[Union[dt_user.User, dt_member.Member]]':
+    async def get_users(self) -> "List[Union[dt_user.User, dt_member.Member]]":
         """
         Gets the list of users who reacted with this reaction to this message.
         """

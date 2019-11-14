@@ -12,7 +12,6 @@
 #
 # You should have received a copy of the GNU Lesser General Public License
 # along with curious.  If not, see <http://www.gnu.org/licenses/>.
-import anyio
 import contextlib
 import enum
 import json
@@ -22,6 +21,8 @@ import uuid
 from io import BytesIO
 from typing import AsyncContextManager, Optional, Union
 
+import anyio
+
 from curious.dataclasses.presence import RichActivity
 
 
@@ -29,6 +30,7 @@ class IPCOpcode(enum.IntEnum):
     """
     Represents an IPC opcode.
     """
+
     HANDSHAKE = 0
     FRAME = 1
     CLOSE = 2
@@ -87,7 +89,7 @@ class IPCPacket(object):
         Packs JSON in a compact representation.
         :param data: The data to pack.
         """
-        return json.dumps(data, indent=None, separators=(',', ':'))
+        return json.dumps(data, indent=None, separators=(",", ":"))
 
     # properties
     @property
@@ -154,6 +156,7 @@ class IPCClient(object):
 
     IPC is used for displaying Rich Presence on user accounts.
     """
+
     VERSION = 1
 
     @staticmethod
@@ -163,9 +166,7 @@ class IPCClient(object):
         """
         return str(uuid.uuid4())
 
-    def __init__(self, client_id: int,
-                 *, slot: int = 0,
-                 uid: Optional[int] = None):
+    def __init__(self, client_id: int, *, slot: int = 0, uid: Optional[int] = None):
         self._client_id = client_id
         self._slot = slot
         self._uid = uid
@@ -226,10 +227,7 @@ class IPCClient(object):
         """
         Performs the opening IPC handshake.
         """
-        handshake = {
-            'v': self.VERSION,
-            'client_id': str(self._client_id)
-        }
+        handshake = {"v": self.VERSION, "client_id": str(self._client_id)}
         packet = IPCPacket(IPCOpcode.HANDSHAKE, handshake)
         await self._write_packet(packet)
 
@@ -246,27 +244,26 @@ class IPCClient(object):
         """
         data = {
             "cmd": "SET_ACTIVITY",
-            "args": {
-                "pid": os.getpid(),
-                "activity": presence.to_dict()
-            },
-            "nonce": self.get_nonce()
+            "args": {"pid": os.getpid(), "activity": presence.to_dict()},
+            "nonce": self.get_nonce(),
         }
         packet = IPCPacket(IPCOpcode.FRAME, data)
         await self._write_packet(packet)
 
         next_packet = await self.read_packet()
         if next_packet.event is not None and next_packet.event.lower() == "error":
-            raise IPCCommandError(code=next_packet.data.get("code"),
-                                  message=next_packet.data.get("message"),
-                                  nonce=next_packet.data.get("nonce"))
+            raise IPCCommandError(
+                code=next_packet.data.get("code"),
+                message=next_packet.data.get("message"),
+                nonce=next_packet.data.get("nonce"),
+            )
 
         return next_packet
 
 
 @contextlib.asynccontextmanager
 async def open_ipc_client(
-        client_id: int, *, slot: int = 0, uid: Optional[int] = None
+    client_id: int, *, slot: int = 0, uid: Optional[int] = None
 ) -> AsyncContextManager[IPCClient]:
     """
     Opens a new IPC client. This is an async context manager; use it like so:

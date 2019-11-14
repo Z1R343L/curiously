@@ -18,27 +18,27 @@ The main Discord HTTP interface.
 
 .. currentmodule:: curious.core.httpclient
 """
-import time
-from math import ceil, floor
-
-import anyio
-import asks
 import contextvars
 import datetime
 import json
 import logging
 import mimetypes
-import pytz
 import random
 import string
+import time
 import weakref
-from asks.errors import ConnectivityError
-from asks.response_objects import Response
 from contextlib import contextmanager
 from email.utils import parsedate
-from h11 import RemoteProtocolError
+from math import ceil, floor
 from typing import Any, Dict, Iterable, List, Tuple, Union
 from urllib.parse import quote
+
+import anyio
+import asks
+import pytz
+from asks.errors import ConnectivityError
+from asks.response_objects import Response
+from h11 import RemoteProtocolError
 
 try:
     # try and load a C impl of LRU first
@@ -100,7 +100,7 @@ def encode_multipart(fields, files, boundary=None):
         return s.replace(b'"', b'\\"')
 
     if boundary is None:
-        boundary = b''.join(random.choice(_BOUNDARY_CHARS).encode() for i in range(30))
+        boundary = b"".join(random.choice(_BOUNDARY_CHARS).encode() for i in range(30))
     lines = []
 
     for name, value in fields.items():
@@ -114,37 +114,38 @@ def encode_multipart(fields, files, boundary=None):
         else:
             value = str(value).encode()
 
-        lines.extend((
-            b'--%s' % boundary,
-            b'Content-Disposition: form-data; name="%s"' % escape_quote(name),
-            b'',
-            value,
-        ))
+        lines.extend(
+            (
+                b"--%s" % boundary,
+                b'Content-Disposition: form-data; name="%s"' % escape_quote(name),
+                b"",
+                value,
+            )
+        )
 
     for name, value in files.items():
-        filename = value['filename']
-        if 'mimetype' in value:
-            mimetype = value['mimetype']
+        filename = value["filename"]
+        if "mimetype" in value:
+            mimetype = value["mimetype"]
         else:
-            mimetype = mimetypes.guess_type(filename)[0] or 'application/octet-stream'
-        lines.extend((
-            b'--%s' % boundary,
-            b'Content-Disposition: form-data; name="%s"; filename="%s"' % (
-                escape_quote(name.encode()), escape_quote(filename.encode())),
-            b'Content-Type: %s' % mimetype.encode(),
-            b'',
-            value['content'],
-        ))
+            mimetype = mimetypes.guess_type(filename)[0] or "application/octet-stream"
+        lines.extend(
+            (
+                b"--%s" % boundary,
+                b'Content-Disposition: form-data; name="%s"; filename="%s"'
+                % (escape_quote(name.encode()), escape_quote(filename.encode())),
+                b"Content-Type: %s" % mimetype.encode(),
+                b"",
+                value["content"],
+            )
+        )
 
-    lines.extend((
-        b'--%s--' % boundary,
-        b'',
-    ))
-    body = b'\r\n'.join(lines)
+    lines.extend((b"--%s--" % boundary, b"",))
+    body = b"\r\n".join(lines)
 
     headers = {
-        'Content-Type': 'multipart/form-data; boundary=%s' % boundary.decode(),
-        'Content-Length': str(len(body)),
+        "Content-Type": "multipart/form-data; boundary=%s" % boundary.decode(),
+        "Content-Length": str(len(body)),
     }
 
     return body, headers
@@ -263,17 +264,14 @@ class HTTPClient(object):
     :param max_connections: The max connections for this HTTP client.
     """
 
-    def __init__(self, token: str, *,
-                 max_connections: int = 10):
+    def __init__(self, token: str, *, max_connections: int = 10):
         #: The token used for all requests.
         self.token = token
 
         # Calculated headers
         from curious import USER_AGENT
-        headers = {
-            "User-Agent": USER_AGENT,
-            "Authorization": f"Bot {token}"
-        }
+
+        headers = {"User-Agent": USER_AGENT, "Authorization": f"Bot {token}"}
 
         self.endpoints = Endpoints()
         self.headers = headers
@@ -284,7 +282,7 @@ class HTTPClient(object):
         self._rate_limits = weakref.WeakValueDictionary()
         self._ratelimit_remaining = lru(1024)
 
-    def get_ratelimit_lock(self, bucket: object) -> 'anyio.Lock':
+    def get_ratelimit_lock(self, bucket: object) -> "anyio.Lock":
         """
         Gets a ratelimit lock from the dict if it exists, otherwise creates a new one.
         """
@@ -334,7 +332,7 @@ class HTTPClient(object):
 
         # temporary
         # return await self.session.request(*args, headers=headers, timeout=5, **kwargs)
-        if 'uri' not in kwargs:
+        if "uri" not in kwargs:
             kwargs["uri"] = self.endpoints.BASE + Endpoints.API_BASE + kwargs["path"]
         else:
             kwargs.pop("path", None)
@@ -449,7 +447,8 @@ class HTTPClient(object):
 
                     logger.debug(
                         "Being ratelimited under bucket %s, waking in %s seconds",
-                        bucket, sleep_time
+                        bucket,
+                        sleep_time,
                     )
 
                     # Sleep that amount of time.
@@ -488,8 +487,7 @@ class HTTPClient(object):
             else:
                 raise RuntimeError("Failed to get response after 5 tries.")
 
-    async def get(self, url: str, bucket: str,
-                  *args, **kwargs):
+    async def get(self, url: str, bucket: str, *args, **kwargs):
         """
         Makes a GET request.
 
@@ -498,8 +496,7 @@ class HTTPClient(object):
         """
         return await self.request(("GET", bucket), method="GET", path=url, *args, **kwargs)
 
-    async def post(self, url: str, bucket: str,
-                   *args, **kwargs):
+    async def post(self, url: str, bucket: str, *args, **kwargs):
         """
         Makes a POST request.
 
@@ -508,8 +505,7 @@ class HTTPClient(object):
         """
         return await self.request(("POST", bucket), method="POST", path=url, *args, **kwargs)
 
-    async def put(self, url: str, bucket: str,
-                  *args, **kwargs):
+    async def put(self, url: str, bucket: str, *args, **kwargs):
         """
         Makes a PUT request.
 
@@ -518,8 +514,7 @@ class HTTPClient(object):
         """
         return await self.request(("PUT", bucket), method="PUT", path=url, *args, **kwargs)
 
-    async def delete(self, url: str, bucket: str,
-                     *args, **kwargs):
+    async def delete(self, url: str, bucket: str, *args, **kwargs):
         """
         Makes a DELETE request.
 
@@ -528,8 +523,7 @@ class HTTPClient(object):
         """
         return await self.request(("DELETE", bucket), method="DELETE", path=url, *args, **kwargs)
 
-    async def patch(self, url: str, bucket: str,
-                    *args, **kwargs):
+    async def patch(self, url: str, bucket: str, *args, **kwargs):
         """
         Makes a PATCH request.
 
@@ -602,8 +596,7 @@ class HTTPClient(object):
         data = await self.get(url, bucket="guild:{}".format(guild_id))
         return data
 
-    async def get_guild_members(self, guild_id: int, *,
-                                limit: int = None, after: int = None):
+    async def get_guild_members(self, guild_id: int, *, limit: int = None, after: int = None):
         """
         Gets guild members for the specified guild.
 
@@ -666,8 +659,9 @@ class HTTPClient(object):
             "code": code,
         }
 
-        data = await self.patch(Endpoints.GUILD_VANITY_URL, bucket="guild:{}".format(guild_id),
-                                json=payload)
+        data = await self.patch(
+            Endpoints.GUILD_VANITY_URL, bucket="guild:{}".format(guild_id), json=payload
+        )
         return data
 
     async def send_typing(self, channel_id: str):
@@ -681,8 +675,9 @@ class HTTPClient(object):
         data = await self.post(url, bucket="typing:{}".format(channel_id))
         return data
 
-    async def send_message(self, channel_id: int, content: str, tts: bool = False,
-                           embed: dict = None):
+    async def send_message(
+        self, channel_id: int, content: str, tts: bool = False, embed: dict = None
+    ):
         """
         Sends a message to a channel.
 
@@ -705,8 +700,15 @@ class HTTPClient(object):
         data = await self.post(url, "messages:{}".format(channel_id), json=payload)
         return data
 
-    async def send_file(self, channel_id: int, file_content: bytes, *,
-                        filename: str = None, content: str = None, embed: dict = None):
+    async def send_file(
+        self,
+        channel_id: int,
+        file_content: bytes,
+        *,
+        filename: str = None,
+        content: str = None,
+        embed: dict = None,
+    ):
         """
         Uploads a file to the current channel.
 
@@ -724,25 +726,19 @@ class HTTPClient(object):
         if embed is not None:
             payload_json["embed"] = embed
 
-        files = {
-            "file": {
-                "filename": filename,
-                "content": file_content
-            }
-        }
+        files = {"file": {"filename": filename, "content": file_content}}
 
         # The Discord API docs say that payload_json needs to be url-encoded, but that is a lie
-        # it must be a normal json string with can contain JSON unicode-escapes (which 
+        # it must be a normal json string with can contain JSON unicode-escapes (which
         # dumps does when ensure_ascii is True; which is the default, but just it case the
         # default changes
         # in the future, we give it explicitly)
         payload = {
-            "payload_json": json.dumps(payload_json, ensure_ascii=True, separators=(',', ':'))
+            "payload_json": json.dumps(payload_json, ensure_ascii=True, separators=(",", ":"))
         }
 
         body, headers = encode_multipart(payload, files)
-        data = await self.post(url, "messages:{}".format(channel_id),
-                               data=body, headers=headers)
+        data = await self.post(url, "messages:{}".format(channel_id), data=body, headers=headers)
         return data
 
     async def delete_message(self, channel_id: int, message_id: int):
@@ -759,8 +755,9 @@ class HTTPClient(object):
         data = await self.delete(url, "messages:{}".format(channel_id))
         return data
 
-    async def edit_message(self, channel_id: int, message_id: int, content: str = None,
-                           embed: dict = None):
+    async def edit_message(
+        self, channel_id: int, message_id: int, content: str = None, embed: dict = None
+    ):
         """
         Edits a message.
 
@@ -792,16 +789,15 @@ class HTTPClient(object):
         :param emoji: The emoji to react with.
         """
         url = Endpoints.CHANNEL_MESSAGE_REACTION_ME.format(
-            channel_id=channel_id,
-            message_id=message_id,
-            emoji=emoji
+            channel_id=channel_id, message_id=message_id, emoji=emoji
         )
 
         data = await self.put(url, "reactions:{}".format(channel_id))
         return data
 
-    async def delete_reaction(self, channel_id: int, message_id: int, emoji: str,
-                              victim: int = None):
+    async def delete_reaction(
+        self, channel_id: int, message_id: int, emoji: str, victim: int = None
+    ):
         """
         Deletes a reaction from a message.
 
@@ -827,8 +823,9 @@ class HTTPClient(object):
         :param channel_id: The channel ID of the channel containing the message.
         :param message_id: The message ID to remove reactions from.
         """
-        url = Endpoints.CHANNEL_MESSAGE_REACTIONS.format(channel_id=channel_id,
-                                                         message_id=message_id)
+        url = Endpoints.CHANNEL_MESSAGE_REACTIONS.format(
+            channel_id=channel_id, message_id=message_id
+        )
 
         data = await self.delete(url, bucket="reactions:{}".format(channel_id))
         return data
@@ -842,9 +839,8 @@ class HTTPClient(object):
         :param emoji: The emoji to get reactions for.
         """
         url = Endpoints.CHANNEL_MESSAGE_REACTION_EMOJI.format(
-            channel_id=channel_id,
-            message_id=message_id,
-            emoji=emoji)
+            channel_id=channel_id, message_id=message_id, emoji=emoji
+        )
 
         data = await self.get(url, bucket="reactions:{}".format(channel_id))
         return data
@@ -856,8 +852,7 @@ class HTTPClient(object):
         :param channel_id: The channel ID to pin in.
         :param message_id: The message ID of the message to pin.
         """
-        url = Endpoints.CHANNEL_PIN_MESSAGE.format(channel_id=channel_id,
-                                                   message_id=message_id)
+        url = Endpoints.CHANNEL_PIN_MESSAGE.format(channel_id=channel_id, message_id=message_id)
 
         data = await self.put(url, "pins:{}".format(channel_id), json={})
         return data
@@ -869,8 +864,7 @@ class HTTPClient(object):
         :param channel_id: The channel ID to unpin in.
         :param message_id: The message ID of the message to unpin.
         """
-        url = Endpoints.CHANNEL_PIN_MESSAGE.format(channel_id=channel_id,
-                                                   message_id=message_id)
+        url = Endpoints.CHANNEL_PIN_MESSAGE.format(channel_id=channel_id, message_id=message_id)
 
         data = await self.delete(url, "pins:{}".format(channel_id))
         return data
@@ -888,9 +882,15 @@ class HTTPClient(object):
         data = await self.get(url, "messages:{}".format(channel_id))
         return data
 
-    async def get_message_history(self, channel_id: int, *,
-                                  before: int = None, after: int = None, around: int = None,
-                                  limit: int = 100):
+    async def get_message_history(
+        self,
+        channel_id: int,
+        *,
+        before: int = None,
+        after: int = None,
+        around: int = None,
+        limit: int = 100,
+    ):
         """
         Gets a list of messages from a channel.
 
@@ -904,9 +904,7 @@ class HTTPClient(object):
         :return: A list of message dictionaries.
         """
         url = Endpoints.CHANNEL_MESSAGES.format(channel_id=channel_id)
-        payload = {
-            "limit": str(limit)
-        }
+        payload = {"limit": str(limit)}
 
         if before:
             payload["before"] = str(before)
@@ -943,17 +941,15 @@ class HTTPClient(object):
         :param message_ids: A list of messages to delete.
         """
         url = Endpoints.CHANNEL_MESSAGE_BULK_DELETE.format(channel_id=channel_id)
-        payload = {
-            "messages": [str(message_id) for message_id in message_ids]
-        }
+        payload = {"messages": [str(message_id) for message_id in message_ids]}
 
-        data = await self.post(url, bucket="messages:bulk_delete:{}".format(channel_id),
-                               json=payload)
+        data = await self.post(
+            url, bucket="messages:bulk_delete:{}".format(channel_id), json=payload
+        )
         return data
 
     # Profile endpoints
-    async def edit_user(self, username: str = None, avatar: str = None,
-                        password: str = None):
+    async def edit_user(self, username: str = None, avatar: str = None, password: str = None):
         """
         Edits the profile of the bot.
 
@@ -995,14 +991,14 @@ class HTTPClient(object):
         :param guild_id: The guild ID to kick in.
         :param member_id: The member ID to kick from the guild.
         """
-        url = Endpoints.GUILD_MEMBER.format(guild_id=guild_id,
-                                            member_id=member_id)
+        url = Endpoints.GUILD_MEMBER.format(guild_id=guild_id, member_id=member_id)
 
         data = await self.delete(url, bucket="members:{}".format(guild_id))
         return data
 
-    async def ban_user(self, guild_id: int, user_id: int,
-                       delete_message_days: int = 7, reason: str = None):
+    async def ban_user(
+        self, guild_id: int, user_id: int, delete_message_days: int = 7, reason: str = None
+    ):
         """
         Bans a user from a guild.
 
@@ -1034,10 +1030,16 @@ class HTTPClient(object):
         data = await self.delete(url, bucket="bans:{}".format(guild_id), reason=reason)
         return data
 
-    async def create_guild(self, name: str, region: str = None, icon: str = None,
-                           verification_level: int = None,
-                           default_message_notifications: int = None,
-                           roles: List[dict] = None, channels: List[dict] = None):
+    async def create_guild(
+        self,
+        name: str,
+        region: str = None,
+        icon: str = None,
+        verification_level: int = None,
+        default_message_notifications: int = None,
+        roles: List[dict] = None,
+        channels: List[dict] = None,
+    ):
         """
         Creates a new guild.
 
@@ -1073,14 +1075,21 @@ class HTTPClient(object):
         data = await self.post(url, "guild:create", json=payload)
         return data
 
-    async def edit_guild(self, guild_id: int, *,
-                         name: str = None, icon_content: bytes = None,
-                         region: str = None, verification_level: int = None,
-                         default_message_notifications: int = None,
-                         afk_channel_id: int = None, afk_timeout: int = None,
-                         splash_content: bytes = None,
-                         explicit_content_filter: int = None,
-                         system_channel_id: int = None):
+    async def edit_guild(
+        self,
+        guild_id: int,
+        *,
+        name: str = None,
+        icon_content: bytes = None,
+        region: str = None,
+        verification_level: int = None,
+        default_message_notifications: int = None,
+        afk_channel_id: int = None,
+        afk_timeout: int = None,
+        splash_content: bytes = None,
+        explicit_content_filter: int = None,
+        system_channel_id: int = None,
+    ):
         """
         Modifies a guild.
 
@@ -1136,9 +1145,17 @@ class HTTPClient(object):
         data = await self.post(url, bucket="guild_roles:{}".format(guild_id))
         return data
 
-    async def edit_role(self, guild_id: int, role_id: int,
-                        name: str = None, permissions: int = None, position: int = None,
-                        colour: int = None, hoist: bool = None, mentionable: bool = None):
+    async def edit_role(
+        self,
+        guild_id: int,
+        role_id: int,
+        name: str = None,
+        permissions: int = None,
+        position: int = None,
+        colour: int = None,
+        hoist: bool = None,
+        mentionable: bool = None,
+    ):
         """
         Edits a role.
 
@@ -1187,10 +1204,18 @@ class HTTPClient(object):
         data = await self.delete(url, bucket="guild_roles:{}".format(guild_id))
         return data
 
-    async def create_channel(self, guild_id: int, name: str, type: int, *,
-                             bitrate: int = None, user_limit: int = None,
-                             parent_id: int = None, permission_overwrites: list = None,
-                             rate_limit_per_user: int = None):
+    async def create_channel(
+        self,
+        guild_id: int,
+        name: str,
+        type: int,
+        *,
+        bitrate: int = None,
+        user_limit: int = None,
+        parent_id: int = None,
+        permission_overwrites: list = None,
+        rate_limit_per_user: int = None,
+    ):
         """
         Creates a new channel.
 
@@ -1204,10 +1229,7 @@ class HTTPClient(object):
         :param rate_limit_per_user: The rate limit per user for this channel.
         """
         url = Endpoints.GUILD_CHANNELS.format(guild_id=guild_id)
-        payload = {
-            "name": name,
-            "type": type
-        }
+        payload = {"name": name, "type": type}
 
         if type == 2:
             if bitrate is not None:
@@ -1226,12 +1248,16 @@ class HTTPClient(object):
         return data
 
     async def edit_channel(
-            self, channel_id: int, *,
-            name: str = None, position: int = None,
-            topic: str = None,
-            bitrate: int = None, user_limit: int = -1,
-            rate_limit_per_user: int = None,
-            parent_id: int = -1
+        self,
+        channel_id: int,
+        *,
+        name: str = None,
+        position: int = None,
+        topic: str = None,
+        bitrate: int = None,
+        user_limit: int = -1,
+        rate_limit_per_user: int = None,
+        parent_id: int = -1,
     ):
         """
         Edits a channel.
@@ -1272,8 +1298,9 @@ class HTTPClient(object):
         data = await self.patch(url, bucket="channels:{}".format(channel_id), json=payload)
         return data
 
-    async def update_channel_positions(self, guild_id: int,
-                                       channel_ids_and_positions: List[Tuple[int, int]]):
+    async def update_channel_positions(
+        self, guild_id: int, channel_ids_and_positions: List[Tuple[int, int]]
+    ):
         """
         Updates the positions of channels
 
@@ -1286,8 +1313,9 @@ class HTTPClient(object):
         if len(channel_ids_and_positions) < 2:
             raise ValueError("channel_ids_and_position must contain at least 2 entries")
 
-        payload = [{"id": str(id), "position": position} for id, position in
-                   channel_ids_and_positions]
+        payload = [
+            {"id": str(id), "position": position} for id, position in channel_ids_and_positions
+        ]
 
         data = await self.patch(url, bucket="guild:{}".format(guild_id), json=payload)
         return data
@@ -1313,15 +1341,14 @@ class HTTPClient(object):
         :param member_id: The member ID to add the role to.
         :param role_id: The role ID to add to the member.
         """
-        url = Endpoints.GUILD_MEMBER_ROLE.format(guild_id=guild_id,
-                                                 member_id=member_id,
-                                                 role_id=role_id)
+        url = Endpoints.GUILD_MEMBER_ROLE.format(
+            guild_id=guild_id, member_id=member_id, role_id=role_id
+        )
 
         data = await self.put(url, bucket="member_edit:{}".format(guild_id))
         return data
 
-    async def edit_member_roles(self, guild_id: int, member_id: int,
-                                role_ids: Iterable[int]):
+    async def edit_member_roles(self, guild_id: int, member_id: int, role_ids: Iterable[int]):
         """
         Modifies the roles that a member object contains.
 
@@ -1329,17 +1356,13 @@ class HTTPClient(object):
         :param member_id: The member ID to add the role to.
         :param role_ids: The role IDs to add to the member.
         """
-        url = Endpoints.GUILD_MEMBER.format(guild_id=guild_id,
-                                            member_id=member_id)
-        payload = {
-            "roles": [str(id) for id in role_ids]
-        }
+        url = Endpoints.GUILD_MEMBER.format(guild_id=guild_id, member_id=member_id)
+        payload = {"roles": [str(id) for id in role_ids]}
 
         data = await self.patch(url, bucket="member_edit:{}".format(guild_id), json=payload)
         return data
 
-    async def edit_role_positions(self, guild_id: int,
-                                  role_mapping: List[Tuple[str, int]]):
+    async def edit_role_positions(self, guild_id: int, role_mapping: List[Tuple[str, int]]):
         """
         Changes the position of a set of roles.
 
@@ -1352,8 +1375,9 @@ class HTTPClient(object):
         data = await self.patch(url, bucket="roles", json=payload)
         return data
 
-    async def change_nickname(self, guild_id: int, nickname: str, *, member_id: int = None,
-                              me: bool = False):
+    async def change_nickname(
+        self, guild_id: int, nickname: str, *, member_id: int = None, me: bool = False
+    ):
         """
         Changes the nickname of a member.
 
@@ -1372,15 +1396,20 @@ class HTTPClient(object):
         if nickname is None:
             nickname = ""  # undocumented
 
-        payload = {
-            "nick": nickname
-        }
+        payload = {"nick": nickname}
 
         data = await self.patch(url, bucket="member_edit:{}".format(guild_id), json=payload)
         return data
 
-    async def edit_member_voice_state(self, guild_id: int, member_id: int, *,
-                                      deaf: bool = None, mute: bool = None, channel_id: int = None):
+    async def edit_member_voice_state(
+        self,
+        guild_id: int,
+        member_id: int,
+        *,
+        deaf: bool = None,
+        mute: bool = None,
+        channel_id: int = None,
+    ):
         """
         Edits the voice state of a member.
 
@@ -1390,8 +1419,7 @@ class HTTPClient(object):
         :param mute: Should the member be muted?
         :param channel_id: What channel should the member be moved to?
         """
-        url = Endpoints.GUILD_MEMBER.format(guild_id=guild_id,
-                                            member_id=member_id)
+        url = Endpoints.GUILD_MEMBER.format(guild_id=guild_id, member_id=member_id)
         payload = {}
 
         if deaf is not None:
@@ -1406,8 +1434,9 @@ class HTTPClient(object):
         data = await self.patch(url, bucket="member_edit:{}".format(guild_id), json=payload)
         return data
 
-    async def edit_overwrite(self, channel_id: int, target_id: int, type_: str,
-                             *, allow: int = 0, deny: int = 0):
+    async def edit_overwrite(
+        self, channel_id: int, target_id: int, type_: str, *, allow: int = 0, deny: int = 0
+    ):
         """
         Modifies or adds an overwrite.
 
@@ -1419,14 +1448,11 @@ class HTTPClient(object):
         :param deny: The permission bitfield of permissions to deny.
         """
         url = Endpoints.CHANNEL_PERMISSION.format(channel_id=channel_id, target_id=target_id)
-        payload = {
-            "allow": allow,
-            "deny": deny,
-            "type": type_
-        }
+        payload = {"allow": allow, "deny": deny, "type": type_}
 
-        data = await self.put(url, bucket="channels:permissions:{}".format(channel_id),
-                              json=payload)
+        data = await self.put(
+            url, bucket="channels:permissions:{}".format(channel_id), json=payload
+        )
         return data
 
     async def remove_overwrite(self, channel_id: int, target_id: int):
@@ -1436,8 +1462,7 @@ class HTTPClient(object):
         :param channel_id: The channel ID to edit.
         :param target_id: The target of the override.
         """
-        url = Endpoints.CHANNEL_PERMISSION.format(channel_id=channel_id,
-                                                  target_id=target_id)
+        url = Endpoints.CHANNEL_PERMISSION.format(channel_id=channel_id, target_id=target_id)
 
         data = await self.delete(url, bucket="channels:permissions:{}".format(channel_id))
         return data
@@ -1464,8 +1489,7 @@ class HTTPClient(object):
         data = await self.get(url, bucket="widget:{}".format(guild_id))
         return data
 
-    async def edit_widget(self, guild_id: int,
-                          enabled: bool = None, channel_id: int = 0):
+    async def edit_widget(self, guild_id: int, enabled: bool = None, channel_id: int = 0):
         """
         Edits the widget status for this guild.
         
@@ -1486,10 +1510,15 @@ class HTTPClient(object):
         data = await self.patch(url, bucket="widget:{}".format(guild_id), json=payload)
         return data
 
-    async def get_audit_logs(self, guild_id: int,
-                             *, limit: int = 50, user_id: int = None,
-                             action_type: int = None,
-                             before: int = None):
+    async def get_audit_logs(
+        self,
+        guild_id: int,
+        *,
+        limit: int = 50,
+        user_id: int = None,
+        action_type: int = None,
+        before: int = None,
+    ):
         """
         Gets the audit log for this guild.
         
@@ -1541,9 +1570,9 @@ class HTTPClient(object):
         data = await self.get(url, bucket=f"emojis:{guild_id}")
         return data
 
-    async def create_guild_emoji(self, guild_id: int, *,
-                                 name: str, image: str,
-                                 roles: List[int] = None):
+    async def create_guild_emoji(
+        self, guild_id: int, *, name: str, image: str, roles: List[int] = None
+    ):
         """
         Creates an emoji in a guild.
 
@@ -1563,8 +1592,9 @@ class HTTPClient(object):
         data = await self.post(url, bucket=f"emojis:{guild_id}", params=params)
         return data
 
-    async def edit_guild_emoji(self, guild_id: int, emoji_id: int, *,
-                               name: str = None, roles: List[int] = None):
+    async def edit_guild_emoji(
+        self, guild_id: int, emoji_id: int, *, name: str = None, roles: List[int] = None
+    ):
         """
         Modifies an emoji in a guild.
 
@@ -1631,8 +1661,7 @@ class HTTPClient(object):
         data = await self.get(url, bucket="webhooks:{}".format(channel_id))
         return data
 
-    async def create_webhook(self, channel_id: int, *,
-                             name: str = None, avatar: str = None):
+    async def create_webhook(self, channel_id: int, *, name: str = None, avatar: str = None):
         """
         Creates a webhook.
 
@@ -1649,8 +1678,7 @@ class HTTPClient(object):
         data = await self.post(url, bucket="webhooks:{}".format(channel_id), json=payload)
         return data
 
-    async def edit_webhook(self, webhook_id: int, *,
-                           name: str = None, avatar: str = None):
+    async def edit_webhook(self, webhook_id: int, *, name: str = None, avatar: str = None):
         """
         Edits a webhook.
 
@@ -1670,8 +1698,9 @@ class HTTPClient(object):
         data = await self.patch(url, bucket="webhooks", json=payload)
         return data
 
-    async def edit_webhook_with_token(self, webhook_id: int, token: str, *,
-                                      name: str = None, avatar: str = None):
+    async def edit_webhook_with_token(
+        self, webhook_id: int, token: str, *, name: str = None, avatar: str = None
+    ):
         """
         Edits a webhook, with a token.
 
@@ -1680,8 +1709,7 @@ class HTTPClient(object):
         :param name: The name of the webhook to edit.
         :param avatar: The base64 encoded avatar to send.
         """
-        url = Endpoints.WEBHOOKS_TOKEN.format(webhook_id=webhook_id,
-                                              token=token)
+        url = Endpoints.WEBHOOKS_TOKEN.format(webhook_id=webhook_id, token=token)
         payload = {}
 
         if avatar is not None:
@@ -1711,16 +1739,22 @@ class HTTPClient(object):
         :param webhook_id: The ID of the webhook to delete.
         :param token: The token of the webhook.
         """
-        url = Endpoints.WEBHOOKS_TOKEN.format(webhook_id=webhook_id,
-                                              token=token)
+        url = Endpoints.WEBHOOKS_TOKEN.format(webhook_id=webhook_id, token=token)
 
         data = await self.delete(url, bucket="webhooks")
         return data
 
-    async def execute_webhook(self, webhook_id: int, webhook_token: str, *,
-                              content: str = None, embeds: List[Dict[str, Any]] = None,
-                              username: str = None, avatar_url: str = None,
-                              wait: bool = False):
+    async def execute_webhook(
+        self,
+        webhook_id: int,
+        webhook_token: str,
+        *,
+        content: str = None,
+        embeds: List[Dict[str, Any]] = None,
+        username: str = None,
+        avatar_url: str = None,
+        wait: bool = False,
+    ):
         """
         Executes a webhook.
 
@@ -1754,8 +1788,7 @@ class HTTPClient(object):
         return data
 
     # Invites
-    async def get_invite(self, invite_code: str, *,
-                         with_counts: bool = True):
+    async def get_invite(self, invite_code: str, *, with_counts: bool = True):
         """
         Gets an invite by code.
 
@@ -1763,9 +1796,7 @@ class HTTPClient(object):
         :param with_counts: Should the estimated total and online members be included?
         """
         url = Endpoints.INVITES_BASE.format(invite_code=invite_code)
-        params = {
-            "with_counts": "true" if with_counts else "false"
-        }
+        params = {"with_counts": "true" if with_counts else "false"}
 
         data = await self.get(url, bucket="invites", params=params)
         return data
@@ -1781,9 +1812,15 @@ class HTTPClient(object):
         data = await self.get(url, bucket="invites:{}".format(guild_id))
         return data
 
-    async def create_invite(self, channel_id: int, *,
-                            max_age: int = None, max_uses: int = None,
-                            temporary: bool = None, unique: bool = None):
+    async def create_invite(
+        self,
+        channel_id: int,
+        *,
+        max_age: int = None,
+        max_uses: int = None,
+        temporary: bool = None,
+        unique: bool = None,
+    ):
         """
         Creates an invite.
 
@@ -1879,8 +1916,9 @@ class HTTPClient(object):
         url = Endpoints.OAUTH2_AUTHORIZE
 
         try:
-            data = await self.get(url, bucket="oauth2",
-                                  params={"client_id": application_id, "scope": "bot"})
+            data = await self.get(
+                url, bucket="oauth2", params={"client_id": application_id, "scope": "bot"}
+            )
         except HTTPException as e:
             if e.error_code != 50010:
                 raise
@@ -1924,9 +1962,7 @@ class HTTPClient(object):
         :param user_id: The user ID of the user to open with.
         """
         url = Endpoints.USER_CHANNELS
-        payload = {
-            "recipient_id": user_id
-        }
+        payload = {"recipient_id": user_id}
 
         data = await self.post(url, "channels:create", json=payload)
         return data

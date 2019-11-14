@@ -24,9 +24,16 @@ import re
 from typing import List, Optional, Union
 
 from curious.core import get_current_client
-from curious.dataclasses import channel as dt_channel, emoji as dt_emoji, guild as dt_guild, \
-    invite as dt_invite, member as dt_member, role as dt_role, user as dt_user, \
-    webhook as dt_webhook
+from curious.dataclasses import (
+    channel as dt_channel,
+    emoji as dt_emoji,
+    guild as dt_guild,
+    invite as dt_invite,
+    member as dt_member,
+    role as dt_role,
+    user as dt_user,
+    webhook as dt_webhook,
+)
 from curious.dataclasses.attachment import Attachment
 from curious.dataclasses.bases import Dataclass
 from curious.dataclasses.embed import Embed
@@ -44,6 +51,7 @@ class MessageType(enum.IntEnum):
     """
     Represents the type of a message.
     """
+
     #: The default (i.e. user message) type.
     DEFAULT = 0
 
@@ -80,9 +88,22 @@ class Message(Dataclass):
     """
     Represents a Message.
     """
-    __slots__ = ("content", "guild_id", "author", "created_at", "edited_at", "embeds",
-                 "attachments", "_mentions", "_role_mentions", "reactions", "channel_id",
-                 "author_id", "type")
+
+    __slots__ = (
+        "content",
+        "guild_id",
+        "author",
+        "created_at",
+        "edited_at",
+        "embeds",
+        "attachments",
+        "_mentions",
+        "_role_mentions",
+        "reactions",
+        "channel_id",
+        "author_id",
+        "type",
+    )
 
     def __init__(self, **kwargs):
         super().__init__(kwargs.get("id"))
@@ -151,21 +172,21 @@ class Message(Dataclass):
         return self.content
 
     @property
-    def guild(self) -> 'dt_guild.Guild':
+    def guild(self) -> "dt_guild.Guild":
         """
         :return: The :class:`.Guild` this message is associated with.
         """
         return self.channel.guild
 
     @property
-    def channel(self) -> 'dt_channel.Channel':
+    def channel(self) -> "dt_channel.Channel":
         """
         :return: The :class:`.Channel` this message is associated with.
         """
         return get_current_client().state.find_channel(self.channel_id)
 
     @property
-    def mentions(self) -> 'List[dt_member.Member]':
+    def mentions(self) -> "List[dt_member.Member]":
         """
         Returns a list of :class:`.Member` that were mentioned in this message.
         
@@ -178,7 +199,7 @@ class Message(Dataclass):
         return self._resolve_mentions(self._mentions, "member")
 
     @property
-    def role_mentions(self) -> 'List[dt_role.Role]':
+    def role_mentions(self) -> "List[dt_role.Role]":
         """
         Returns a list of :class:`.Role` that were mentioned in this message.
         
@@ -192,7 +213,7 @@ class Message(Dataclass):
         return self._resolve_mentions(self._role_mentions, "role")
 
     @property
-    def channel_mentions(self) -> 'List[dt_channel.Channel]':
+    def channel_mentions(self) -> "List[dt_channel.Channel]":
         """
         Returns a list of :class:`.Channel` that were mentioned in this message.
         
@@ -205,7 +226,7 @@ class Message(Dataclass):
         return self._resolve_mentions(mentions, "channel")
 
     @property
-    def emojis(self) -> 'List[Union[dt_emoji.PartialEmoji, dt_emoji.Emoji]]':
+    def emojis(self) -> "List[Union[dt_emoji.PartialEmoji, dt_emoji.Emoji]]":
         """
         Returns a list of :class:`.Emoji` that was found in this message.
         """
@@ -232,10 +253,7 @@ class Message(Dataclass):
         else:
             guild_id = self.guild_id
 
-        return f"https://discordapp.com/channels/" \
-               f"{guild_id}/" \
-               f"{self.channel_id}/" \
-               f"{self.id}"
+        return f"https://discordapp.com/channels/" f"{guild_id}/" f"{self.channel_id}/" f"{self.id}"
 
     async def clean_content(self) -> str:
         """
@@ -243,7 +261,7 @@ class Message(Dataclass):
         """
         return await get_current_client().clean_content(self.content)
 
-    async def get_invites(self) -> 'List[dt_invite.Invite]':
+    async def get_invites(self) -> "List[dt_invite.Invite]":
         """
         Gets a list of valid invites in this message.
         """
@@ -264,17 +282,15 @@ class Message(Dataclass):
         return obbs
 
     @property
-    def invites(self) -> 'AsyncIteratorWrapper[dt_invite.Invite]':
+    def invites(self) -> "AsyncIteratorWrapper[dt_invite.Invite]":
         """
         Returns a list of :class:`.Invite` objects that are in this message (and valid).
         """
         return AsyncIteratorWrapper(self.get_invites)
 
     def _resolve_mentions(
-            self,
-            mentions: List[Union[dict, str]],
-            type_: str
-    ) -> 'List[Union[dt_channel.Channel, dt_role.Role, dt_member.Member]]':
+        self, mentions: List[Union[dict, str]], type_: str
+    ) -> "List[Union[dt_channel.Channel, dt_role.Role, dt_member.Member]]":
         """
         Resolves the mentions for this message.
         
@@ -316,7 +332,7 @@ class Message(Dataclass):
 
         return final_mentions
 
-    def reacted(self, emoji: 'Union[dt_emoji.Emoji, str]') -> bool:
+    def reacted(self, emoji: "Union[dt_emoji.Emoji, str]") -> bool:
         """
         Checks if this message was reacted to with the specified emoji.
 
@@ -350,8 +366,7 @@ class Message(Dataclass):
 
         await client.http.delete_message(self.channel.id, self.id)
 
-    async def edit(self, new_content: str = None, *,
-                   embed: Embed = None) -> 'Message':
+    async def edit(self, new_content: str = None, *, embed: Embed = None) -> "Message":
         """
         Edits this message.
 
@@ -373,13 +388,13 @@ class Message(Dataclass):
             embed = embed.to_dict()
 
         client = get_current_client()
-        async with client.events.wait_for_manager("message_update",
-                                                  lambda o, n: n.id == self.id):
-            await client.http.edit_message(self.channel.id, self.id, content=new_content,
-                                           embed=embed)
+        async with client.events.wait_for_manager("message_update", lambda o, n: n.id == self.id):
+            await client.http.edit_message(
+                self.channel.id, self.id, content=new_content, embed=embed
+            )
         return self
 
-    async def pin(self) -> 'Message':
+    async def pin(self) -> "Message":
         """
         Pins this message.
 
@@ -392,7 +407,7 @@ class Message(Dataclass):
         await get_current_client().http.pin_message(self.channel.id, self.id)
         return self
 
-    async def unpin(self) -> 'Message':
+    async def unpin(self) -> "Message":
         """
         Unpins this message.
 
@@ -407,9 +422,8 @@ class Message(Dataclass):
         return self
 
     async def get_who_reacted(
-            self,
-            emoji: 'Union[dt_emoji.Emoji, str]'
-    ) -> 'List[Union[dt_user.User, dt_member.Member]]':
+        self, emoji: "Union[dt_emoji.Emoji, str]"
+    ) -> "List[Union[dt_user.User, dt_member.Member]]":
         """
         Fetches who reacted to this message.
 
@@ -419,8 +433,9 @@ class Message(Dataclass):
         if isinstance(emoji, dt_emoji.Emoji):
             emoji = "{}:{}".format(emoji.name, emoji.id)
 
-        reactions = await get_current_client().http.get_reaction_users(self.channel.id, self.id,
-                                                                       emoji)
+        reactions = await get_current_client().http.get_reaction_users(
+            self.channel.id, self.id, emoji
+        )
         result = []
 
         for user in reactions:
@@ -436,7 +451,7 @@ class Message(Dataclass):
 
         return result
 
-    async def react(self, emoji: 'Union[dt_emoji.Emoji, str]') -> None:
+    async def react(self, emoji: "Union[dt_emoji.Emoji, str]") -> None:
         """
         Reacts to a message with an emoji.
 
@@ -458,8 +473,9 @@ class Message(Dataclass):
 
         await get_current_client().http.add_reaction(self.channel.id, self.id, emoji)
 
-    async def unreact(self, reaction: 'Union[dt_emoji.Emoji, str]',
-                      victim: 'dt_member.Member' = None):
+    async def unreact(
+        self, reaction: "Union[dt_emoji.Emoji, str]", victim: "dt_member.Member" = None
+    ):
         """
         Removes a reaction from a user.
 
@@ -479,8 +495,9 @@ class Message(Dataclass):
         else:
             emoji = reaction
 
-        await get_current_client().http.delete_reaction(self.channel.id, self.id, emoji,
-                                                        victim=victim.id if victim else None)
+        await get_current_client().http.delete_reaction(
+            self.channel.id, self.id, emoji, victim=victim.id if victim else None
+        )
 
     async def remove_all_reactions(self) -> None:
         """

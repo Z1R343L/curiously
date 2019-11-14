@@ -13,9 +13,8 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with curious.  If not, see <http://www.gnu.org/licenses/>.
 
-from collections import defaultdict
-
 import logging
+from collections import defaultdict
 from typing import List, MutableMapping
 
 from curious import current_event_context
@@ -30,6 +29,7 @@ class Chunker(object):
     """
     Handles chunking for guilds.
     """
+
     def __init__(self, client, batch_size: int = 75):
         #: The client associated with this chunker.
         self.client: md_client.Client = client
@@ -55,7 +55,7 @@ class Chunker(object):
         event_handler.add_event(self.handle_member_chunk)
         event_handler.add_event(self.unconditionally_chunk_rest)
 
-    async def fire_chunks(self, shard_id: int, guilds: 'List[md_guild.Guild]'):
+    async def fire_chunks(self, shard_id: int, guilds: "List[md_guild.Guild]"):
         """
         Fires off GUILD_MEMBER_CHUNK requests for the list of guilds.
         """
@@ -122,7 +122,7 @@ class Chunker(object):
         self._ready[shard_id] = True
 
     @event("guild_chunk")
-    async def handle_member_chunk(self, guild: 'md_guild.Guild', members: int):
+    async def handle_member_chunk(self, guild: "md_guild.Guild", members: int):
         """
         Checks if we can fire ready or not.
         """
@@ -131,7 +131,7 @@ class Chunker(object):
         await self._potentially_fire_ready(ctx.shard_id)
 
     @event("guild_streamed")
-    async def potentially_add_to_pending(self, guild: 'md_guild.Guild'):
+    async def potentially_add_to_pending(self, guild: "md_guild.Guild"):
         """
         Potentially adds a guild to the pending count.
         """
@@ -144,7 +144,7 @@ class Chunker(object):
 
     @event("guild_available")
     @event("guild_joined")
-    async def handle_new_guild(self, guild: 'md_guild.Guild'):
+    async def handle_new_guild(self, guild: "md_guild.Guild"):
         """
         Handles a new guild (just become available for) has just joined.
         """
@@ -168,4 +168,3 @@ class Chunker(object):
 
         self._connected[ctx.shard_id] = True
         await self._potentially_fire_ready(ctx.shard_id)
-

@@ -29,8 +29,13 @@ from curious.core import _current_shard
 from curious.dataclasses.channel import Channel, ChannelType
 from curious.dataclasses.embed import Embed
 from curious.dataclasses.emoji import Emoji, PartialEmoji
-from curious.dataclasses.guild import ContentFilterLevel, Guild, MFALevel, NotificationLevel, \
-    VerificationLevel
+from curious.dataclasses.guild import (
+    ContentFilterLevel,
+    Guild,
+    MFALevel,
+    NotificationLevel,
+    VerificationLevel,
+)
 from curious.dataclasses.member import Member
 from curious.dataclasses.message import Message
 from curious.dataclasses.permissions import Permissions
@@ -116,9 +121,11 @@ class State(object):
         if any(guild.unavailable is True for guild in self.guilds.values()):
             return False
 
-        return all(guild._finished_chunking.is_set()
-                   for guild in self.guilds.values()
-                   if guild.shard_id == shard_id and guild.unavailable is False)
+        return all(
+            guild._finished_chunking.is_set()
+            for guild in self.guilds.values()
+            if guild.shard_id == shard_id and guild.unavailable is False
+        )
 
     def guilds_for_shard(self, shard_id: int):
         """
@@ -247,7 +254,7 @@ class State(object):
                 "id": webhook_id,
                 "discriminator": "0000",
                 "avatar": event_data.get("avatar"),
-                "username": event_data.get("username")
+                "username": event_data.get("username"),
             }
             owner = event_data.get("user", {})
 
@@ -285,9 +292,9 @@ class State(object):
 
         return channel
 
-    def make_user(self, user_data: dict, *,
-                  user_klass: Type[UserType] = User,
-                  override_cache: bool = False) -> UserType:
+    def make_user(
+        self, user_data: dict, *, user_klass: Type[UserType] = User, override_cache: bool = False
+    ) -> UserType:
         """
         Creates a new user and caches it.
 
@@ -382,10 +389,11 @@ class State(object):
 
         shard_id = _current_shard.get()
 
-        logger.info("We have been issued a session on shard {}, parsing ready for `{}#{}` ({})"
-                    .format(shard_id, self._user.username, self._user.discriminator,
-                            self._user.id)
-                    )
+        logger.info(
+            "We have been issued a session on shard {}, parsing ready for `{}#{}` ({})".format(
+                shard_id, self._user.username, self._user.discriminator, self._user.id
+            )
+        )
 
         # Create all of the guilds.
         for guild in event_data.get("guilds", []):
@@ -394,8 +402,9 @@ class State(object):
             new_guild.from_guild_create(**guild)
             new_guild.shard_id = shard_id
 
-        logger.info("Ready processed for shard {}. Delaying until all guilds are chunked."
-                    .format(shard_id))
+        logger.info(
+            "Ready processed for shard {}. Delaying until all guilds are chunked.".format(shard_id)
+        )
         yield "connect",
 
         # event_data.pop("guilds")
@@ -439,7 +448,7 @@ class State(object):
         except (ValueError, TypeError):
             return
 
-        if 'username' not in user:
+        if "username" not in user:
             # USELESS
             return
 
@@ -459,9 +468,11 @@ class State(object):
             old_member = member._copy()
 
         # Update the member's presence
-        member.presence = Presence(status=event_data.get("status"),
-                                   game=event_data.get("game", {}),
-                                   client_status=event_data.get("client_status", {}))
+        member.presence = Presence(
+            status=event_data.get("status"),
+            game=event_data.get("game", {}),
+            client_status=event_data.get("client_status", {}),
+        )
 
         # copy the roles if it exists
         if old_member is not None:
@@ -511,8 +522,10 @@ class State(object):
             return
 
         members = event_data.get("members", [])
-        logger.info("Got a chunk of {} members in guild {} "
-                    "on shard {}".format(len(members), guild.name or guild.id, guild.shard_id))
+        logger.info(
+            "Got a chunk of {} members in guild {} "
+            "on shard {}".format(len(members), guild.name or guild.id, guild.shard_id)
+        )
 
         guild._handle_member_chunk(event_data.get("members"))
         yield "guild_chunk", guild, len(members),
@@ -558,8 +571,11 @@ class State(object):
                 guild.from_guild_create(**event_data)
                 yield "guild_join", guild,
 
-                logger.info("Joined guild {} ({}), requesting members if applicable"
-                            .format(guild.name, guild.id))
+                logger.info(
+                    "Joined guild {} ({}), requesting members if applicable".format(
+                        guild.name, guild.id
+                    )
+                )
                 # if guild.large:
                 #    await gw.request_chunks([guild])
 
@@ -595,8 +611,9 @@ class State(object):
         guild.features = event_data.get("features", guild.features)
 
         guild.mfa_level = MFALevel(event_data.get("mfa_level", guild.mfa_level))
-        guild.verification_level = VerificationLevel(event_data.get("verification_level",
-                                                                    guild.verification_level))
+        guild.verification_level = VerificationLevel(
+            event_data.get("verification_level", guild.verification_level)
+        )
         guild.notification_level = NotificationLevel(
             event_data.get("default_message_notifications", guild.notification_level)
         )
@@ -604,8 +621,9 @@ class State(object):
             event_data.get("explicit_content_filter", guild.content_filter_level)
         )
 
-        guild.system_channel_id = int_or_none(event_data.get("system_channel_id"),
-                                              guild.system_channel_id)
+        guild.system_channel_id = int_or_none(
+            event_data.get("system_channel_id"), guild.system_channel_id
+        )
 
         guild.afk_channel_id = int_or_none(event_data.get("afk_channel"), guild.afk_channel_id)
         guild.afk_timeout = event_data.get("afk_timeout", guild.afk_timeout)
@@ -805,8 +823,7 @@ class State(object):
 
         yield "message_reaction_add", message, author, reaction,
 
-    async def handle_message_reaction_remove_all(self,
-                                                 event_data: dict):
+    async def handle_message_reaction_remove_all(self, event_data: dict):
         """
         Called when all reactions are removed from a message.
         """

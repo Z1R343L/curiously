@@ -71,7 +71,7 @@ async def private_reply(content: str = None, **kwargs) -> Message:
     return await author.user.send(content=content, **kwargs)
 
 
-async def upload(fp: 'Union[bytes, str, PathLike, IO]', **kwargs) -> Message:
+async def upload(fp: "Union[bytes, str, PathLike, IO]", **kwargs) -> Message:
     """
     Uploads a message to the channel this command is running in.
 
@@ -84,7 +84,7 @@ async def upload(fp: 'Union[bytes, str, PathLike, IO]', **kwargs) -> Message:
 
 
 async def wait_for_reply(
-        predicate: Callable[[Message], Union[Awaitable[bool], bool]] = None,
+    predicate: Callable[[Message], Union[Awaitable[bool], bool]] = None,
 ) -> Message:
     """
     Waits for a reply from the author of this command.

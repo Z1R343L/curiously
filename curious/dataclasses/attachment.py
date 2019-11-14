@@ -20,6 +20,7 @@ class Attachment(Dataclass):
     """
     Represents an attachment.
     """
+
     def __init__(self, id: int, **kwargs):
         super().__init__(id)
 

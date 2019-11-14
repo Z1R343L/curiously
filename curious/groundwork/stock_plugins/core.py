@@ -56,7 +56,7 @@ class Core(Plugin):
         code = code.lstrip("`").rstrip("`")
         lines = code.split("\n")
         lines = ["    " + i for i in lines]
-        lines = '\n'.join(lines)
+        lines = "\n".join(lines)
 
         _no_return = object()
 
@@ -72,7 +72,7 @@ class Core(Plugin):
                 "author": ctx.message.author,
                 "bot": ctx.bot,
                 "_no_return": _no_return,
-                **sys.modules
+                **sys.modules,
             }
             exec(f_code, namespace, namespace)
             func = namespace["_"]
@@ -81,7 +81,7 @@ class Core(Plugin):
                 result = await func()
 
         except Exception as e:
-            result = ''.join(traceback.format_exception(None, e, e.__traceback__))
+            result = "".join(traceback.format_exception(None, e, e.__traceback__))
         finally:
             stdout.seek(0)
 
@@ -104,11 +104,10 @@ class Core(Plugin):
             "channel": ctx.message.channel,
             "author": ctx.message.author,
             "bot": get_current_client(),
-            **sys.modules
+            **sys.modules,
         }
         result = eval(code, namespace, namespace)
         if inspect.isawaitable(result):
             result = await result
 
         await send_message(f"`{result}`")
-

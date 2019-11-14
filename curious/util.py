@@ -257,7 +257,7 @@ def replace_quotes(item: str) -> str:
         # Complex quoting rules!
         # If it's a SINGLE backslash, don't append it.
         # If it's a double backslash, append it.
-        if char == '\\':
+        if char == "\\":
             if item[n - 1] == "\\":
                 # double backslash, append it
                 final_str_arr.append(char)
@@ -266,9 +266,9 @@ def replace_quotes(item: str) -> str:
 
         if char == '"':
             # check to see if it's escaped
-            if item[n - 1] == '\\':
+            if item[n - 1] == "\\":
                 # if the last char on final_str_arr is NOT a backslash, we want to keep it.
-                if len(final_str_arr) > 0 and final_str_arr[-1] != '\\':
+                if len(final_str_arr) > 0 and final_str_arr[-1] != "\\":
                     final_str_arr.append('"')
 
             continue
@@ -320,15 +320,14 @@ def subclass_builtin(original: type):
     """
 
     def get_wrapper(subclass, func):
-
         @functools.wraps(func)
         def __inner_wrapper(self, *args, **kwargs):
             result = func(self, *args, **kwargs)
             new = subclass(result)
 
             # copy the parent dataclass if we need to
-            if 'parent' in self.__dict__:
-                new.__dict__['parent'] = self.__dict__['parent']
+            if "parent" in self.__dict__:
+                new.__dict__["parent"] = self.__dict__["parent"]
 
             return new
 
@@ -395,7 +394,7 @@ def deprecated(*, since: str, see_instead, removal: str):
                 mod = ""
 
             # check for classes
-            if '.' in qualname:
+            if "." in qualname:
                 see_instead = f":meth:`{mod}.{qualname}`"
             else:
                 see_instead = f":func:`{mod}.{qualname}`"
@@ -403,15 +402,20 @@ def deprecated(*, since: str, see_instead, removal: str):
         doc = inspect.getdoc(func)
         if doc is not None:
             original_doc = textwrap.dedent(func.__doc__)
-            func.__doc__ = f"**This function is deprecated since {since}.** " \
-                f"See :meth:`.{see_instead}` instead.  \n" \
-                f"It will be removed at version {removal}.\n\n" \
+            func.__doc__ = (
+                f"**This function is deprecated since {since}.** "
+                f"See :meth:`.{see_instead}` instead.  \n"
+                f"It will be removed at version {removal}.\n\n"
                 f"{original_doc}"
+            )
 
         def wrapper(*args, **kwargs):
-            warnings.warn(f"    This function is deprecated since {since}. "
-                          f"    See '{see_instead}' instead.",
-                          category=CuriousDeprecatedWarning, stacklevel=2)
+            warnings.warn(
+                f"    This function is deprecated since {since}. "
+                f"    See '{see_instead}' instead.",
+                category=CuriousDeprecatedWarning,
+                stacklevel=2,
+            )
             return func(*args, **kwargs)
 
         # HACKY METAPROGRAMMING
@@ -419,9 +423,11 @@ def deprecated(*, since: str, see_instead, removal: str):
         new_globals.update(wrapper.__globals__)
 
         new_wrapper = types.FunctionType(
-            wrapper.__code__, new_globals,
-            name=wrapper.__name__, argdefs=wrapper.__defaults__,
-            closure=wrapper.__closure__
+            wrapper.__code__,
+            new_globals,
+            name=wrapper.__name__,
+            argdefs=wrapper.__defaults__,
+            closure=wrapper.__closure__,
         )
         new_wrapper = functools.update_wrapper(new_wrapper, func)
 
@@ -436,6 +442,7 @@ def safe_generator(cbl):
     # only wrap if we have curio
     try:
         from curio.meta import safe_generator
+
         return safe_generator(cbl)
     except ModuleNotFoundError:
         return cbl
@@ -449,7 +456,7 @@ class _Finalize:
         return self._g
 
     async def __aexit__(self, exc_type, exc_val, exc_tb):
-        if hasattr(self._g, 'aclose'):
+        if hasattr(self._g, "aclose"):
             await self._g.aclose()
 
         return False
@@ -458,6 +465,7 @@ class _Finalize:
 def finalise(cbl):
     try:
         from curio.meta import finalize
+
         return finalize(cbl)
     except ImportError:
         return _Finalize(cbl)
@@ -470,9 +478,12 @@ def _ad_getattr(self, key: str):
         raise AttributeError(key) from e
 
 
-attrdict = type("attrdict", (dict,), {
-    "__getattr__": _ad_getattr,
-    "__setattr__": dict.__setitem__,
-    "__doc__": "A dict that allows attribute access as well as item access for "
-               "keys."
-})
+attrdict = type(
+    "attrdict",
+    (dict,),
+    {
+        "__getattr__": _ad_getattr,
+        "__setattr__": dict.__setitem__,
+        "__doc__": "A dict that allows attribute access as well as item access for " "keys.",
+    },
+)

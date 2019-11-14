@@ -27,17 +27,33 @@ import time
 from math import floor
 from os import PathLike
 from types import MappingProxyType
-from typing import Any, AsyncContextManager, Awaitable, Callable, Dict, IO, List, Mapping, \
-    Optional, \
-    Union
+from typing import (
+    Any,
+    AsyncContextManager,
+    Awaitable,
+    Callable,
+    Dict,
+    IO,
+    List,
+    Mapping,
+    Optional,
+    Union,
+)
 
 import anyio
 from async_generator import asynccontextmanager
 
 from curious.core import get_current_client
-from curious.dataclasses import guild as dt_guild, invite as dt_invite, member as dt_member, \
-    message as dt_message, permissions as dt_permissions, role as dt_role, user as dt_user, \
-    webhook as dt_webhook
+from curious.dataclasses import (
+    guild as dt_guild,
+    invite as dt_invite,
+    member as dt_member,
+    message as dt_message,
+    permissions as dt_permissions,
+    role as dt_role,
+    user as dt_user,
+    webhook as dt_webhook,
+)
 from curious.dataclasses.bases import Dataclass, Snowflaked
 from curious.dataclasses.embed import Embed
 from curious.exc import CuriousError, ErrorCode, Forbidden, HTTPException, PermissionsError
@@ -97,9 +113,9 @@ class HistoryIterator(collections.AsyncIterator):
     Note that usage 2 will only fill chunks of 100 messages at a time.
     """
 
-    def __init__(self, channel: 'Channel',
-                 max_messages: int = -1, *,
-                 before: int = None, after: int = None):
+    def __init__(
+        self, channel: "Channel", max_messages: int = -1, *, before: int = None, after: int = None
+    ):
         """
         :param channel: The :class:`.Channel` to iterate over.
         :param max_messages: The maximum number of messages to return. <= 0 means infinite.
@@ -156,18 +172,19 @@ class HistoryIterator(collections.AsyncIterator):
 
         client = get_current_client()
         if self.before:
-            messages = await client.http.get_message_history(self.channel.id,
-                                                             before=self.last_message_id,
-                                                             limit=to_get)
+            messages = await client.http.get_message_history(
+                self.channel.id, before=self.last_message_id, limit=to_get
+            )
         else:
-            messages = await client.http.get_message_history(self.channel.id,
-                                                             after=self.last_message_id)
+            messages = await client.http.get_message_history(
+                self.channel.id, after=self.last_message_id
+            )
             messages = reversed(messages)
 
         for message in messages:
             self.messages.append(client.state.make_message(message))
 
-    async def __anext__(self) -> 'dt_message.Message':
+    async def __anext__(self) -> "dt_message.Message":
         self.current_count += 1
         if self.current_count == self.max_messages:
             raise StopAsyncIteration
@@ -191,13 +208,13 @@ class HistoryIterator(collections.AsyncIterator):
     def __await__(self) -> None:
         raise RuntimeError("This is not a coroutine - you want to use `async for` instead.")
 
-    async def next(self) -> 'dt_message.Message':
+    async def next(self) -> "dt_message.Message":
         """
         Gets the next item in history.
         """
         return await self.__anext__()
 
-    async def all(self) -> 'List[dt_message.Message]':
+    async def all(self) -> "List[dt_message.Message]":
         """
         Gets a flattened list of items from the history.
         """
@@ -214,9 +231,9 @@ class ChannelMessageWrapper(object):
     Represents a channel's message container.
     """
 
-    __slots__ = "channel",
+    __slots__ = ("channel",)
 
-    def __init__(self, channel: 'Channel'):
+    def __init__(self, channel: "Channel"):
         #: The :class:`.Channel` this container is used for.
         self.channel = channel
 
@@ -233,9 +250,9 @@ class ChannelMessageWrapper(object):
         """
         return self.get_history(before=self.channel._last_message_id, limit=-1)
 
-    def get_history(self, before: int = None,
-                    after: int = None,
-                    limit: int = 100) -> HistoryIterator:
+    def get_history(
+        self, before: int = None, after: int = None, limit: int = 100
+    ) -> HistoryIterator:
         """
         Gets history for this channel.
 
@@ -257,8 +274,9 @@ class ChannelMessageWrapper(object):
 
         return HistoryIterator(self.channel, before=before, after=after, max_messages=limit)
 
-    async def send(self, content: str = None, *,
-                   tts: bool = False, embed: 'Embed' = None) -> 'dt_message.Message':
+    async def send(
+        self, content: str = None, *, tts: bool = False, embed: "Embed" = None
+    ) -> "dt_message.Message":
         """
         Sends a message to this channel.
 
@@ -289,8 +307,10 @@ class ChannelMessageWrapper(object):
             if not embed:
                 raise CuriousError("Cannot send an empty message")
 
-            if self.channel.guild and not \
-                    self.channel.effective_permissions(self.channel.guild.me).embed_links:
+            if (
+                self.channel.guild
+                and not self.channel.effective_permissions(self.channel.guild.me).embed_links
+            ):
                 raise PermissionsError("embed_links")
         else:
             if content and len(content) > 2000:
@@ -300,20 +320,19 @@ class ChannelMessageWrapper(object):
             embed = embed.to_dict()
 
         client = get_current_client()
-        data = await client.http.send_message(self.channel.id, content,
-                                              tts=tts, embed=embed)
+        data = await client.http.send_message(self.channel.id, content, tts=tts, embed=embed)
         obb = client.state.make_message(data, cache=True)
 
         return obb
 
     async def upload(
-            self,
-            fp: 'Union[bytes, str, PathLike, IO]',
-            *,
-            filename: str = None,
-            message_content: Optional[str] = None,
-            message_embed: Optional[Embed] = None
-    ) -> 'dt_message.Message':
+        self,
+        fp: "Union[bytes, str, PathLike, IO]",
+        *,
+        filename: str = None,
+        message_content: Optional[str] = None,
+        message_embed: Optional[Embed] = None,
+    ) -> "dt_message.Message":
         """
         Uploads a message to this channel.
 
@@ -375,13 +394,13 @@ class ChannelMessageWrapper(object):
         embed = message_embed.to_dict() if message_embed else None
 
         client = get_current_client()
-        data = await client.http.send_file(self.channel.id, file_content,
-                                           filename=filename, content=message_content,
-                                           embed=embed)
+        data = await client.http.send_file(
+            self.channel.id, file_content, filename=filename, content=message_content, embed=embed
+        )
         obb = client.state.make_message(data, cache=False)
         return obb
 
-    async def bulk_delete(self, messages: 'List[dt_message.Message]') -> int:
+    async def bulk_delete(self, messages: "List[dt_message.Message]") -> int:
         """
         Deletes messages from a channel.
         This is the low-level delete function - for the high-level function, see
@@ -420,11 +439,13 @@ class ChannelMessageWrapper(object):
         return len(ids)
 
     async def purge(
-            self, limit: int = 100, *,
-            author: 'dt_member.Member' = None,
-            content: str = None,
-            predicate: 'Callable[[dt_message.Message], bool]' = None,
-            fallback_from_bulk: bool = False
+        self,
+        limit: int = 100,
+        *,
+        author: "dt_member.Member" = None,
+        content: str = None,
+        predicate: "Callable[[dt_message.Message], bool]" = None,
+        fallback_from_bulk: bool = False,
     ) -> int:
         """
         Purges messages from a channel.
@@ -458,8 +479,10 @@ class ChannelMessageWrapper(object):
         :return: The number of messages deleted.
         """
         if self.channel.guild:
-            if not self.channel.effective_permissions(self.channel.guild.me).manage_messages \
-                    and not fallback_from_bulk:
+            if (
+                not self.channel.effective_permissions(self.channel.guild.me).manage_messages
+                and not fallback_from_bulk
+            ):
                 raise PermissionsError("manage_messages")
 
         checks = []
@@ -482,7 +505,7 @@ class ChannelMessageWrapper(object):
         can_bulk_delete = True
 
         # Split into chunks of 100.
-        message_chunks = [to_delete[i:i + 100] for i in range(0, len(to_delete), 100)]
+        message_chunks = [to_delete[i : i + 100] for i in range(0, len(to_delete), 100)]
         minimum_allowed = floor((time.time() - 14 * 24 * 60 * 60) * 1000.0 - 1420070400000) << 22
         for chunk in message_chunks:
             message_ids = []
@@ -496,8 +519,9 @@ class ChannelMessageWrapper(object):
             # First, try and bulk delete all the messages.
             if can_bulk_delete:
                 try:
-                    await get_current_client().http.delete_multiple_messages(self.channel.id,
-                                                                             message_ids)
+                    await get_current_client().http.delete_multiple_messages(
+                        self.channel.id, message_ids
+                    )
                 except Forbidden:
                     # We might not have MANAGE_MESSAGES.
                     # Check if we should fallback on normal delete.
@@ -514,7 +538,7 @@ class ChannelMessageWrapper(object):
 
         return len(to_delete)
 
-    async def get(self, message_id: int) -> 'dt_message.Message':
+    async def get(self, message_id: int) -> "dt_message.Message":
         """
         Gets a single message from this channel.
 
@@ -549,9 +573,8 @@ class ChannelMessageWrapper(object):
         return msg
 
     async def wait_for_message(
-            self,
-            predicate: 'Callable[[dt_message.Message], Union[Awaitable[bool], bool]]' = None,
-    ) -> 'dt_message.Message':
+        self, predicate: "Callable[[dt_message.Message], Union[Awaitable[bool], bool]]" = None,
+    ) -> "dt_message.Message":
         """
         Waits for a message in this channel.
 
@@ -582,6 +605,7 @@ class Channel(Dataclass):
     """
     Represents a channel object.
     """
+
     _NONE = object()
 
     def __init__(self, **kwargs) -> None:
@@ -653,8 +677,10 @@ class Channel(Dataclass):
         self._overwrites: Dict[int, dt_permissions.Overwrite] = {}
 
     def __repr__(self) -> str:
-        return f"<Channel id={self.id} name={self.name} type={self.type.name} " \
+        return (
+            f"<Channel id={self.id} name={self.name} type={self.type.name} "
             f"guild_id={self.guild_id}>"
+        )
 
     __str__ = __repr__
 
@@ -678,13 +704,13 @@ class Channel(Dataclass):
             else:
                 obb = self.guild._roles.get(id_)
 
-            self._overwrites[id_] = dt_permissions.Overwrite(allow=overwrite["allow"],
-                                                             deny=overwrite["deny"],
-                                                             obb=obb, channel_id=self.id)
+            self._overwrites[id_] = dt_permissions.Overwrite(
+                allow=overwrite["allow"], deny=overwrite["deny"], obb=obb, channel_id=self.id
+            )
             self._overwrites[id_]._immutable = True
 
     @property
-    def guild(self) -> 'Optional[dt_guild.Guild]':
+    def guild(self) -> "Optional[dt_guild.Guild]":
         """
         :return: The :class:`.Guild` associated with this Channel.
         """
@@ -708,14 +734,14 @@ class Channel(Dataclass):
         return self.guild_id is None
 
     @property
-    def recipients(self) -> 'Mapping[int, dt_user.User]':
+    def recipients(self) -> "Mapping[int, dt_user.User]":
         """
         :return: A mapping of int -> :class:`.User` for the recipients of this private chat.
         """
         return MappingProxyType(self._recipients)
 
     @property
-    def user(self) -> 'Optional[dt_user.User]':
+    def user(self) -> "Optional[dt_user.User]":
         """
         :return: If this channel is a private channel, the :class:`.User` of the other user.
         """
@@ -728,7 +754,7 @@ class Channel(Dataclass):
             return None
 
     @property
-    def owner(self) -> 'Optional[dt_user.User]':
+    def owner(self) -> "Optional[dt_user.User]":
         """
         :return: If this channel is a group channel, the owner of the channel.
         """
@@ -741,7 +767,7 @@ class Channel(Dataclass):
             return None
 
     @property
-    def parent(self) -> 'Optional[Channel]':
+    def parent(self) -> "Optional[Channel]":
         """
         :return: If this channel has a parent, the parent category of this channel.
         """
@@ -751,19 +777,19 @@ class Channel(Dataclass):
             return None
 
     @property
-    def children(self) -> 'List[Channel]':
+    def children(self) -> "List[Channel]":
         """
         :return: A list of :class:`.Channel` children this channel has, if any.
         """
         if not self.guild:
             return []
 
-        channels = [channel
-                    for channel in self.guild.channels.values()
-                    if channel.parent_id == self.id]
+        channels = [
+            channel for channel in self.guild.channels.values() if channel.parent_id == self.id
+        ]
         return channels
 
-    def get_by_name(self, name: str) -> 'Optional[Channel]':
+    def get_by_name(self, name: str) -> "Optional[Channel]":
         """
         Gets a channel by name in this channel's children.
 
@@ -794,7 +820,7 @@ class Channel(Dataclass):
         return self.messages.history
 
     @property
-    def pins(self) -> 'AsyncIteratorWrapper[dt_message.Message]':
+    def pins(self) -> "AsyncIteratorWrapper[dt_message.Message]":
         """
         :return: A :class:`.AsyncIteratorWrapper` that can be used to iterate over the pins.
         """
@@ -805,28 +831,30 @@ class Channel(Dataclass):
         """
         :return: The icon URL for this channel if it is a group DM.
         """
-        return "https://cdn.discordapp.com/channel-icons/{}/{}.webp" \
-            .format(self.id, self.icon_hash)
+        return "https://cdn.discordapp.com/channel-icons/{}/{}.webp".format(self.id, self.icon_hash)
 
     @property
-    def voice_members(self) -> 'List[dt_member.Member]':
+    def voice_members(self) -> "List[dt_member.Member]":
         """
         :return: A list of members that are in this voice channel.
         """
         if self.type != ChannelType.VOICE:
             raise CuriousError("No members for channels that aren't voice channels")
 
-        return [state.member for state in self.guild._voice_states.values()
-                if state.channel_id == self.id]
+        return [
+            state.member
+            for state in self.guild._voice_states.values()
+            if state.channel_id == self.id
+        ]
 
     @property
-    def overwrites(self) -> 'Mapping[int, dt_permissions.Overwrite]':
+    def overwrites(self) -> "Mapping[int, dt_permissions.Overwrite]":
         """
         :return: A mapping of target_id -> :class:`.Overwrite` for this channel.
         """
         return MappingProxyType(self._overwrites)
 
-    def effective_permissions(self, member: 'dt_member.Member') -> 'dt_permissions.Permissions':
+    def effective_permissions(self, member: "dt_member.Member") -> "dt_permissions.Permissions":
         """
         Gets the effective permissions for the given member.
         """
@@ -864,9 +892,8 @@ class Channel(Dataclass):
         return permissions
 
     def permissions(
-            self,
-            obb: 'Optional[Union[dt_member.Member, dt_role.Role]]'
-    ) -> 'dt_permissions.Overwrite':
+        self, obb: "Optional[Union[dt_member.Member, dt_role.Role]]"
+    ) -> "dt_permissions.Overwrite":
         """
         Gets the permission overwrites for the specified object.
 
@@ -883,15 +910,15 @@ class Channel(Dataclass):
             everyone_overwrite = self._overwrites.get(self.guild.default_role.id)
             if everyone_overwrite is None:
                 everyone_perms = self.guild.default_role.permissions
-                everyone_overwrite = dt_permissions.Overwrite(allow=everyone_perms,
-                                                              deny=dt_permissions.Permissions(0),
-                                                              obb=obb)
+                everyone_overwrite = dt_permissions.Overwrite(
+                    allow=everyone_perms, deny=dt_permissions.Permissions(0), obb=obb
+                )
                 everyone_overwrite.channel_id = self.id
                 overwrite = everyone_overwrite
             else:
-                overwrite = dt_permissions.Overwrite(everyone_overwrite.allow,
-                                                     everyone_overwrite.deny,
-                                                     obb)
+                overwrite = dt_permissions.Overwrite(
+                    everyone_overwrite.allow, everyone_overwrite.deny, obb
+                )
 
             overwrite.channel_id = self.id
             overwrite._immutable = True
@@ -899,7 +926,7 @@ class Channel(Dataclass):
         return overwrite
 
     @property
-    def me_permissions(self) -> 'dt_permissions.Overwrite':
+    def me_permissions(self) -> "dt_permissions.Overwrite":
         """
         :return: The overwrite permissions for the current member.
         """
@@ -909,16 +936,16 @@ class Channel(Dataclass):
 
         return self.permissions(self.guild.me)
 
-    def _copy(self) -> 'Channel':
+    def _copy(self) -> "Channel":
         obb = copy.copy(self)
         obb._messages = ChannelMessageWrapper(obb)
         obb._overwrites = self._overwrites.copy()
         return obb
 
     @deprecated(since="0.7.0", see_instead="Channel.messages.get_history", removal="0.9.0")
-    def get_history(self, before: int = None,
-                    after: int = None,
-                    limit: int = 100) -> HistoryIterator:
+    def get_history(
+        self, before: int = None, after: int = None, limit: int = 100
+    ) -> HistoryIterator:
         """
         Gets history for this channel.
 
@@ -936,7 +963,7 @@ class Channel(Dataclass):
         """
         return self.messages.get_history(before=before, after=after, limit=limit)
 
-    async def get_pins(self) -> 'List[dt_message.Message]':
+    async def get_pins(self) -> "List[dt_message.Message]":
         """
         Gets the pins for a channel.
 
@@ -951,14 +978,14 @@ class Channel(Dataclass):
         return messages
 
     @property
-    def webhooks(self) -> 'AsyncIteratorWrapper[dt_webhook.Webhook]':
+    def webhooks(self) -> "AsyncIteratorWrapper[dt_webhook.Webhook]":
         """
         :return: A :class:`.AsyncIteratorWrapper` for the :class:`.Webhook` objects in this \
             channel.
         """
         return AsyncIteratorWrapper(self.get_webhooks)
 
-    async def get_webhooks(self) -> 'List[dt_webhook.Webhook]':
+    async def get_webhooks(self) -> "List[dt_webhook.Webhook]":
         """
         Gets the webhooks for this channel.
 
@@ -973,7 +1000,7 @@ class Channel(Dataclass):
         return obbs
 
     @deprecated(since="0.7.0", see_instead="Channel.messages.get", removal="0.9.0")
-    async def get_message(self, message_id: int) -> 'dt_message.Message':
+    async def get_message(self, message_id: int) -> "dt_message.Message":
         """
         Gets a single message from this channel.
 
@@ -982,8 +1009,9 @@ class Channel(Dataclass):
         """
         return await self.messages.get(message_id)
 
-    async def create_webhook(self, *, name: str = None,
-                             avatar: bytes = None) -> 'dt_webhook.Webhook':
+    async def create_webhook(
+        self, *, name: str = None, avatar: bytes = None
+    ) -> "dt_webhook.Webhook":
         """
         Create a webhook in this channel.
 
@@ -1002,8 +1030,9 @@ class Channel(Dataclass):
 
         return webook
 
-    async def edit_webhook(self, webhook: 'dt_webhook.Webhook', *,
-                           name: str = None, avatar: bytes = None) -> 'dt_webhook.Webhook':
+    async def edit_webhook(
+        self, webhook: "dt_webhook.Webhook", *, name: str = None, avatar: bytes = None
+    ) -> "dt_webhook.Webhook":
         """
         Edits a webhook.
 
@@ -1017,14 +1046,14 @@ class Channel(Dataclass):
 
         if webhook.token is not None:
             # Edit it unconditionally.
-            await get_current_client().http.edit_webhook_with_token(webhook.id, webhook.token,
-                                                                    name=name, avatar=avatar)
+            await get_current_client().http.edit_webhook_with_token(
+                webhook.id, webhook.token, name=name, avatar=avatar
+            )
 
         if not self.effective_permissions(self.guild.me).manage_webhooks:
             raise PermissionsError("manage_webhooks")
 
-        data = await get_current_client().http.edit_webhook(webhook.id,
-                                                            name=name, avatar=avatar)
+        data = await get_current_client().http.edit_webhook(webhook.id, name=name, avatar=avatar)
         webhook.default_name = data.get("name")
         webhook._default_avatar = data.get("avatar")
 
@@ -1033,7 +1062,7 @@ class Channel(Dataclass):
 
         return webhook
 
-    async def delete_webhook(self, webhook: 'dt_webhook.Webhook') -> 'dt_webhook.Webhook':
+    async def delete_webhook(self, webhook: "dt_webhook.Webhook") -> "dt_webhook.Webhook":
         """
         Deletes a webhook.
 
@@ -1053,12 +1082,13 @@ class Channel(Dataclass):
         return webhook
 
     async def create_invite(
-            self, *,
-            max_age: Optional[int] = None,
-            max_uses: Optional[int] = None,
-            temporary: Optional[bool] = None,
-            unique: Optional[bool] = None,
-    ) -> 'dt_invite.Invite':
+        self,
+        *,
+        max_age: Optional[int] = None,
+        max_uses: Optional[int] = None,
+        temporary: Optional[bool] = None,
+        unique: Optional[bool] = None,
+    ) -> "dt_invite.Invite":
         """
         Creates an invite in this channel.
 
@@ -1080,9 +1110,8 @@ class Channel(Dataclass):
 
         return invite
 
-    @deprecated(since="0.7.0", see_instead="Channel.messages.delete_messages",
-                removal="0.9.0")
-    async def delete_messages(self, messages: 'List[dt_message.Message]') -> int:
+    @deprecated(since="0.7.0", see_instead="Channel.messages.delete_messages", removal="0.9.0")
+    async def delete_messages(self, messages: "List[dt_message.Message]") -> int:
         """
         Deletes messages from a channel.
         This is the low-level delete function - for the high-level function, see
@@ -1106,11 +1135,15 @@ class Channel(Dataclass):
         return await self.messages.bulk_delete(messages)
 
     @deprecated(since="0.7.0", see_instead="Channel.messages.purge", removal="0.9.0")
-    async def purge(self, limit: int = 100, *,
-                    author: 'dt_member.Member' = None,
-                    content: str = None,
-                    predicate: 'Callable[[dt_message.Message], bool]' = None,
-                    fallback_from_bulk: bool = False):
+    async def purge(
+        self,
+        limit: int = 100,
+        *,
+        author: "dt_member.Member" = None,
+        content: str = None,
+        predicate: "Callable[[dt_message.Message], bool]" = None,
+        fallback_from_bulk: bool = False,
+    ):
         """
         Purges messages from a channel.
         This will attempt to use ``bulk-delete`` if possible, but otherwise will use the normal
@@ -1141,8 +1174,13 @@ class Channel(Dataclass):
             cannot be bulk deleted.
         :return: The number of messages deleted.
         """
-        return await self.messages.purge(limit=limit, author=author, content=content,
-                                         predicate=predicate, fallback_from_bulk=fallback_from_bulk)
+        return await self.messages.purge(
+            limit=limit,
+            author=author,
+            content=content,
+            predicate=predicate,
+            fallback_from_bulk=fallback_from_bulk,
+        )
 
     async def send_typing(self) -> None:
         """
@@ -1187,8 +1225,9 @@ class Channel(Dataclass):
             finally:
                 await tg.cancel_scope.cancel()
 
-    async def send(self, content: str = None, *,
-                   tts: bool = False, embed: Embed = None) -> 'dt_message.Message':
+    async def send(
+        self, content: str = None, *, tts: bool = False, embed: Embed = None
+    ) -> "dt_message.Message":
         """
         Sends a message to this channel.
 
@@ -1207,12 +1246,13 @@ class Channel(Dataclass):
         return await self.messages.send(content, tts=tts, embed=embed)
 
     async def upload(
-            self, fp: 'Union[bytes, str, PathLike, IO]',
-            *,
-            filename: str = None,
-            message_content: 'Optional[str]' = None,
-            message_embed: 'Optional[Embed]' = None
-    ) -> 'dt_message.Message':
+        self,
+        fp: "Union[bytes, str, PathLike, IO]",
+        *,
+        filename: str = None,
+        message_content: "Optional[str]" = None,
+        message_embed: "Optional[Embed]" = None,
+    ) -> "dt_message.Message":
         """
         Uploads a message to this channel.
 
@@ -1237,12 +1277,14 @@ class Channel(Dataclass):
            can refer to the image as "attachment://filename"
         :return: The new :class:`.Message` created.
         """
-        return await self.messages.upload(fp, filename=filename, message_content=message_content,
-                                          message_embed=message_embed)
+        return await self.messages.upload(
+            fp, filename=filename, message_content=message_content, message_embed=message_embed
+        )
 
     @deprecated(since="0.7.0", see_instead="Channel.messages.upload", removal="0.9.0")
-    async def upload_file(self, filename: str, *,
-                          message_content: str = None) -> 'dt_message.Message':
+    async def upload_file(
+        self, filename: str, *, message_content: str = None
+    ) -> "dt_message.Message":
         """
         A higher level interface to ``send_file``.
 
@@ -1258,10 +1300,11 @@ class Channel(Dataclass):
         :param message_content: Any extra content to be sent with the message.
         :return: The new :class:`.Message` created.
         """
-        return await self.messages.upload(fp=filename, filename=filename,
-                                          message_content=message_content)
+        return await self.messages.upload(
+            fp=filename, filename=filename, message_content=message_content
+        )
 
-    async def change_overwrite(self, overwrite: 'dt_permissions.Overwrite'):
+    async def change_overwrite(self, overwrite: "dt_permissions.Overwrite"):
         """
         Changes an overwrite for this channel.
 
@@ -1285,8 +1328,9 @@ class Channel(Dataclass):
 
         if overwrite is None:
             # Delete the overwrite instead.
-            coro = get_current_client().http.remove_overwrite(channel_id=self.id,
-                                                              target_id=target.id)
+            coro = get_current_client().http.remove_overwrite(
+                channel_id=self.id, target_id=target.id
+            )
 
             async def _listener(before, after):
                 if after.id != self.id:
@@ -1294,10 +1338,15 @@ class Channel(Dataclass):
 
                 # probably right /shrug
                 return True
+
         else:
-            coro = get_current_client().http.edit_overwrite(self.id, target.id, type_,
-                                                            allow=overwrite.allow.bitfield,
-                                                            deny=overwrite.deny.bitfield)
+            coro = get_current_client().http.edit_overwrite(
+                self.id,
+                target.id,
+                type_,
+                allow=overwrite.allow.bitfield,
+                deny=overwrite.deny.bitfield,
+            )
 
             async def _listener(before, after):
                 return after.id == self.id
@@ -1307,11 +1356,17 @@ class Channel(Dataclass):
 
         return self
 
-    async def edit(self, *, name: str = None, position: int = None,
-                   topic: str = None,
-                   bitrate: int = None, user_limit: int = -1,
-                   rate_limit_per_user: int = None,
-                   parent: 'Channel' = _NONE) -> 'Channel':
+    async def edit(
+        self,
+        *,
+        name: str = None,
+        position: int = None,
+        topic: str = None,
+        bitrate: int = None,
+        user_limit: int = -1,
+        rate_limit_per_user: int = None,
+        parent: "Channel" = _NONE,
+    ) -> "Channel":
         """
         Edits this channel.
 
@@ -1340,12 +1395,17 @@ class Channel(Dataclass):
 
         await get_current_client().http.edit_channel(
             self.id,
-            name=name, position=position, topic=topic, bitrate=bitrate, user_limit=user_limit,
-            rate_limit_per_user=rate_limit_per_user, parent_id=parent
+            name=name,
+            position=position,
+            topic=topic,
+            bitrate=bitrate,
+            user_limit=user_limit,
+            rate_limit_per_user=rate_limit_per_user,
+            parent_id=parent,
         )
         return self
 
-    async def delete(self) -> 'Channel':
+    async def delete(self) -> "Channel":
         """
         Deletes this channel.
         """

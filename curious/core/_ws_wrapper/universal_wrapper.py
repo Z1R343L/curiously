@@ -12,8 +12,9 @@
 #
 # You should have received a copy of the GNU Lesser General Public License
 # along with curious.  If not, see <http://www.gnu.org/licenses/>.
-import anyio
 import threading
+
+import anyio
 from lomond.persist import persist
 from lomond.websocket import WebSocket
 
@@ -24,6 +25,7 @@ class UniversalWrapper:
     """
     Represents a universal websocket wrapper.
     """
+
     _DONE = object()
 
     def __init__(self, url: str, task_group: anyio.TaskGroup):
@@ -79,8 +81,7 @@ class UniversalWrapper:
         if self._ws is not None:
             await anyio.run_in_thread(self._ws.send_text, message)
 
-    async def close(self, code: int = 1006, reason: str = "No reason", *,
-                    kill: bool = False):
+    async def close(self, code: int = 1006, reason: str = "No reason", *, kill: bool = False):
         """
         Closes the websocket.
         """

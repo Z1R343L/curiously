@@ -22,8 +22,11 @@ import copy
 import functools
 
 from curious.core import get_current_client
-from curious.dataclasses import guild as dt_guild, member as dt_member, \
-    permissions as dt_permissions
+from curious.dataclasses import (
+    guild as dt_guild,
+    member as dt_member,
+    permissions as dt_permissions,
+)
 from curious.dataclasses.bases import Dataclass
 from curious.exc import PermissionsError
 
@@ -38,7 +41,8 @@ class _MentionableRole(object):
             await ctx.channel.messages.send(role.mention)
             
     """
-    def __init__(self, r: 'Role'):
+
+    def __init__(self, r: "Role"):
         self.role = r
 
     def allow_mentions(self):
@@ -60,8 +64,17 @@ class Role(Dataclass):
     """
     Represents a role on a server.
     """
-    __slots__ = "name", "colour", "hoisted", "mentionable", "permissions", "managed", "position", \
-                "guild_id"
+
+    __slots__ = (
+        "name",
+        "colour",
+        "hoisted",
+        "mentionable",
+        "permissions",
+        "managed",
+        "position",
+        "guild_id",
+    )
 
     def __init__(self, **kwargs) -> None:
         super().__init__(kwargs.get("id"))
@@ -90,22 +103,24 @@ class Role(Dataclass):
         #: The ID of the guild associated with this Role.
         self.guild_id = int(kwargs.get("guild_id", 0))  # type: dt_guild.Guild
 
-    def __lt__(self, other: 'Role') -> bool:
+    def __lt__(self, other: "Role") -> bool:
         if not isinstance(other, Role):
             return NotImplemented
 
         if other.guild != self.guild:
             raise ValueError("Cannot compare roles between guilds")
 
-        return self.position < other.position \
-            if self.position != other.position \
+        return (
+            self.position < other.position
+            if self.position != other.position
             else self.id < other.id
+        )
 
-    def _copy(self) -> 'Role':
+    def _copy(self) -> "Role":
         return copy.copy(self)
 
     @property
-    def guild(self) -> 'dt_guild.Guild':
+    def guild(self) -> "dt_guild.Guild":
         """
         :return: The :class:`.Guild` associated with this role. 
         """
@@ -141,7 +156,7 @@ class Role(Dataclass):
         """
         return f"<@&{self.id}>"
 
-    async def assign_to(self, member: 'dt_member.Member') -> 'Role':
+    async def assign_to(self, member: "dt_member.Member") -> "Role":
         """
         Assigns this role to a member.
         
@@ -154,7 +169,7 @@ class Role(Dataclass):
         await member.roles.add(self)
         return self
 
-    async def remove_from(self, member: 'dt_member.Member'):
+    async def remove_from(self, member: "dt_member.Member"):
         """
         Removes this role from a member.
         
@@ -167,7 +182,7 @@ class Role(Dataclass):
         await member.roles.remove(self)
         return self
 
-    async def delete(self) -> 'Role':
+    async def delete(self) -> "Role":
         """
         Deletes this role.
         """
@@ -177,10 +192,16 @@ class Role(Dataclass):
         await get_current_client().http.delete_role(self.guild.id, self.id)
         return self
 
-    async def edit(self, *,
-                   name: str = None, permissions: 'dt_permissions.Permissions' = None,
-                   colour: int = None, position: int = None,
-                   hoist: bool = None, mentionable: bool = None) -> 'Role':
+    async def edit(
+        self,
+        *,
+        name: str = None,
+        permissions: "dt_permissions.Permissions" = None,
+        colour: int = None,
+        position: int = None,
+        hoist: bool = None,
+        mentionable: bool = None,
+    ) -> "Role":
         """
         Edits this role.
 
@@ -198,8 +219,17 @@ class Role(Dataclass):
             if isinstance(permissions, dt_permissions.Permissions):
                 permissions = permissions.bitfield
 
-        async with get_current_client().events.wait_for_manager("role_update", lambda b, a: a.id == self.id):
-            await get_current_client().http.edit_role(self.guild_id, self.id,
-                                           name=name, permissions=permissions, colour=colour,
-                                           hoist=hoist, position=position, mentionable=mentionable)
+        async with get_current_client().events.wait_for_manager(
+            "role_update", lambda b, a: a.id == self.id
+        ):
+            await get_current_client().http.edit_role(
+                self.guild_id,
+                self.id,
+                name=name,
+                permissions=permissions,
+                colour=colour,
+                hoist=hoist,
+                position=position,
+                mentionable=mentionable,
+            )
         return self

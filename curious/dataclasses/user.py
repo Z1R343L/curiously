@@ -36,7 +36,7 @@ class AvatarUrl(object):
     To get the actual URL, do str(avatar_url).
     """
 
-    def __init__(self, user: 'User') -> None:
+    def __init__(self, user: "User") -> None:
         """
         :param user: The :class:`.User` for this URL.
         """
@@ -49,15 +49,17 @@ class AvatarUrl(object):
         :return: The string URL for this avatar URL.
         """
         if not self._user.avatar_hash:
-            base_url = f"https://cdn.discordapp.com/embed/avatars/" \
-                f"{int(self._user.discriminator) % 5}"
+            base_url = (
+                f"https://cdn.discordapp.com/embed/avatars/" f"{int(self._user.discriminator) % 5}"
+            )
         else:
-            base_url = f"https://cdn.discordapp.com/avatars/" \
-                f"{self._user.id}/{self._user.avatar_hash}"
+            base_url = (
+                f"https://cdn.discordapp.com/avatars/" f"{self._user.id}/{self._user.avatar_hash}"
+            )
 
         return f"{base_url}.{self._format}?size={self._size}"
 
-    def as_format(self, format: str) -> 'AvatarUrl':
+    def as_format(self, format: str) -> "AvatarUrl":
         """
         Gets the URL in the specified format.
 
@@ -69,7 +71,7 @@ class AvatarUrl(object):
         obb._size = self._size
         return obb
 
-    def with_size(self, size: int) -> 'AvatarUrl':
+    def with_size(self, size: int) -> "AvatarUrl":
         """
         Gets the URL in the specified size.
 
@@ -81,7 +83,7 @@ class AvatarUrl(object):
         obb._size = size
         return obb
 
-    def __eq__(self, other: 'AvatarUrl'):
+    def __eq__(self, other: "AvatarUrl"):
         if not isinstance(other, AvatarUrl):
             return NotImplemented
 
@@ -98,6 +100,7 @@ class PremiumType(IntEnum):
     """
     Represents the premium types.
     """
+
     NONE = 0
     NITRO_CLASSIC = 1
     NITRO = 2
@@ -107,6 +110,7 @@ class HypesquadHouse(Enum):
     """
     Represents the hypesquad houses.
     """
+
     BRAVERY = 0
     BRILLIANCE = 1
     BALANCE = 2
@@ -117,7 +121,8 @@ class UserFlags(object):
     """
     Represents the flags for a user.
     """
-    __slots__ = "_flags",
+
+    __slots__ = ("_flags",)
 
     FLAG_NONE = 0
     FLAG_DISCORD_EMPLOYEE = 1 << 0
@@ -184,8 +189,17 @@ class User(Dataclass):
     :ivar id: The ID of this user.
     """
 
-    __slots__ = ("username", "discriminator", "avatar_hash", "verified", "mfa_enabled", "bot",
-                 "flags", "_flags_raw", "premium_type")
+    __slots__ = (
+        "username",
+        "discriminator",
+        "avatar_hash",
+        "verified",
+        "mfa_enabled",
+        "bot",
+        "flags",
+        "_flags_raw",
+        "premium_type",
+    )
 
     def __init__(self, **kwargs):
         super().__init__(kwargs.get("id"))
@@ -219,7 +233,7 @@ class User(Dataclass):
         self.flags = UserFlags(self._flags_raw)
 
     @property
-    def user(self) -> 'User':
+    def user(self) -> "User":
         """
         Compatability propertly with :class:`.Member`.
         """
@@ -230,7 +244,7 @@ class User(Dataclass):
         return new_object
 
     @property
-    def avatar_url(self) -> 'AvatarUrl':
+    def avatar_url(self) -> "AvatarUrl":
         """
         :return: The avatar URL of this user.
         """
@@ -241,7 +255,7 @@ class User(Dataclass):
         """
         :return: The avatar URL of this user, but static.
         """
-        return str(self.avatar_url.as_format('png'))
+        return str(self.avatar_url.as_format("png"))
 
     @property
     def name(self) -> str:
@@ -262,13 +276,14 @@ class User(Dataclass):
         return self.snowflake_timestamp
 
     def __repr__(self) -> str:
-        return "<{} id={} name={} discrim={}>".format(type(self).__name__, self.id, self.name,
-                                                      self.discriminator)
+        return "<{} id={} name={} discrim={}>".format(
+            type(self).__name__, self.id, self.name, self.discriminator
+        )
 
     def __str__(self) -> str:
         return f"{self.username}#{self.discriminator}"
 
-    async def open_private_channel(self) -> 'dt_channel.Channel':
+    async def open_private_channel(self) -> "dt_channel.Channel":
         """
         Opens a private channel with a user.
 
@@ -292,7 +307,7 @@ class User(Dataclass):
         channel = client.state.make_private_channel(channel_data)
         return channel
 
-    async def send(self, content: str = None, *args, **kwargs) -> 'dt_message.Message':
+    async def send(self, content: str = None, *args, **kwargs) -> "dt_message.Message":
         """
         Sends a message to the user over a private channel.
 
@@ -304,7 +319,7 @@ class User(Dataclass):
 
         return message
 
-    async def unban_from(self, guild: 'dt_guild.Guild'):
+    async def unban_from(self, guild: "dt_guild.Guild"):
         """
         Unbans this user from a guild.
 

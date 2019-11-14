@@ -21,8 +21,12 @@ Wrappers for Webhook objects.
 from typing import List, Optional
 
 from curious.core import get_current_client
-from curious.dataclasses import channel as dt_channel, embed as dt_embed, guild as dt_guild, \
-    user as dt_user
+from curious.dataclasses import (
+    channel as dt_channel,
+    embed as dt_embed,
+    guild as dt_guild,
+    user as dt_user,
+)
 from curious.dataclasses.bases import Dataclass
 from curious.util import base64ify
 
@@ -41,8 +45,15 @@ class Webhook(Dataclass):
             author = message.author  # can be Webhook or Member
     """
 
-    __slots__ = "user", "guild_id", "channel_id", "token", "owner", \
-                "default_name", "_default_avatar"
+    __slots__ = (
+        "user",
+        "guild_id",
+        "channel_id",
+        "token",
+        "owner",
+        "default_name",
+        "_default_avatar",
+    )
 
     def __init__(self, **kwargs) -> None:
         # Use the webhook ID is provided (i.e created from a message object).
@@ -72,9 +83,9 @@ class Webhook(Dataclass):
         self._default_avatar: str = None
 
     def __repr__(self) -> str:
-        return "<Webhook id={} name={} channel={} owner={}>".format(self.id, self.name,
-                                                                    repr(self.channel),
-                                                                    repr(self.owner))
+        return "<Webhook id={} name={} channel={} owner={}>".format(
+            self.id, self.name, repr(self.channel), repr(self.owner)
+        )
 
     __str__ = __repr__
 
@@ -103,14 +114,14 @@ class Webhook(Dataclass):
         return self.user.name or self.default_name
 
     @property
-    def guild(self) -> 'Optional[dt_guild.Guild]':
+    def guild(self) -> "Optional[dt_guild.Guild]":
         """
         :return: The :class:`.Guild` this webhook is in.
         """
         return get_current_client().guilds.get(self.guild_id)
 
     @property
-    def channel(self) -> 'Optional[dt_channel.Channel]':
+    def channel(self) -> "Optional[dt_channel.Channel]":
         """
         :return: The :class:`.Channel` this webhook is in.
         """
@@ -120,8 +131,7 @@ class Webhook(Dataclass):
         return self.guild.channels.get(self.channel_id)
 
     @classmethod
-    async def create(cls, channel: 'dt_channel.Channel', *,
-                     name: str, avatar: bytes) -> 'Webhook':
+    async def create(cls, channel: "dt_channel.Channel", *, name: str, avatar: bytes) -> "Webhook":
         """
         Creates a new webhook.
 
@@ -157,8 +167,7 @@ class Webhook(Dataclass):
         else:
             return await self.guild.delete_webhook(self)
 
-    async def edit(self, *,
-                   name: str = None, avatar: bytes = None) -> 'Webhook':
+    async def edit(self, *, name: str = None, avatar: bytes = None) -> "Webhook":
         """
         Edits this webhook.
 
@@ -171,8 +180,9 @@ class Webhook(Dataclass):
 
         if self.token is not None:
             # edit with token, don't pass to guild
-            data = await get_current_client().http.edit_webhook_with_token(self.id, name=name,
-                                                                           avatar=avatar)
+            data = await get_current_client().http.edit_webhook_with_token(
+                self.id, name=name, avatar=avatar
+            )
             self.default_name = data.get("name")
             self._default_avatar = data.get("avatar")
 
@@ -184,10 +194,15 @@ class Webhook(Dataclass):
 
         return self
 
-    async def execute(self, *,
-                      content: str = None, username: str = None, avatar_url: str = None,
-                      embeds: 'List[dt_embed.Embed]' = None, wait: bool = False) \
-            -> Optional[str]:
+    async def execute(
+        self,
+        *,
+        content: str = None,
+        username: str = None,
+        avatar_url: str = None,
+        embeds: "List[dt_embed.Embed]" = None,
+        wait: bool = False,
+    ) -> Optional[str]:
         """
         Executes the webhook.
 
@@ -204,10 +219,15 @@ class Webhook(Dataclass):
             await self.get_token()
 
         client = get_current_client()
-        data = await client.http.execute_webhook(self.id, self.token,
-                                                 content=content, embeds=embeds,
-                                                 username=username, avatar_url=avatar_url,
-                                                 wait=wait)
+        data = await client.http.execute_webhook(
+            self.id,
+            self.token,
+            content=content,
+            embeds=embeds,
+            username=username,
+            avatar_url=avatar_url,
+            wait=wait,
+        )
 
         if wait:
             return client.state.make_message(data, cache=False)

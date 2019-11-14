@@ -58,11 +58,11 @@ class PartialEmoji(Dataclass):
         return f"<{type(self).__name__} id={self.id} name={self.name}>"
 
     def __str__(self) -> str:
-        animated = ['', 'a'][self.animated]
+        animated = ["", "a"][self.animated]
         return f"<:{animated}:{self.name}:{self.id}:>"
 
     @property
-    def guild(self) -> 'dt_guild.Guild':
+    def guild(self) -> "dt_guild.Guild":
         """
         :return: The :class:`.Guild` this emoji object is associated with.
         """
@@ -84,6 +84,7 @@ class Emoji(PartialEmoji):
     """
     Represents a custom emoji uploaded to a guild.
     """
+
     __slots__ = ("id", "name", "role_ids", "require_colons", "managed", "guild_id", "animated")
 
     def __init__(self, **kwargs) -> None:
@@ -101,9 +102,7 @@ class Emoji(PartialEmoji):
         #: If this emoji is animated or not.
         self.animated: bool = kwargs.get("animated", False)
 
-    async def edit(self, *,
-                   name: str = None,
-                   roles: 'List[dt_role.Role]' = None) -> 'Emoji':
+    async def edit(self, *, name: str = None, roles: "List[dt_role.Role]" = None) -> "Emoji":
         """
         Edits this emoji.
 
@@ -114,8 +113,9 @@ class Emoji(PartialEmoji):
         if roles is not None:
             roles = [r.id for r in roles]
 
-        await get_current_client().http.edit_guild_emoji(guild_id=self.guild_id, emoji_id=self.id,
-                                                         name=name, roles=roles)
+        await get_current_client().http.edit_guild_emoji(
+            guild_id=self.guild_id, emoji_id=self.id, name=name, roles=roles
+        )
         return self
 
     async def delete(self) -> None:
@@ -125,7 +125,7 @@ class Emoji(PartialEmoji):
         await get_current_client().http.delete_guild_emoji(self.guild_id, emoji_id=self.id)
 
     @property
-    def roles(self) -> 'List[dt_role.Role]':
+    def roles(self) -> "List[dt_role.Role]":
         """
         :return: A list of :class:`.Role` this emoji can be used by.
         """

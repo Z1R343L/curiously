@@ -21,7 +21,7 @@ from curious.core.gateway import GatewayHandler
 event_context = contextvars.ContextVar("event_context")
 
 
-def current_event_context() -> 'EventContext':
+def current_event_context() -> "EventContext":
     """
     :return: The current :class:`.EventContext` that is being processed.
     """
@@ -33,8 +33,7 @@ class EventContext(object):
     Represents a special context that are passed to events.
     """
 
-    def __init__(self, shard_id: int,
-                 event_name: str):
+    def __init__(self, shard_id: int, event_name: str):
         """
         :param shard_id: The shard ID this event is for.
         :param event_name: The event name for this event.
@@ -53,11 +52,12 @@ class EventContext(object):
         self.original_context: EventContext = None
 
     @property
-    def handlers(self) -> List[Callable[['EventContext'], None]]:
+    def handlers(self) -> List[Callable[["EventContext"], None]]:
         """
         :return: A list of handlers registered for this event.
         """
         from curious.core import get_current_client
+
         return get_current_client().events.getall(self.event_name, [])
 
     async def change_status(self, *args, **kwargs) -> None:
@@ -69,6 +69,7 @@ class EventContext(object):
         kwargs["shard_id"] = self.shard_id
 
         from curious.core import get_current_client
+
         return await get_current_client().change_status(*args, **kwargs)
 
     @property
@@ -77,4 +78,5 @@ class EventContext(object):
         :return: The :class:`.Gateway` that produced this event.
         """
         from curious.core import get_current_client
+
         return get_current_client().gateways[self.shard_id]

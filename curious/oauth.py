@@ -33,6 +33,7 @@ class InvalidStateError(Exception):
     """
     Raised from :meth:`.OAuth2Handshaker.fetch_token` if the state is invalid
     """
+
     pass
 
 
@@ -40,32 +41,33 @@ class OAuth2Scope(enum.Enum):
     """
     OAuth2 scopes.
     """
+
     #: Authorizes a bot into a guild.
-    BOT = 'bot'
+    BOT = "bot"
     #: Allows access to the connections of a user.
-    CONNECTIONS = 'connections'
+    CONNECTIONS = "connections"
     #: Allows access to basic user info.
-    IDENTIFY = 'identify'
+    IDENTIFY = "identify"
     #: Allows access to basic user info + their email.
-    EMAIL = 'email'
+    EMAIL = "email"
     #: Allows access to user guild objects for this user.
-    GUILDS = 'guilds'
+    GUILDS = "guilds"
     #: Allows forcibly joining a guild on the behalf of a user.
-    GUILDS_JOIN = 'guilds.join'
+    GUILDS_JOIN = "guilds.join"
     #: Allows forcibly adding users to group DMs.
-    GDM_JOIN = 'gdm.join'
+    GDM_JOIN = "gdm.join"
 
     #: Allows reading messages via RPC.
-    MESSAGES_READ = 'messages.read'
+    MESSAGES_READ = "messages.read"
     #: Allows RPC client control.
-    RPC = 'rpc'
+    RPC = "rpc"
     #: Allows RPC API control.
-    RPC_API = 'rpc.api'
+    RPC_API = "rpc.api"
     #: Allows RPC notification reading.
-    RPC_NOTIFICATIONS_READ = 'rpc.notifications.read'
+    RPC_NOTIFICATIONS_READ = "rpc.notifications.read"
 
     #: Creates an incoming webhook when authorized.
-    WEBHOOK_INCOMING = 'webhook.incoming'
+    WEBHOOK_INCOMING = "webhook.incoming"
 
 
 class OAuth2Token(object):
@@ -73,8 +75,14 @@ class OAuth2Token(object):
     Represents a token returned from the Discord OAuth2 API.
     """
 
-    def __init__(self, token_type: str, scope: str,
-                 access_token: str, refresh_token: str, expiration_time: datetime.datetime):
+    def __init__(
+        self,
+        token_type: str,
+        scope: str,
+        access_token: str,
+        refresh_token: str,
+        expiration_time: datetime.datetime,
+    ):
         #: The token type of the token (normally ``Bearer``).
         self.token_type = token_type
 
@@ -93,13 +101,14 @@ class OAuth2Token(object):
         self.expiration_time = expiration_time
 
     @classmethod
-    def from_dict(cls, d: dict) -> 'OAuth2Token':
+    def from_dict(cls, d: dict) -> "OAuth2Token":
         """
         Creates a token from a dict, similar to one provided by the token endpoint.
         """
         if "expiration_time" not in d:
-            expiration_time = datetime.datetime.utcnow() + \
-                              datetime.timedelta(seconds=d["expires_in"])
+            expiration_time = datetime.datetime.utcnow() + datetime.timedelta(
+                seconds=d["expires_in"]
+            )
             d["expiration_time"] = expiration_time
 
         d.pop("expires_in", None)
@@ -112,8 +121,9 @@ class OAuth2Token(object):
         return self.expiration_time < datetime.datetime.utcnow()
 
     def __repr__(self) -> str:
-        return "<OAuth2Token access='{}' refresh='{}'>".format(self.access_token,
-                                                               self.refresh_token)
+        return "<OAuth2Token access='{}' refresh='{}'>".format(
+            self.access_token, self.refresh_token
+        )
 
 
 class OAuth2Client(object):
@@ -160,14 +170,14 @@ class OAuth2Client(object):
     AUTHORIZE_URL = "/oauth2/authorize"
     TOKEN_URL = "/oauth2/token"
 
-    def __init__(self, client_id: int, client_secret: str,
-                 redirect_uri: str):
+    def __init__(self, client_id: int, client_secret: str, redirect_uri: str):
         self.client_id = client_id
         self.client_secret = client_secret
         self.redirect_uri = redirect_uri
 
-        self._oauth2_client = WebApplicationClient(client_id=self.client_id,
-                                                   redirect_url=self.redirect_uri)
+        self._oauth2_client = WebApplicationClient(
+            client_id=self.client_id, redirect_url=self.redirect_uri
+        )
         self.sess = Session(base_location=self.BASE, endpoint=self.API_BASE)
 
         #: A list of states that have been seen before.
@@ -183,10 +193,12 @@ class OAuth2Client(object):
         
         :param scopes: A list of :class:`.OAuthScope` for the request.
         """
-        url = self._oauth2_client.prepare_request_uri(self.AUTHORIZE_URL,
-                                                      scope=[scope.value for scope in scopes],
-                                                      redirect_uri=self.redirect_uri,
-                                                      state=self._get_state())
+        url = self._oauth2_client.prepare_request_uri(
+            self.AUTHORIZE_URL,
+            scope=[scope.value for scope in scopes],
+            redirect_uri=self.redirect_uri,
+            state=self._get_state(),
+        )
         return url
 
     async def fetch_token(self, code: str, state: str) -> OAuth2Token:
@@ -200,11 +212,13 @@ class OAuth2Client(object):
         # if state not in self._states:
         #    raise InvalidStateError(state)
         # construct the URI we need to send
-        uri = self._oauth2_client.prepare_request_uri(self.TOKEN_URL,
-                                                      code=code,
-                                                      redirect_uri=self.redirect_uri,
-                                                      client_secret=self.client_secret,
-                                                      grant_type="authorization_code")
+        uri = self._oauth2_client.prepare_request_uri(
+            self.TOKEN_URL,
+            code=code,
+            redirect_uri=self.redirect_uri,
+            client_secret=self.client_secret,
+            grant_type="authorization_code",
+        )
         response = await self.sess.post(path=uri)
         if response.status_code != 200:
             raise OAuth2Error(response, response.json())
@@ -213,8 +227,9 @@ class OAuth2Client(object):
         token = OAuth2Token.from_dict(response.json())
         return token
 
-    async def refresh_token(self, token: typing.Union[OAuth2Token, str],
-                            scopes: typing.List[OAuth2Scope] = None) -> OAuth2Token:
+    async def refresh_token(
+        self, token: typing.Union[OAuth2Token, str], scopes: typing.List[OAuth2Scope] = None
+    ) -> OAuth2Token:
         """
         Refreshes a token.
         

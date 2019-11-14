@@ -21,8 +21,13 @@ import enum
 from typing import Any, List, Optional, Union
 
 from curious.core import get_current_client
-from curious.dataclasses import channel as md_channel, guild as md_guild, member as md_member, \
-    permissions as dt_permissions, role as md_role
+from curious.dataclasses import (
+    channel as md_channel,
+    guild as md_guild,
+    member as md_member,
+    permissions as dt_permissions,
+    role as md_role,
+)
 from curious.dataclasses.bases import Dataclass
 from curious.dataclasses.user import User
 
@@ -31,6 +36,7 @@ class AuditLogEvent(enum.IntEnum):
     """
     Represents an audit log event.
     """
+
     GUILD_UPDATE = 1
 
     CHANNEL_CREATE = 10
@@ -80,7 +86,7 @@ class AuditLogExtra:
 
         return int(val)
 
-    def __init__(self, entry: 'AuditLogEntry', **kwargs):
+    def __init__(self, entry: "AuditLogEntry", **kwargs):
         self._entry = entry
 
         #: The ID of an overwritten entity.
@@ -107,14 +113,14 @@ class AuditLogExtra:
         self.channel_id: Optional[int] = _channel_id
 
     @property
-    def channel(self) -> 'Optional[md_channel.Channel]':
+    def channel(self) -> "Optional[md_channel.Channel]":
         """
         :return: The :class:`.Channel` if this extras has a channel_id.
         """
         return get_current_client().state.find_channel(self.channel_id)
 
     @property
-    def member(self) -> 'Optional[md_member.Member]':
+    def member(self) -> "Optional[md_member.Member]":
         """
         :return: The :class:`.Member` if this extras has a member.
         """
@@ -122,7 +128,7 @@ class AuditLogExtra:
             return self._entry._guild.members[self.id]
 
     @property
-    def role(self) -> 'Optional[md_role.Role]':
+    def role(self) -> "Optional[md_role.Role]":
         """
         :return: The :class:`.Role` if this extras has a role.
         """
@@ -135,7 +141,7 @@ class AuditLogChange(object):
     Represents an audit log change.
     """
 
-    def __init__(self, entry: 'AuditLogEntry', **data):
+    def __init__(self, entry: "AuditLogEntry", **data):
         # have to init here due to circular imports
         self.basic_converters = {
             "mfa_level": md_guild.MFALevel,
@@ -145,7 +151,7 @@ class AuditLogChange(object):
             "allow": dt_permissions.Permissions,
             "deny": dt_permissions.Permissions,
             "permissions": dt_permissions.Permissions,
-            "id": int  # this is functionally useless to us
+            "id": int,  # this is functionally useless to us
         }
 
         self._entry = entry
@@ -217,11 +223,11 @@ class AuditLogChange(object):
                 else:
                     obb = self._entry._view._try_unwrap_member(object_id)
 
-                overwrites.append(dt_permissions.Overwrite(
-                    allow=i["allow"], deny=i["deny"],
-                    channel_id=self._entry.target_id,
-                    obb=obb
-                ))
+                overwrites.append(
+                    dt_permissions.Overwrite(
+                        allow=i["allow"], deny=i["deny"], channel_id=self._entry.target_id, obb=obb
+                    )
+                )
 
             return overwrites
 
@@ -251,8 +257,8 @@ class AuditLogEntry(Dataclass):
     Represents an audit log entry.
     """
 
-    def __init__(self, view: 'AuditLogView', **kwargs):
-        super().__init__(kwargs['id'])
+    def __init__(self, view: "AuditLogView", **kwargs):
+        super().__init__(kwargs["id"])
         self._view = view
         self._guild = view._guild
 
@@ -275,8 +281,9 @@ class AuditLogEntry(Dataclass):
         self.extra_options = AuditLogExtra(**kwargs.get("options", {}))
 
         #: The changes for this entry.
-        self.changes: List[AuditLogChange] = \
-            [AuditLogChange(self, **i) for i in kwargs.get("changes", [])]
+        self.changes: List[AuditLogChange] = [
+            AuditLogChange(self, **i) for i in kwargs.get("changes", [])
+        ]
 
     def __repr__(self):
         return f"<AuditLogEntry guild='{self._guild!r} author={self.author!r} event={self.event}>"
@@ -284,7 +291,7 @@ class AuditLogEntry(Dataclass):
     __str__ = __repr__
 
     @property
-    def author(self) -> 'Union[User, md_member.Member]':
+    def author(self) -> "Union[User, md_member.Member]":
         """
         The author of this log entry.
         """
@@ -308,8 +315,9 @@ class AuditLogView(object):
         self._guild = guild
 
         #: The list of audit log entries for this view.
-        self.entries: List[AuditLogEntry] \
-            = [AuditLogEntry(self, **x) for x in kwargs.get("audit_log_entries")]
+        self.entries: List[AuditLogEntry] = [
+            AuditLogEntry(self, **x) for x in kwargs.get("audit_log_entries")
+        ]
 
         #: The list of users for this view.
         self._users = [User(**data) for data in kwargs.get("users")]
@@ -319,7 +327,7 @@ class AuditLogView(object):
 
     __str__ = __repr__
 
-    def _try_unwrap_member(self, id: int) -> 'Union[User, md_member.Member]':
+    def _try_unwrap_member(self, id: int) -> "Union[User, md_member.Member]":
         """
         Tries to unwrap an ID into a member or user.
         """

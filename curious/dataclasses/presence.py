@@ -28,20 +28,21 @@ class Status(enum.Enum):
     """
     Represents a Member's status.
     """
+
     #: Corresponds to online (green dot).
-    ONLINE = 'online'
+    ONLINE = "online"
 
     #: Corresponds to offline (gray dot).
-    OFFLINE = 'offline'
+    OFFLINE = "offline"
 
     #: Corresponds to idle (yellow dot).
-    IDLE = 'idle'
+    IDLE = "idle"
 
     #: Corresponds to Do Not Disturb (red dot).
-    DND = 'dnd'
+    DND = "dnd"
 
     #: Corresponds to invisible (gray dot).
-    INVISIBLE = 'invisible'
+    INVISIBLE = "invisible"
 
     @property
     def strength(self) -> int:
@@ -59,6 +60,7 @@ class ActivityType(enum.IntEnum):
     """
     Represents a game's type.
     """
+
     #: Shows the ``Playing`` text.
     PLAYING = 0
 
@@ -126,6 +128,7 @@ class ActivityTimestamps:
     """
     Represents the timestamps for an activity.
     """
+
     #: The start timestamp for this activity.
     start: Optional[int] = None
 
@@ -138,6 +141,7 @@ class ActivityParty:
     """
     Represents the party for an activity.
     """
+
     #: The ID of the party.
     id: Optional[str] = None
 
@@ -150,6 +154,7 @@ class ActivityAssets:
     """
     Represents the assets for an activity.
     """
+
     #: The id for a large asset of the activity
     large_image: Optional[str] = None
 
@@ -168,6 +173,7 @@ class ActivitySecrets:
     """
     Represents the secrets for an activity.
     """
+
     join: Optional[str] = None
     spectate: Optional[str] = None
     match: Optional[str] = None
@@ -181,7 +187,7 @@ class RichActivity(BasicActivity):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
 
-        if 'application_id' not in kwargs:
+        if "application_id" not in kwargs:
             appid = None
         else:
             appid = int(kwargs["application_id"])
@@ -235,11 +241,7 @@ class RichActivity(BasicActivity):
         self.secrets: Optional[ActivitySecrets] = s
 
     def to_dict(self) -> Dict[str, Any]:
-        base = {
-            "state": self.state,
-            "details": self.details,
-            "instance": self.instanced
-        }
+        base = {"state": self.state, "details": self.details, "instance": self.instanced}
 
         if self.timestamps:
             base["timestamps"] = {
@@ -324,7 +326,7 @@ class Presence(object):
 
         game = kwargs.get("game", None)
         if game:
-            if 'application_id' in game:
+            if "application_id" in game:
                 game = RichActivity(**game)
             else:
                 game = BasicActivity(**game)
@@ -336,7 +338,7 @@ class Presence(object):
         self.activities: List[Union[BasicActivity, RichActivity]] = []
 
         for activity in kwargs.get("activities", []):
-            if 'application_id' in activity:
+            if "application_id" in activity:
                 ac = RichActivity(**activity)
             else:
                 ac = BasicActivity(**activity)

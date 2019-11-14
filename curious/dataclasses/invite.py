@@ -34,8 +34,12 @@ from typing import List, Optional, Union
 
 from curious import util
 from curious.core import get_current_client
-from curious.dataclasses import channel as dt_channel, guild as dt_guild, member as dt_member, \
-    user as dt_user
+from curious.dataclasses import (
+    channel as dt_channel,
+    guild as dt_guild,
+    member as dt_member,
+    user as dt_user,
+)
 from curious.dataclasses.bases import Snowflaked
 from curious.exc import PermissionsError
 
@@ -91,8 +95,9 @@ class InviteGuild(Snowflaked):
         :return: The splash URL for this guild, or None if one isn't set.
         """
         if self.splash_hash:
-            return "https://cdn.discordapp.com/splashes/{}/{}.webp".format(self.id,
-                                                                           self.splash_hash)
+            return "https://cdn.discordapp.com/splashes/{}/{}.webp".format(
+                self.id, self.splash_hash
+            )
 
 
 class InviteChannel(Snowflaked):
@@ -118,7 +123,14 @@ class InviteMetadata(object):
     Represents metadata attached to an invite.
     """
 
-    __slots__ = "uses", "max_uses", "max_age", "temporary", "created_at", "revoked",
+    __slots__ = (
+        "uses",
+        "max_uses",
+        "max_age",
+        "temporary",
+        "created_at",
+        "revoked",
+    )
 
     def __init__(self, **kwargs) -> None:
         #: The number of times this invite was used.
@@ -192,7 +204,7 @@ class Invite(object):
             client.state._check_decache_user(self.inviter_id)
 
     @property
-    def inviter(self) -> 'Union[dt_member.Member, dt_user.User]':
+    def inviter(self) -> "Union[dt_member.Member, dt_user.User]":
         """
         :return: The :class:`.Member` or :class:`.User` that made this invite.
         """
@@ -212,14 +224,14 @@ class Invite(object):
         return u
 
     @property
-    def guild(self) -> 'Union[dt_guild.Guild, InviteGuild]':
+    def guild(self) -> "Union[dt_guild.Guild, InviteGuild]":
         """
         :return: The guild this invite is associated with.
         """
         return get_current_client().state.guilds.get(self.guild_id, self._invite_guild)
 
     @property
-    def channel(self) -> 'Union[dt_channel.Channel, InviteChannel]':
+    def channel(self) -> "Union[dt_channel.Channel, InviteChannel]":
         """
         :return: The channel this invite is associated with.
         """

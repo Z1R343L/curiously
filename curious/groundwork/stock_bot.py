@@ -27,31 +27,31 @@ class StockBot(Client):
     """
     The stock groundwork bot core.
     """
+
     def __init__(self, config: dict):
         """
         :param config: The loaded config.
         """
         self.config = config
 
-        auth_section = config['bot']['auth']
-        token_method = auth_section['token_method']
+        auth_section = config["bot"]["auth"]
+        token_method = auth_section["token_method"]
         if token_method == "inline":
-            token = auth_section['token_inline']
+            token = auth_section["token_inline"]
         elif token_method == "file":
-            token = Path(auth_section['token_file']).read_text(encoding='utf-8')
+            token = Path(auth_section["token_file"]).read_text(encoding="utf-8")
         elif token_method == "envvar":
-            token = os.environ[auth_section['token_envvar']]
+            token = os.environ[auth_section["token_envvar"]]
         else:
             raise ValueError(f"Invalid token method: '{token_method}'")
 
         super().__init__(token=token)
 
-        self.groundwork_config = config['groundwork']
+        self.groundwork_config = config["groundwork"]
 
         # useful attribs
         self.manager = CommandsManager(
-            client=self,
-            command_prefix=self.groundwork_config['command_prefixes'],
+            client=self, command_prefix=self.groundwork_config["command_prefixes"],
         )
         self.manager.register_events()
 
@@ -82,5 +82,7 @@ class StockBot(Client):
         for plugin, _ in self.manager.plugins.values():
             plugin_name = getattr(plugin, "plugin_name", type(plugin).__name__)
             plugin.plugin_config = plugins_section.get(plugin_name.lower(), {})
-            logger.info(f"Loaded configuration for plugin '{plugin_name}' with "
-                        f"{len(plugin.plugin_config)} key(s)")
+            logger.info(
+                f"Loaded configuration for plugin '{plugin_name}' with "
+                f"{len(plugin.plugin_config)} key(s)"
+            )

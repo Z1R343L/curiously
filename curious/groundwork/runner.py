@@ -110,7 +110,7 @@ def init(name: str, path: str):
     (main_package / "plugins").mkdir(exist_ok=True)
     (main_package / "components").mkdir(exist_ok=True)
 
-    (path / "config.toml").write_text(stock_config.format(bot_name=name), encoding='utf-8')
+    (path / "config.toml").write_text(stock_config.format(bot_name=name), encoding="utf-8")
     print(f"Written config to {(path / 'config.toml').resolve()}")
 
     return 0
@@ -120,10 +120,10 @@ def run(file: str):
     """
     Runs the bot.
     """
-    config = toml.loads(Path(file).read_text(encoding='utf-8'))
-    groundwork_section = config['groundwork']
-    bot_class = groundwork_section['bot_class']
-    backend = groundwork_section.get('backend', 'trio')
+    config = toml.loads(Path(file).read_text(encoding="utf-8"))
+    groundwork_section = config["groundwork"]
+    bot_class = groundwork_section["bot_class"]
+    backend = groundwork_section.get("backend", "trio")
 
     # format: pkg.mod:BotClass
     # we split it out then getattr() it
@@ -140,8 +140,7 @@ def run(file: str):
 
 def main():
     logging.basicConfig(level=logging.DEBUG)
-    coloredlogs.install(level="DEBUG", isatty=True,
-                        stream=sys.stderr)
+    coloredlogs.install(level="DEBUG", isatty=True, stream=sys.stderr)
 
     try:
         command = sys.argv[1]
@@ -153,7 +152,7 @@ def main():
         if len(sys.argv) < 3:
             config_file = "config.toml"
         else:
-            config_file = ' '.join(sys.argv[2:])
+            config_file = " ".join(sys.argv[2:])
 
         return run(config_file)
 
@@ -163,7 +162,7 @@ def main():
             return 1
 
         bot_name = sys.argv[2]
-        path = ' '.join(sys.argv[3:])
+        path = " ".join(sys.argv[3:])
         return init(bot_name, path)
 
 
