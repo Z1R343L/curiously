@@ -18,8 +18,9 @@ Convenience functions that are shortcuts for various context variable actions.
 """
 import inspect
 from os import PathLike
-from typing import AsyncContextManager, Awaitable, Callable, IO, Union
+from typing import AsyncContextManager, Awaitable, Callable, IO, Union, List
 
+from curious import Embed
 from curious.commands.context import Context, current_command_context
 from curious.dataclasses.message import Message
 
@@ -29,6 +30,8 @@ __all__ = [
     "reply",
     "private_reply",
 ]
+
+from curious.ext.paginator import ReactionsPaginator
 
 
 async def send_message(content: str = None, **kwargs) -> Message:
@@ -113,6 +116,16 @@ async def wait_for_reply(
         return True
 
     return await ctx.channel.messages.wait_for_message(predicate=_real_pred_pt2)
+
+
+async def paginate(content: Union[str, List[str], List[Embed]]):
+    """
+    Paginates some content.
+    """
+    ctx: Context = current_command_context.get()
+
+    paginator = ReactionsPaginator(content=content, channel=ctx.channel, respond_to=ctx.author)
+    return await paginator.paginate()
 
 
 def typing() -> AsyncContextManager[None]:
