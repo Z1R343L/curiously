@@ -55,7 +55,7 @@ class ContextVarProxy(typing.Generic[CTX_TYPE]):
 
         :return: The raw value underneath this object.
         """
-        return self._cvar.get()
+        return getattr(self._cvar.get(), self._attrib)
 
     def __getattr__(self, item) -> Any:
         unwrapped = self._cvar.get()
