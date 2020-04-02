@@ -87,7 +87,15 @@ class BasicActivity(object):
     Represents a basic activity with no extra fields.
     """
 
-    __slots__ = "_raw_type", "type", "url", "name", "_raw_emoji", "emoji_id", "state",
+    __slots__ = (
+        "_raw_type",
+        "type",
+        "url",
+        "name",
+        "_raw_emoji",
+        "emoji_id",
+        "state",
+    )
 
     def __init__(self, **kwargs) -> None:
         """
@@ -144,9 +152,11 @@ class BasicActivity(object):
         return d
 
     def __repr__(self) -> str:
-        return f"<{type(self).__name__} name={self.name!r} " \
-               f"type={self.type!r} url={self.url!r} " \
-               f"state={self.state!r}>"
+        return (
+            f"<{type(self).__name__} name={self.name!r} "
+            f"type={self.type!r} url={self.url!r} "
+            f"state={self.state!r}>"
+        )
 
 
 @dataclass(frozen=True)

@@ -322,12 +322,7 @@ class Client(object):
             type = ActivityType.PLAYING
 
         gateway = self._gateways[shard_id]
-        return await gateway.send_status(
-            name=name,
-            type_=type,
-            url=url,
-            status=status.value,
-        )
+        return await gateway.send_status(name=name, type_=type, url=url, status=status.value,)
 
     # HTTP Functions
     async def edit_profile(self, *, username: str = None, avatar: bytes = None) -> None:

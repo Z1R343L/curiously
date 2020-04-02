@@ -99,7 +99,6 @@ class Emoji(PartialEmoji):
 
         return None
 
-
     __slots__ = ("id", "name", "role_ids", "require_colons", "managed", "guild_id", "animated")
 
     def __init__(self, **kwargs) -> None:
