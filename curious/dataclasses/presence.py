@@ -95,7 +95,6 @@ class BasicActivity(object):
         :param url: The URL for the game, if streaming.
         :param type: A :class:`.GameType` for this game.
         """
-        print(kwargs)
         #: The raw activity type.
         self._raw_type = kwargs.get("type", 0)
 
