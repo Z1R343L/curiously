@@ -20,8 +20,6 @@ class Core(Plugin):
     # The default name for the command will be the same as the function name. You can override
     # this by passing `name=` as a keyword argument to the decorator.
     @command()
-    # All commands take a single parameter by default, `ctx`. This is the context which contains
-    # useful attributes such as the channel or the guild the command was received on.
     async def ping(self, ctx: Context):
         """
         Responds to a user with `Pong!`.
@@ -31,7 +29,7 @@ class Core(Plugin):
         member = ctx.author
         # To send a message back to the channel, you must use `ctx.channel.send(...)`.
         # We use `member.mention` here to mention the person that pinged us.
-        await ctx.channel.messages.send("{}, pong!".format(member.mention))
+        await ctx.channel.messages.send(f"{member.mention}, pong!")
 
     # Commands can also take parameters. They are defined by the function signature of the function.
     @command()
@@ -41,7 +39,7 @@ class Core(Plugin):
         """
         # The `name` in our signature allows somebody to run `!hello world` and `name` will be
         # automatically replaced with the string `world`.
-        await ctx.channel.messages.send("Hello, {}!".format(name))
+        await ctx.channel.messages.send(f"Hello, {name}!")
 
     # Commands can also provide aliases, by passing in a list.
     @command(aliases=["cold"])

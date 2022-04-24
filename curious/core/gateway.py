@@ -172,7 +172,7 @@ class GatewayHandler(object):
                 | GatewayIntent.DIRECT_MESSAGE_REACTIONS
             )
 
-        gateway_url = gateway_url + f"/?v={self.GATEWAY_VERSION}&encoding=json&compress=zlib-stream"
+        gateway_url += f"/?v={self.GATEWAY_VERSION}&encoding=json&compress=zlib-stream"
         self.info = GatewayInfo(
             token=token,
             gateway_url=gateway_url,
@@ -201,7 +201,7 @@ class GatewayHandler(object):
         if self._logger:
             return self._logger
 
-        self._logger = logging.getLogger("curious.gateway:shard-{}".format(self.info.shard_id))
+        self._logger = logging.getLogger(f"curious.gateway:shard-{self.info.shard_id}")
         return self._logger
 
     def reset(self):
@@ -245,12 +245,16 @@ class GatewayHandler(object):
 
         # TODO: Make the timeout configurable?
         with trio.fail_after(30):
-            if not ssl_context:
-                stream = await trio.open_tcp_stream(host, port)
-            else:
-                stream = await trio.open_ssl_over_tcp_stream(
-                    host, port, https_compatible=True, ssl_context=ssl.create_default_context()
+            stream = (
+                await trio.open_ssl_over_tcp_stream(
+                    host,
+                    port,
+                    https_compatible=True,
+                    ssl_context=ssl.create_default_context(),
                 )
+                if ssl_context
+                else await trio.open_tcp_stream(host, port)
+            )
 
             wss = await wrap_client_stream(nursery, stream, host, resource)
 
@@ -382,9 +386,8 @@ class GatewayHandler(object):
                         self._databuffer.extend(next_event)
                         if not next_event.endswith(self.ZLIB_FLUSH_SUFFIX):
                             return
-                        else:
-                            data = self._decompressor.decompress(self._databuffer).decode("utf-8")
-                            self._databuffer.clear()
+                        data = self._decompressor.decompress(self._databuffer).decode("utf-8")
+                        self._databuffer.clear()
                     else:
                         data = next_event
 

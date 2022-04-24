@@ -79,7 +79,7 @@ class InviteGuild(IDObject):
         self.voice_channel_count: int = kwargs.get("voice_channel_count")
 
     def __repr__(self) -> str:
-        return "<InviteGuild id={} name='{}'>".format(self.id, self.name)
+        return f"<InviteGuild id={self.id} name='{self.name}'>"
 
     __str__ = __repr__
 
@@ -89,7 +89,7 @@ class InviteGuild(IDObject):
         :return: The icon URL for this guild, or None if one isn't set.
         """
         if self._icon_hash:
-            return "https://cdn.discordapp.com/icons/{}/{}.webp".format(self.id, self._icon_hash)
+            return f"https://cdn.discordapp.com/icons/{self.id}/{self._icon_hash}.webp"
 
     @property
     def splash_url(self) -> Optional[str]:
@@ -97,9 +97,7 @@ class InviteGuild(IDObject):
         :return: The splash URL for this guild, or None if one isn't set.
         """
         if self.splash_hash:
-            return "https://cdn.discordapp.com/splashes/{}/{}.webp".format(
-                self.id, self.splash_hash
-            )
+            return f"https://cdn.discordapp.com/splashes/{self.id}/{self.splash_hash}.webp"
 
 
 class InviteChannel(IDObject):
@@ -117,7 +115,7 @@ class InviteChannel(IDObject):
         self.type = ChannelType(kwargs.get("type"))
 
     def __repr__(self) -> str:
-        return "<InviteChannel name={}>".format(self.name)
+        return f"<InviteChannel name={self.name}>"
 
 
 class InviteMetadata(object):
@@ -189,13 +187,10 @@ class Invite(object):
 
         #: The invite metadata object associated with this invite.
         #: This can be None if the invite has no metadata.
-        if "uses" not in kwargs:
-            self._invite_metadata = None
-        else:
-            self._invite_metadata = InviteMetadata(**kwargs)
+        self._invite_metadata = InviteMetadata(**kwargs) if "uses" in kwargs else None
 
     def __repr__(self) -> str:
-        return "<Invite code={} guild={} channel={}>".format(self.code, self.guild, self.channel)
+        return f"<Invite code={self.code} guild={self.guild} channel={self.channel}>"
 
     def __del__(self) -> None:
         if self.inviter:
@@ -208,8 +203,7 @@ class Invite(object):
         """
         guild = self.guild
         if not isinstance(guild, InviteGuild):
-            member = guild.members.get(self.inviter_id)
-            if member:
+            if member := guild.members.get(self.inviter_id):
                 return member
 
         return self._bot.state.make_user(self._inviter_data)
@@ -239,8 +233,10 @@ class Invite(object):
         You must have MANAGE_CHANNELS permission in the guild to delete the invite.
         """
         guild = self.guild
-        if guild != self._invite_guild:
-            if not guild.me.guild_permissions.manage_channels:
-                raise PermissionsError("manage_channels")
+        if (
+            guild != self._invite_guild
+            and not guild.me.guild_permissions.manage_channels
+        ):
+            raise PermissionsError("manage_channels")
 
         await self._bot.http.delete_invite(self.code)

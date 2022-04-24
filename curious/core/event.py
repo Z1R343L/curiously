@@ -91,13 +91,9 @@ class EventManager(object):
         if not inspect.iscoroutinefunction(func):
             raise TypeError("Event must be an async function")
 
-        if name is None:
-            evs = func.events
-        else:
-            evs = [name]
-
+        evs = func.events if name is None else [name]
         for ev_name in evs:
-            logger.debug("Registered event `{}` handling `{}`".format(func, ev_name))
+            logger.debug(f"Registered event `{func}` handling `{ev_name}`")
             self.event_listeners.add(ev_name, func)
 
     def remove_event(self, name: str, func):
@@ -154,7 +150,7 @@ class EventManager(object):
         try:
             await func(*args, **kwargs)
         except Exception as e:
-            logger.exception("Unhandled exception in {}!".format(func.__name__), exc_info=True)
+            logger.exception(f"Unhandled exception in {func.__name__}!", exc_info=True)
 
     async def _listener_wrapper(self, key: str, func, *args, **kwargs):
         """
@@ -167,8 +163,9 @@ class EventManager(object):
             self.temporary_listeners = remove_from_multidict(self.temporary_listeners, key, func)
         except Exception:
             logger.exception(
-                "Unhandled exception in listener {}!".format(func.__name__), exc_info=True
+                f"Unhandled exception in listener {func.__name__}!", exc_info=True
             )
+
             self.temporary_listeners = remove_from_multidict(self.temporary_listeners, key, func)
 
     async def wait_for(self, event_name: str, predicate=None):

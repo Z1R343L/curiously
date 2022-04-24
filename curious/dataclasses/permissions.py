@@ -271,9 +271,7 @@ class Overwrite(object):
         return self.target._bot.state.find_channel(self.channel_id)
 
     def __repr__(self) -> str:
-        return "<Overwrites for object={} channel={} allow={} deny={}>".format(
-            self.target, self.channel, self.allow, self.deny
-        )
+        return f"<Overwrites for object={self.target} channel={self.channel} allow={self.allow} deny={self.deny}>"
 
     def __getattr__(self, item) -> bool:
         """

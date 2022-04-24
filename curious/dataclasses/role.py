@@ -218,9 +218,8 @@ class Role(Dataclass):
         if not self.guild.me.guild_permissions.manage_roles:
             raise PermissionsError("manage_roles")
 
-        if permissions is not None:
-            if isinstance(permissions, Permissions):
-                permissions = permissions.bitfield
+        if permissions is not None and isinstance(permissions, Permissions):
+            permissions = permissions.bitfield
 
         async with self._bot.events.wait_for_manager("role_update", lambda b, a: a.id == self.id):
             await self._bot.http.edit_role(

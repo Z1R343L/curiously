@@ -55,10 +55,7 @@ def int_or_none(val, default: typing.Any) -> typing.Union[int, None]:
     """
     Returns int or None.
     """
-    if val is None:
-        return default
-
-    return int(val)
+    return default if val is None else int(val)
 
 
 class State(object):
@@ -143,24 +140,21 @@ class State(object):
         :return: A generator that yields all :class:`.Channel`s the bot can see.
         """
         for guild in self._guilds.values():
-            for channel in guild.channels.values():
-                yield channel
+            yield from guild.channels.values()
 
     def get_all_members(self) -> typing.Generator[Member, None, None]:
         """
         :return: A generator that yields all :class:`.Member`s the bot can see.
         """
         for guild in self.guilds.values():
-            for member in guild.members.values():
-                yield member
+            yield from guild.members.values()
 
     def get_all_roles(self) -> typing.Generator[Role, None, None]:
         """
         :return: A generator that yields all :class:`.Role`s the bot can see.
         """
         for guild in self.guilds.values():
-            for role in guild.roles.values():
-                yield role
+            yield from guild.roles.values()
 
     def find_member_or_user(self, user_id: int) -> typing.Union[Member, User]:
         """
@@ -271,7 +265,7 @@ class State(object):
         webhook.guild_id = channel.guild_id
         webhook.channel_id = channel.id
         webhook.user = user
-        webhook.token = event_data.get("token", None)
+        webhook.token = event_data.get("token")
 
         if owner:
             # only create Owner if the data was returned
@@ -279,8 +273,8 @@ class State(object):
             self._check_decache_user(webhook.owner.id)
 
         # default fields, these are lazily loaded by properties
-        webhook.default_name = event_data.get("name", None)
-        webhook._default_avatar = event_data.get("avatar", None)
+        webhook.default_name = event_data.get("name")
+        webhook._default_avatar = event_data.get("avatar")
 
         return webhook
 
@@ -330,7 +324,7 @@ class State(object):
         """
         message = Message(self.client, **event_data)
 
-        if message in self.messages and cache is True:
+        if message in self.messages and cache:
             # don't bother re-caching
             i = self.messages.index(message)
             return self.messages[i]
@@ -350,18 +344,16 @@ class State(object):
             message.guild_id = channel.guild_id
 
         if channel.type == ChannelType.DM:
-            if author_id == self._user.id:
-                message.author = self._user
-            else:
-                message.author = message.channel.user
+            message.author = (
+                self._user if author_id == self._user.id else message.channel.user
+            )
+
         elif channel.type == ChannelType.GROUP:
             message.author = channel.recipients.get(author_id, None)
+        elif event_data.get("webhook_id") is not None:
+            message.author = self.make_webhook(event_data)
         else:
-            # Webhooks also exist.
-            if event_data.get("webhook_id") is not None:
-                message.author = self.make_webhook(event_data)
-            else:
-                message.author = message.guild.members.get(author_id)
+            message.author = message.guild.members.get(author_id)
 
         for reaction_data in event_data.get("reactions", []):
             emoji = reaction_data.get("emoji", {})
@@ -396,10 +388,9 @@ class State(object):
         self._users[self._user.id] = self._user
 
         logger.info(
-            "We have been issued a session on shard {}, parsing ready for `{}#{}` ({})".format(
-                gw.info.shard_id, self._user.username, self._user.discriminator, self._user.id
-            )
+            f"We have been issued a session on shard {gw.info.shard_id}, parsing ready for `{self._user.username}#{self._user.discriminator}` ({self._user.id})"
         )
+
 
         # Create all of the guilds.
         for guild in event_data.get("guilds", []):
@@ -409,10 +400,9 @@ class State(object):
             new_guild.shard_id = gw.info.shard_id
 
         logger.info(
-            "Ready processed for shard {}. Delaying until all guilds are chunked.".format(
-                gw.info.shard_id
-            )
+            f"Ready processed for shard {gw.info.shard_id}. Delaying until all guilds are chunked."
         )
+
         yield "connect",
 
         # event_data.pop("guilds")
@@ -474,22 +464,13 @@ class State(object):
         member.presence = Presence(status=event_data.get("status"), game=event_data.get("game", {}))
 
         # copy the roles if it exists
-        if old_member is not None:
-            fallback = old_member.role_ids
-        else:
-            fallback = None
-
-        roles = event_data.get("roles", fallback)
-        if roles:
+        fallback = old_member.role_ids if old_member is not None else None
+        if roles := event_data.get("roles", fallback):
             # clear roles
             member.role_ids = [int(rid) for rid in roles]
 
         # update the nickname
-        if old_member is not None:
-            fallback = old_member.nickname.value
-        else:
-            fallback = None
-
+        fallback = old_member.nickname.value if old_member is not None else None
         member.nickname = event_data.get("nick", fallback)
         # recreate the user object, so the user is properly cached
         if "username" in event_data["user"]:
@@ -521,9 +502,9 @@ class State(object):
 
         members = event_data.get("members", [])
         logger.info(
-            "Got a chunk of {} members in guild {} "
-            "on shard {}".format(len(members), guild.name or guild.id, guild.shard_id)
+            f"Got a chunk of {len(members)} members in guild {guild.name or guild.id} on shard {guild.shard_id}"
         )
+
 
         guild._handle_member_chunk(event_data.get("members"))
         yield "guild_chunk", guild, len(members),
@@ -540,14 +521,11 @@ class State(object):
         guild = self._guilds.get(id)
 
         had_guild = True
-        if guild:
-            guild.from_guild_create(**event_data)
-        else:
+        if not guild:
             had_guild = False
             guild = Guild(self.client, **event_data)
             self._guilds[guild.id] = guild
-            guild.from_guild_create(**event_data)
-
+        guild.from_guild_create(**event_data)
         guild.shard_id = gw.info.shard_id
         # TODO: Need to do this
         # try:
@@ -569,15 +547,14 @@ class State(object):
                 yield "guild_join", guild,
 
                 logger.info(
-                    "Joined guild {} ({}), requesting members if applicable".format(
-                        guild.name, guild.id
-                    )
+                    f"Joined guild {guild.name} ({guild.id}), requesting members if applicable"
                 )
-                # if guild.large:
-                #    await gw.request_chunks([guild])
+
+                        # if guild.large:
+                        #    await gw.request_chunks([guild])
 
         else:
-            logger.debug("Streamed guild: {} ({})".format(guild.name, guild.id))
+            logger.debug(f"Streamed guild: {guild.name} ({guild.id})")
             yield "guild_streamed", guild,
 
         members = len(event_data.get("members", []))
@@ -637,20 +614,15 @@ class State(object):
         # If it is, we want to semi-discard this event, because all it means is the guild
         # becomes unavailable.
         if event_data.get("unavailable", False):
-            # Set the guild to unavailable, but don't delete it.
-            guild = self._guilds.get(guild_id)
-            if guild:
+            if guild := self._guilds.get(guild_id):
                 guild.unavailable = True
                 yield "guild_unavailable", guild,
 
-        else:
-            # We've left this guild - clear it from our dictionary of guilds.
-            guild = self._guilds.pop(guild_id, None)
-            if guild:
-                yield "guild_leave", guild,
-                for member in guild._members.values():
-                    # use member.id to avoid user lookup
-                    self._check_decache_user(member.id)
+        elif guild := self._guilds.pop(guild_id, None):
+            yield "guild_leave", guild,
+            for member in guild._members.values():
+                # use member.id to avoid user lookup
+                self._check_decache_user(member.id)
 
     async def handle_guild_emojis_update(self, gw: "gateway.GatewayHandler", event_data: dict):
         """
@@ -702,10 +674,12 @@ class State(object):
         new_message = copy.copy(old_message)
         new_message.content = event_data.get("content", old_message.content)
         embeds = event_data.get("embeds")
-        if not embeds:
-            new_message.embeds = old_message.embeds
-        else:
-            new_message.embeds = [Embed(**em) for em in event_data.get("embeds")]
+        new_message.embeds = (
+            [Embed(**em) for em in event_data.get("embeds")]
+            if embeds
+            else old_message.embeds
+        )
+
         new_message._mentions = event_data.get("mentions", old_message._mentions)
         new_message._role_mentions = event_data.get("mention_roles", old_message._role_mentions)
 
@@ -756,8 +730,7 @@ class State(object):
 
         # try and get it from the guilds
         for guild in self.guilds.values():
-            em = guild.emojis.get(int(emoji_data["id"]))
-            if em:
+            if em := guild.emojis.get(int(emoji_data["id"])):
                 return em
 
     async def handle_message_reaction_add(self, gw: "gateway.GatewayHandler", event_data: dict):
@@ -924,11 +897,7 @@ class State(object):
 
         # Make a copy of the member for the old previous reference.
         old_member = member._copy()
-        # Re-create the user object.
-        # self.make_user(event_data["user"], override_cache=True)
-        # self._users[member.user.id] = member.user
-        user = event_data.get("user")
-        if user:
+        if user := event_data.get("user"):
             # remake user object
             self.make_user(user, override_cache=True)
             self._check_decache_user(member_id)
@@ -1203,9 +1172,7 @@ class State(object):
         old_settings = self._user.settings.copy()
 
         dict.update(self._user.settings, **event_data)
-        # make sure to update the guild order
-        guild_order = event_data.get("guild_positions")
-        if guild_order:
+        if guild_order := event_data.get("guild_positions"):
             self._guilds.order = [int(x) for x in guild_order]
 
         # update status, if applicable

@@ -131,12 +131,7 @@ def convert_list(ann, ctx, arg: str) -> List[Any]:
     internal = typing_inspect.get_args(ann)[0]
     converter = ctx._lookup_converter(internal)
     sp = arg.split(" ")
-    results = []
-
-    for arg in sp:
-        results.append(converter(internal, ctx, arg))
-
-    return results
+    return [converter(internal, ctx, arg) for arg in sp]
 
 
 def convert_union(ann, ctx, arg: str) -> Any:

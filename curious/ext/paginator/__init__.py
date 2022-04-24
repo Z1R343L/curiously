@@ -100,7 +100,7 @@ class ReactionsPaginator(object):
             embed = chunk
         else:
             embed = Embed(description=self._message_chunks[self.page])
-            embed.set_footer(text="Page {}/{}".format(self.page + 1, len(self._message_chunks)))
+            embed.set_footer(text=f"Page {self.page + 1}/{len(self._message_chunks)}")
 
         if self._message is None:
             self._message = await self.channel.messages.send(content=self.title, embed=embed)

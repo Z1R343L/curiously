@@ -41,10 +41,7 @@ class Embed(object):  # not an IDObject! Embeds don't have IDs.
         **kwargs,
     ):
         def make_attrdict(key: str) -> attrdict:
-            if key not in kwargs:
-                return attrdict()
-
-            return attrdict(**kwargs[key])
+            return attrdict() if key not in kwargs else attrdict(**kwargs[key])
 
         #: The title of this embed.
         self.title: str = title
@@ -95,13 +92,13 @@ class Embed(object):  # not an IDObject! Embeds don't have IDs.
         :param inline: Is this field inline?
         :return: The Embed object.
         """
-        if isinstance(name, str) and len(name) == 0:
+        if isinstance(name, str) and not name:
             raise ValueError("Name must not be empty")
 
-        if isinstance(value, str) and len(value) == 0:
+        if isinstance(value, str) and not value:
             raise ValueError("Value must not be empty")
 
-        self.fields.append(attrdict({"name": str(name), "value": str(value), "inline": inline}))
+        self.fields.append(attrdict({"name": name, "value": value, "inline": inline}))
         return self
 
     def set_author(self, *, name: str, url: str = None, icon_url: str = None) -> "Embed":
@@ -174,7 +171,7 @@ class Embed(object):  # not an IDObject! Embeds don't have IDs.
         """
         Converts this embed into a flattened dict.
         """
-        payload = {"type": self.type_ if self.type_ else "rich"}
+        payload = {"type": self.type_ or "rich"}
 
         if self.title:
             payload["title"] = self.title

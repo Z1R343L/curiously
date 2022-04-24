@@ -53,7 +53,7 @@ class Reaction(object):
         self.me: bool = kwargs.get("me", False)
 
     def __repr__(self) -> str:
-        return "<Reaction emoji={} count={}>".format(self.emoji, self.count)
+        return f"<Reaction emoji={self.emoji} count={self.count}>"
 
     def __eq__(self, other) -> bool:
         if not isinstance(other, Reaction):

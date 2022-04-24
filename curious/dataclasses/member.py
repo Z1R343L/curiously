@@ -51,21 +51,14 @@ class Nickname(object):
             return True
 
         if isinstance(other, Nickname):
-            if self.parent != other.parent:
-                return False
-
-            return self.value == other.value
-
+            return False if self.parent != other.parent else self.value == other.value
         return self.value == other
 
     def __ne__(self, other):
         return not self.__eq__(other)
 
     def __str__(self) -> str:
-        if self.value is not None:
-            return self.value
-
-        return ""
+        return self.value if self.value is not None else ""
 
     def __repr__(self) -> str:
         return f"<Nickname value={self.value}>"
@@ -200,7 +193,7 @@ class MemberRoleContainer(collections.Sequence):
             if after.id != self._member.id:
                 return False
 
-            if not all(role in after.roles for role in roles):
+            if any(role not in after.roles for role in roles):
                 return False
 
             return True
@@ -231,7 +224,7 @@ class MemberRoleContainer(collections.Sequence):
             if after.id != self._member.id:
                 return False
 
-            if not all(role not in after.roles for role in roles):
+            if any(role in after.roles for role in roles):
                 return False
 
             return True
@@ -327,10 +320,11 @@ class Member(Dataclass):
         return hash(self.guild_id) + hash(self.user.id)
 
     def __eq__(self, other) -> bool:
-        if not isinstance(other, Member):
-            return NotImplemented
-
-        return other.guild == self.guild and other.user == self.user
+        return (
+            other.guild == self.guild and other.user == self.user
+            if isinstance(other, Member)
+            else NotImplemented
+        )
 
     def _copy(self):
         """
@@ -372,10 +366,7 @@ class Member(Dataclass):
         """
         :return: A string that mentions this member.
         """
-        if self.nickname:
-            return "<@!{}>".format(self.id)
-
-        return self.user.mention
+        return f"<@!{self.id}>" if self.nickname else self.user.mention
 
     @property
     def status(self) -> Status:

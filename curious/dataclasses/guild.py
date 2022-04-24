@@ -119,11 +119,7 @@ class VerificationLevel(enum.IntEnum):
 
         if self is VerificationLevel.LOW:
             # can't validate, assume True
-            if member.user.verified is None:
-                return True
-
-            return member.user.verified is True
-
+            return True if member.user.verified is None else member.user.verified is True
         if self is VerificationLevel.MEDIUM:
             dt = datetime.datetime.now() - datetime.timedelta(minutes=5)
 
@@ -187,7 +183,7 @@ class _WrapperBase(collections.Mapping, collections.Iterable):
         return iter(self.view.keys())
 
     def __repr__(self) -> str:
-        return "<{} items='{}'>".format(type(self).__name__, self.view)
+        return f"<{type(self).__name__} items='{self.view}'>"
 
 
 class GuildChannelWrapper(_WrapperBase):
@@ -205,10 +201,12 @@ class GuildChannelWrapper(_WrapperBase):
         self._guild = guild
 
     def __eq__(self, other: Any) -> bool:
-        if not isinstance(other, GuildChannelWrapper):
-            return False
-
-        return other._guild.id == self._guild.id and other._guild.channels == self._guild.channels
+        return (
+            other._guild.id == self._guild.id
+            and other._guild.channels == self._guild.channels
+            if isinstance(other, GuildChannelWrapper)
+            else False
+        )
 
     @property
     def view(self) -> Mapping[int, Channel]:
@@ -406,10 +404,12 @@ class GuildRoleWrapper(_WrapperBase):
         self._guild = guild
 
     def __eq__(self, other):
-        if not isinstance(other, GuildRoleWrapper):
-            return None
-
-        return self._guild.id == other._guild.id and self._guild.roles == other._guild.roles
+        return (
+            self._guild.id == other._guild.id
+            and self._guild.roles == other._guild.roles
+            if isinstance(other, GuildRoleWrapper)
+            else None
+        )
 
     @property
     def view(self) -> Mapping[int, Role]:
@@ -506,10 +506,12 @@ class GuildEmojiWrapper(_WrapperBase):
         self._guild = guild
 
     def __eq__(self, other):
-        if not isinstance(other, GuildEmojiWrapper):
-            return None
-
-        return self._guild.id == other._guild.id and self._guild.emojis == other._guild.emojis
+        return (
+            self._guild.id == other._guild.id
+            and self._guild.emojis == other._guild.emojis
+            if isinstance(other, GuildEmojiWrapper)
+            else None
+        )
 
     @property
     def view(self) -> Mapping[int, Emoji]:
@@ -544,8 +546,7 @@ class GuildEmojiWrapper(_WrapperBase):
         emoji_data = await self._guild._bot.http.create_guild_emoji(
             self._guild.id, name=name, image_data=image_data, roles=roles
         )
-        emoji = Emoji(**emoji_data, client=self._guild._bot)
-        return emoji
+        return Emoji(**emoji_data, client=self._guild._bot)
 
 
 class GuildBan:
@@ -560,10 +561,7 @@ class GuildBan:
     victim: User
 
 
-if "sphinx" in sys.modules:
-    # fuck you
-    pass
-else:
+if "sphinx" not in sys.modules:
     GuildBan = dataclass(GuildBan, frozen=True)
 
 
@@ -588,8 +586,7 @@ class GuildBanContainer(object):
 
             user = self._guild._bot.state.make_user(user_data)
             self._guild._bot.state._check_decache_user(user.id)
-            ban = GuildBan(reason=ban.get("reason", None), user=user)
-            yield ban
+            yield GuildBan(reason=ban.get("reason", None), user=user)
 
     async def add(
         self, victim: Union[User, Member], *, delete_message_days: int, reason: str = None
@@ -843,9 +840,7 @@ class Guild(Dataclass):
         return obb
 
     def __repr__(self) -> str:
-        return "<Guild id='{}' name='{}' members='{}'>".format(
-            self.id, self.name, self.member_count
-        )
+        return f"<Guild id='{self.id}' name='{self.name}' members='{self.member_count}'>"
 
     def __str__(self) -> str:
         return repr(self)
@@ -913,7 +908,7 @@ class Guild(Dataclass):
 
         :return: The embed URL for this guild.
         """
-        return (Endpoints.GUILD_BASE + "/embed.png").format(guild_id=self.id)
+        return f"{Endpoints.GUILD_BASE}/embed.png".format(guild_id=self.id)
 
     # for parity with inviteguild
     @property
@@ -921,7 +916,10 @@ class Guild(Dataclass):
         """
         :return: The number of members with a non-Invisible presence.
         """
-        return sum(1 for member in self._members.values() if member.status is not Status.OFFLINE)
+        return sum(
+            member.status is not Status.OFFLINE
+            for member in self._members.values()
+        )
 
     def get_embed_url(self, *, style: str = "banner1") -> str:
         """
@@ -931,9 +929,9 @@ class Guild(Dataclass):
         :return: The embed URL for this guild.
         """
         if style not in self.valid_embed_styles:
-            raise ValueError("Style must be in {}".format(self.valid_embed_styles))
+            raise ValueError(f"Style must be in {self.valid_embed_styles}")
 
-        return self.embed_url + "?style={}".format(style)
+        return self.embed_url + f"?style={style}"
 
     def search_for_member(
         self, *, name: str = None, discriminator: str = None, full_name: str = None
@@ -954,13 +952,12 @@ class Guild(Dataclass):
         :return: A :class:`.Member` that matched, or None if no matches were found.
         """
         if full_name is not None:
-            if "#" in full_name:
-                sp = full_name.split("#", 1)
-                return self.search_for_member(name=sp[0], discriminator=sp[1])
-            else:
+            if "#" not in full_name:
                 # usually a mistake
                 return self.search_for_member(name=full_name)
 
+            sp = full_name.split("#", 1)
+            return self.search_for_member(name=sp[0], discriminator=sp[1])
         # coerce into a proper string
         if isinstance(discriminator, int):
             discriminator = "{:04d}".format(discriminator)
@@ -1117,10 +1114,7 @@ class Guild(Dataclass):
         """
         :return: If this guild is large or not (>= 250 members).
         """
-        if self._large is not None:
-            return self._large
-
-        return self.member_count >= 250
+        return self._large if self._large is not None else self.member_count >= 250
 
     @property
     def invites(self) -> AsyncIterator[Invite]:
@@ -1136,7 +1130,7 @@ class Guild(Dataclass):
         :return: The icon URL for this guild, or None if one isn't set.
         """
         if self.icon_hash:
-            return "https://cdn.discordapp.com/icons/{}/{}.webp".format(self.id, self.icon_hash)
+            return f"https://cdn.discordapp.com/icons/{self.id}/{self.icon_hash}.webp"
 
     @property
     def splash_url(self) -> str:
@@ -1144,9 +1138,7 @@ class Guild(Dataclass):
         :return: The splash URL for this guild, or None if one isn't set.
         """
         if self.splash_hash:
-            return "https://cdn.discordapp.com/splashes/{}/{}.webp".format(
-                self.id, self.splash_hash
-            )
+            return f"https://cdn.discordapp.com/splashes/{self.id}/{self.splash_hash}.webp"
 
     # Guild methods.
     async def leave(self) -> None:
@@ -1200,12 +1192,7 @@ class Guild(Dataclass):
         :return: A list of :class:`.Webhook` objects for the guild.
         """
         webhooks = await self._bot.http.get_webhooks_for_guild(self.id)
-        obbs = []
-
-        for webhook in webhooks:
-            obbs.append(self._bot.state.make_webhook(webhook))
-
-        return obbs
+        return [self._bot.state.make_webhook(webhook) for webhook in webhooks]
 
     async def delete_webhook(self, webhook: Webhook):
         """
@@ -1351,9 +1338,7 @@ class Guild(Dataclass):
             return None
 
         invite_data = await self._bot.http.get_invite(code)
-        invite = Invite(self._bot, **invite_data)
-
-        return invite
+        return Invite(self._bot, **invite_data)
 
     async def set_vanity_invite(self, url: str) -> Optional[Invite]:
         """
@@ -1378,6 +1363,4 @@ class Guild(Dataclass):
             return None
 
         invite_data = await self._bot.http.get_invite(code)
-        invite = Invite(self._bot, **invite_data)
-
-        return invite
+        return Invite(self._bot, **invite_data)

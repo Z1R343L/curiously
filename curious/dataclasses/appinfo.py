@@ -82,6 +82,4 @@ class AppInfo(Dataclass):
         if self._icon_hash is None:
             return None
 
-        return "https://cdn.discordapp.com/app-icons/{}/{}.jpg".format(
-            self.client_id, self._icon_hash
-        )
+        return f"https://cdn.discordapp.com/app-icons/{self.client_id}/{self._icon_hash}.jpg"
