@@ -32,7 +32,7 @@ class BasicWebsocketWrapper(AsyncIterable):
         self.url = url
 
     @abc.abstractclassmethod
-    async def open(cls, url: str) -> "BasicWebsocketWrapper":
+    async def open(self, url: str) -> "BasicWebsocketWrapper":
         """
         Opens this websocket.
         """

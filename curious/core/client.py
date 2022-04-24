@@ -136,9 +136,7 @@ class Client(object):
         """
         :return: The invite URL for this bot.
         """
-        return "https://discordapp.com/oauth2/authorize?client_id={}&scope=bot".format(
-            self.application_info.client_id
-        )
+        return f"https://discordapp.com/oauth2/authorize?client_id={self.application_info.client_id}&scope=bot"
 
     # @property
     # def events_handled(self) -> collections.Counter:
@@ -219,9 +217,12 @@ class Client(object):
         This actually passes the arguments to :meth:`.EventManager.fire_event`.
         """
         gateway = kwargs.get("gateway")
-        if not self.state.is_ready(gateway.info.shard_id):
-            if event_name not in self.IGNORE_READY and not event_name.startswith("gateway_"):
-                return
+        if (
+            not self.state.is_ready(gateway.info.shard_id)
+            and event_name not in self.IGNORE_READY
+            and not event_name.startswith("gateway_")
+        ):
+            return
 
         return self.events.fire_event(event_name, *args, **kwargs, client=self)
 
@@ -272,7 +273,7 @@ class Client(object):
             if any(x in username for x in ("@", ":", "```")):
                 raise ValueError("Username must not contain banned characters")
 
-            if username in ("discordtag", "everyone", "here"):
+            if username in {"discordtag", "everyone", "here"}:
                 raise ValueError("Username cannot be a banned username")
 
             if not 2 <= len(username) <= 32:
@@ -317,9 +318,7 @@ class Client(object):
         :return: A new :class:`.AppInfo` object corresponding to the application.
         """
         data = await self.http.get_app_info(application_id=application_id)
-        appinfo = AppInfo(self, **data)
-
-        return appinfo
+        return AppInfo(self, **data)
 
     async def get_webhook(self, webhook_id: int) -> Webhook:
         """
@@ -370,8 +369,7 @@ class Client(object):
             if user_match is not None:
                 found_name = None
                 user_id = int(user_match.groups()[0])
-                member_or_user = self.state.find_member_or_user(user_id)
-                if member_or_user:
+                if member_or_user := self.state.find_member_or_user(user_id):
                     found_name = member_or_user.name
 
                 if found_name is None:
@@ -468,7 +466,7 @@ class Client(object):
         :param shard_count: The number of shards to boot.
         """
         async with trio.open_nursery() as n:
-            for shard_id in range(0, shard_count):
+            for shard_id in range(shard_count):
                 self._ready_state[shard_id] = False
                 n.start_soon(self._run_shard, shard_id, shard_count)
 

@@ -195,9 +195,11 @@ class Context(object):
         """
         if getattr(cmd, "cmd_owner_bypass", False):
             application = self.bot.application_info
-            if application is not None:
-                if self.message.author_id == application.owner.id:
-                    return True, []
+            if (
+                application is not None
+                and self.message.author_id == application.owner.id
+            ):
+                return True, []
 
         conditions = getattr(cmd, "cmd_conditions", [])
         failed = []
@@ -244,13 +246,7 @@ class Context(object):
 
         self.plugin = self_
 
-        while True:
-            if not current_command.cmd_subcommands:
-                break
-
-            if not self.tokens:
-                break
-
+        while current_command.cmd_subcommands and self.tokens:
             token = self.tokens[0]
             for command in current_command.cmd_subcommands:
                 if command.cmd_name == token or token in command.cmd_aliases:
@@ -293,13 +289,14 @@ class Context(object):
 
         This will scan all the commands, then invoke as appropriate.
         """
-        # temp variable used to invoke if applicable
-        to_invoke = None
-
-        for command in self.manager.commands.values():
-            if self.match_command(command):
-                to_invoke = command
-                break
+        to_invoke = next(
+            (
+                command
+                for command in self.manager.commands.values()
+                if self.match_command(command)
+            ),
+            None,
+        )
 
         for plugin in self.manager.plugins.values():
             commands = plugin._get_commands()

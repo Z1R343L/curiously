@@ -276,7 +276,7 @@ def split_message_content(content: str, delim: str = " ") -> List[str]:
         elif char == '"' and not in_quotes:
             in_quotes = True
             cur += char
-        elif char == '"' and in_quotes:
+        elif char == '"':
             in_quotes = False
             cur += char
         else:
@@ -324,8 +324,7 @@ def prefix_check_factory(prefix: Union[str, Iterable[str], Callable[[Client, Mes
                 _prefix = await _prefix
 
         if isinstance(_prefix, str):
-            match = message.content.startswith(_prefix)
-            if match:
+            if match := message.content.startswith(_prefix):
                 matched = _prefix
 
         elif isinstance(prefix, collections.Iterable):

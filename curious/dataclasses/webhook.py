@@ -85,9 +85,7 @@ class Webhook(Dataclass):
         self._default_avatar: str = None  # noqa
 
     def __repr__(self) -> str:
-        return "<Webhook id={} name={} channel={} owner={}>".format(
-            self.id, self.name, repr(self.channel), repr(self.owner)
-        )
+        return f"<Webhook id={self.id} name={self.name} channel={repr(self.channel)} owner={repr(self.owner)}>"
 
     __str__ = __repr__
 
@@ -96,7 +94,7 @@ class Webhook(Dataclass):
         """
         :return: The default avatar URL for this webhook.
         """
-        return "https://cdn.discordapp.com/avatars/{}/{}.png".format(self.id, self._default_avatar)
+        return f"https://cdn.discordapp.com/avatars/{self.id}/{self._default_avatar}.png"
 
     @property
     def avatar_url(self) -> str:

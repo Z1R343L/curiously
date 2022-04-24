@@ -51,14 +51,13 @@ class AvatarUrl(object):
         """
         :return: The string URL for this avatar URL.
         """
-        if not self._user.avatar_hash:
-            base_url = (
-                f"https://cdn.discordapp.com/embed/avatars/" f"{int(self._user.discriminator) % 5}"
-            )
-        else:
-            base_url = (
-                f"https://cdn.discordapp.com/avatars/" f"{self._user.id}/{self._user.avatar_hash}"
-            )
+        base_url = (
+            f"https://cdn.discordapp.com/avatars/"
+            f"{self._user.id}/{self._user.avatar_hash}"
+            if self._user.avatar_hash
+            else f"https://cdn.discordapp.com/embed/avatars/"
+            f"{int(self._user.discriminator) % 5}"
+        )
 
         return f"{base_url}.{self._format}?size={self._size}"
 
@@ -87,16 +86,18 @@ class AvatarUrl(object):
         return obb
 
     def __eq__(self, other: "AvatarUrl"):
-        if not isinstance(other, AvatarUrl):
-            return NotImplemented
-
-        return str(self) == str(other)
+        return (
+            str(self) == str(other)
+            if isinstance(other, AvatarUrl)
+            else NotImplemented
+        )
 
     def __lt__(self, other):
-        if not isinstance(other, AvatarUrl):
-            return NotImplemented
-
-        return str(self) < str(other)
+        return (
+            str(self) < str(other)
+            if isinstance(other, AvatarUrl)
+            else NotImplemented
+        )
 
 
 class User(Dataclass):
@@ -180,7 +181,7 @@ class User(Dataclass):
         """
         :return: A string that mentions this user.
         """
-        return "<@{}>".format(self.id)
+        return f"<@{self.id}>"
 
     @property
     def created_at(self) -> datetime.datetime:
@@ -190,9 +191,7 @@ class User(Dataclass):
         return self.snowflake_timestamp
 
     def __repr__(self) -> str:
-        return "<{} id={} name={} discrim={}>".format(
-            type(self).__name__, self.id, self.name, self.discriminator
-        )
+        return f"<{type(self).__name__} id={self.id} name={self.name} discrim={self.discriminator}>"
 
     def __str__(self) -> str:
         return f"{self.username}#{self.discriminator}"
@@ -210,15 +209,12 @@ class User(Dataclass):
         if self.discriminator == "0000":
             raise CuriousError("Cannot open a private channel with a webhook")
 
-        # First, try and access the channel from the channel cache.
-        original_channel = self._bot.state.find_channel(self.id)
-        if original_channel:
+        if original_channel := self._bot.state.find_channel(self.id):
             return original_channel
 
         # Failing that, open a new private channel.
         channel_data = await self._bot.http.create_private_channel(self.id)
-        channel = self._bot.state.make_private_channel(channel_data)
-        return channel
+        return self._bot.state.make_private_channel(channel_data)
 
     async def send(self, content: str = None, *args, **kwargs) -> Message:
         """

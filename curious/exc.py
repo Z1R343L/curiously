@@ -115,7 +115,7 @@ class HTTPException(CuriousError, ConnectionError):
         if self.error_code == ErrorCode.UNKNOWN:
             return repr(self.error)
 
-        return "{} ({}): {}".format(self.error_code, self.error_code.name, self.error_message)
+        return f"{self.error_code} ({self.error_code.name}): {self.error_message}"
 
     __repr__ = __str__
 
@@ -149,9 +149,7 @@ class PermissionsError(CuriousError, PermissionError):
         self.permission_required = permission_required
 
     def __str__(self) -> str:
-        return "Bot requires the permission {} to perform this action".format(
-            self.permission_required
-        )
+        return f"Bot requires the permission {self.permission_required} to perform this action"
 
     __repr__ = __str__
 

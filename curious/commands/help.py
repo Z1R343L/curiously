@@ -36,14 +36,10 @@ async def _get_command_list(ctx: Context, command, *, include_root: bool = True)
         return []
 
     # XXX: Don't add command names if they're subcommands.
-    if not command.cmd_subcommand and include_root:
-        l = [command.cmd_name]
-    else:
-        l = []
-
+    l = [command.cmd_name] if not command.cmd_subcommand and include_root else []
     for subcommand in command.cmd_subcommands:
         # don't do hidden subcommands
-        if getattr(subcommand, "cmd_hidden", False) is True:
+        if getattr(subcommand, "cmd_hidden", False):
             continue
 
         # only do subcommands that can be ran
@@ -80,7 +76,7 @@ async def help_for_all(ctx: Context):
 
         for command in commands:
             # check for hidden annotation
-            if getattr(command, "cmd_hidden", False) is True:
+            if getattr(command, "cmd_hidden", False):
                 continue
 
             # don't add subcommands on their own
@@ -106,7 +102,7 @@ async def help_for_all(ctx: Context):
         command_names = []
 
         for command in ctx.manager.commands.values():
-            if getattr(command, "cmd_hidden", False) is True:
+            if getattr(command, "cmd_hidden", False):
                 continue
 
             if command.cmd_subcommand:

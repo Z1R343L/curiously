@@ -60,7 +60,7 @@ class IDObject(object):
         :param id: The snowflake ID of the object.
         """
         if isinstance(id, str):
-            id = int(id)
+            id = id
 
         #: The ID of this object.
         self.id: int = id
@@ -78,10 +78,7 @@ class IDObject(object):
         return datetime.datetime.utcfromtimestamp(((int(self.id) >> 22) + DISCORD_EPOCH) / 1000)
 
     def __eq__(self, other) -> bool:
-        if not hasattr(other, "id"):
-            return NotImplemented
-
-        return other.id == self.id
+        return other.id == self.id if hasattr(other, "id") else NotImplemented
 
     def __hash__(self) -> int:
         return hash(self.id)

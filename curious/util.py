@@ -125,7 +125,7 @@ def base64ify(image_data: bytes):
         raise ValueError("Invalid image type")
 
     b64_data = base64.b64encode(image_data).decode()
-    return "data:{};base64,{}".format(mimetype, b64_data)
+    return f"data:{mimetype};base64,{b64_data}"
 
 
 def to_datetime(timestamp: str) -> datetime.datetime:
@@ -138,9 +138,7 @@ def to_datetime(timestamp: str) -> datetime.datetime:
     if timestamp is None:
         return
 
-    if timestamp.endswith("+00:00"):
-        timestamp = timestamp[:-6]
-
+    timestamp = timestamp.removesuffix("+00:00")
     try:
         return datetime.datetime.strptime(timestamp, "%Y-%m-%dT%H:%M:%S.%f")
     except ValueError:
@@ -166,7 +164,7 @@ def replace_quotes(item: str) -> str:
 
     for n, char in enumerate(item):
         # only operate if the previous char actually exists
-        if n - 1 < 0:
+        if n < 1:
             if char != '"':
                 final_str_arr.append(char)
 
@@ -184,10 +182,12 @@ def replace_quotes(item: str) -> str:
 
         if char == '"':
             # check to see if it's escaped
-            if item[n - 1] == "\\":
-                # if the last char on final_str_arr is NOT a backslash, we want to keep it.
-                if len(final_str_arr) > 0 and final_str_arr[-1] != "\\":
-                    final_str_arr.append('"')
+            if (
+                item[n - 1] == "\\"
+                and final_str_arr
+                and final_str_arr[-1] != "\\"
+            ):
+                final_str_arr.append('"')
 
             continue
 

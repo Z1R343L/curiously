@@ -118,10 +118,7 @@ class HistoryIterator(collections.AsyncIterator):
             self.after = self.after.id
 
         #: The last message ID that we fetched.
-        if self.before:
-            self.last_message_id = self.before
-        else:
-            self.last_message_id = self.after
+        self.last_message_id = self.before or self.after
 
     async def fill_messages(self) -> None:
         """
@@ -229,9 +226,13 @@ class ChannelMessageWrapper(object):
         :param before: The snowflake ID to get messages before.
         :param after: The snowflake ID to get messages after.
         """
-        if self.channel.guild:
-            if not self.channel.effective_permissions(self.channel.guild.me).read_message_history:
-                raise PermissionsError("read_message_history")
+        if (
+            self.channel.guild
+            and not self.channel.effective_permissions(
+                self.channel.guild.me
+            ).read_message_history
+        ):
+            raise PermissionsError("read_message_history")
 
         return HistoryIterator(self.channel, before=before, after=after, max_messages=limit)
 
@@ -254,12 +255,16 @@ class ChannelMessageWrapper(object):
         if not self.channel.type.has_messages():
             raise CuriousError("Cannot send messages to a voice channel")
 
-        if self.channel.guild:
-            if not self.channel.effective_permissions(self.channel.guild.me).send_messages:
-                raise PermissionsError("send_messages")
+        if (
+            self.channel.guild
+            and not self.channel.effective_permissions(
+                self.channel.guild.me
+            ).send_messages
+        ):
+            raise PermissionsError("send_messages")
 
         if not isinstance(content, str) and content is not None:
-            content = str(content)
+            content = content
 
         # check for empty messages
         if not content:
@@ -271,9 +276,8 @@ class ChannelMessageWrapper(object):
                 and not self.channel.effective_permissions(self.channel.guild.me).embed_links
             ):
                 raise PermissionsError("embed_links")
-        else:
-            if content and len(content) > 2000:
-                raise ValueError("Content must be less than 2000 characters")
+        elif len(content) > 2000:
+            raise ValueError("Content must be less than 2000 characters")
 
         if embed is not None:
             embed = embed.to_dict()
@@ -281,9 +285,7 @@ class ChannelMessageWrapper(object):
         data = await self.channel._bot.http.send_message(
             self.channel.id, content, tts=tts, embed=embed
         )
-        obb = self.channel._bot.state.make_message(data, cache=True)
-
-        return obb
+        return self.channel._bot.state.make_message(data, cache=True)
 
     async def upload(
         self,
@@ -354,8 +356,7 @@ class ChannelMessageWrapper(object):
         data = await self.channel._bot.http.send_file(
             self.channel.id, file_content, filename=filename, content=message_content, embed=embed
         )
-        obb = self.channel._bot.state.make_message(data, cache=False)
-        return obb
+        return self.channel._bot.state.make_message(data, cache=False)
 
     async def bulk_delete(self, messages: List[Message]) -> int:
         """
@@ -378,9 +379,13 @@ class ChannelMessageWrapper(object):
         :param messages: A list of :class:`.Message` objects to delete.
         :return: The number of messages deleted.
         """
-        if self.channel.guild:
-            if not self.channel.effective_permissions(self.channel.guild.me).manage_messages:
-                raise PermissionsError("manage_messages")
+        if (
+            self.channel.guild
+            and not self.channel.effective_permissions(
+                self.channel.guild.me
+            ).manage_messages
+        ):
+            raise PermissionsError("manage_messages")
 
         minimum_allowed = floor((time.time() - 14 * 24 * 60 * 60) * 1000.0 - 1420070400000) << 22
         ids = []
@@ -435,12 +440,13 @@ class ChannelMessageWrapper(object):
             cannot be bulk deleted.
         :return: The number of messages deleted.
         """
-        if self.channel.guild:
-            if not (
-                self.channel.effective_permissions(self.channel.guild.me).manage_messages
-                or fallback_from_bulk
-            ):
-                raise PermissionsError("manage_messages")
+        if self.channel.guild and not (
+            self.channel.effective_permissions(
+                self.channel.guild.me
+            ).manage_messages
+            or fallback_from_bulk
+        ):
+            raise PermissionsError("manage_messages")
 
         checks = []
         if author:
@@ -507,9 +513,13 @@ class ChannelMessageWrapper(object):
         :return: A new :class:`.Message` object.
         :raises CuriousError: If the message could not be found.
         """
-        if self.channel.guild:
-            if not self.channel.effective_permissions(self.channel.guild.me).read_message_history:
-                raise PermissionsError("read_message_history")
+        if (
+            self.channel.guild
+            and not self.channel.effective_permissions(
+                self.channel.guild.me
+            ).read_message_history
+        ):
+            raise PermissionsError("read_message_history")
 
         cached_message = self.channel._bot.state.find_message(message_id)
         if cached_message is not None:
@@ -524,9 +534,7 @@ class ChannelMessageWrapper(object):
 
             raise
 
-        msg = self.channel._bot.state.make_message(data)
-
-        return msg
+        return self.channel._bot.state.make_message(data)
 
 
 class Channel(Dataclass):
@@ -581,8 +589,7 @@ class Channel(Dataclass):
         #: Used for history.
         self._last_message_id: Optional[int] = None
 
-        _last_message_id = kwargs.get("last_message_id", 0)
-        if _last_message_id:
+        if _last_message_id := kwargs.get("last_message_id", 0):
             self._last_message_id = int(_last_message_id)
         else:
             self._last_message_id = None
@@ -697,13 +704,15 @@ class Channel(Dataclass):
         """
         :return: A list of :class:`.Channel` children this channel has, if any.
         """
-        if not self.guild:
-            return []
-
-        channels = [
-            channel for channel in self.guild.channels.values() if channel.parent_id == self.id
-        ]
-        return channels
+        return (
+            [
+                channel
+                for channel in self.guild.channels.values()
+                if channel.parent_id == self.id
+            ]
+            if self.guild
+            else []
+        )
 
     def get_by_name(self, name: str) -> Optional[Channel]:
         """
@@ -738,10 +747,11 @@ class Channel(Dataclass):
         """
         :return: The icon URL for this channel if it is a group DM.
         """
-        if not self.icon_hash:
-            return None
-
-        return "https://cdn.discordapp.com/channel-icons/{}/{}.webp".format(self.id, self.icon_hash)
+        return (
+            f"https://cdn.discordapp.com/channel-icons/{self.id}/{self.icon_hash}.webp"
+            if self.icon_hash
+            else None
+        )
 
     @property
     def voice_members(self) -> List[Member]:
@@ -779,23 +789,20 @@ class Channel(Dataclass):
         if permissions.administrator:
             return Permissions.all()
 
-        overwrites_everyone = self._overwrites.get(self.guild.default_role.id)
-        if overwrites_everyone:
+        if overwrites_everyone := self._overwrites.get(self.guild.default_role.id):
             permissions.bitfield &= ~overwrites_everyone.deny.bitfield
             permissions.bitfield |= overwrites_everyone.allow.bitfield
 
         allow = deny = 0
         for role in member.roles:
-            overwrite = self._overwrites.get(role.id)
-            if overwrite:
+            if overwrite := self._overwrites.get(role.id):
                 allow |= overwrite.allow.bitfield
                 deny |= overwrite.deny.bitfield
 
         permissions.bitfield &= ~deny
         permissions.bitfield |= allow
 
-        overwrite_member = self._overwrites.get(member.id)
-        if overwrite_member:
+        if overwrite_member := self._overwrites.get(member.id):
             permissions.bitfield &= ~overwrite_member.deny.bitfield
             permissions.bitfield |= overwrite_member.allow.bitfield
 
@@ -856,11 +863,7 @@ class Channel(Dataclass):
         """
         msg_data = await self._bot.http.get_pins(self.id)
 
-        messages = []
-        for message in msg_data:
-            messages.append(self._bot.state.make_message(message))
-
-        return messages
+        return [self._bot.state.make_message(message) for message in msg_data]
 
     @property
     def webhooks(self) -> AsyncIterator[Webhook]:
@@ -877,12 +880,7 @@ class Channel(Dataclass):
         :return: A list of :class:`.Webhook` objects for the channel.
         """
         webhooks = await self._bot.http.get_webhooks_for_channel(self.id)
-        obbs = []
-
-        for webhook in webhooks:
-            obbs.append(self._bot.state.make_webhook(webhook))
-
-        return obbs
+        return [self._bot.state.make_webhook(webhook) for webhook in webhooks]
 
     async def create_webhook(self, *, name: str = None, avatar: bytes = None) -> Webhook:
         """
@@ -899,9 +897,7 @@ class Channel(Dataclass):
             avatar = base64ify(avatar)
 
         data = await self._bot.http.create_webhook(self.id, name=name, avatar=avatar)
-        webook = self._bot.state.make_webhook(data)
-
-        return webook
+        return self._bot.state.make_webhook(data)
 
     async def edit_webhook(
         self, webhook: Webhook, *, name: str = None, avatar: bytes = None
@@ -970,9 +966,7 @@ class Channel(Dataclass):
             raise PermissionsError("create_instant_invite")
 
         inv = await self._bot.http.create_invite(self.id, **kwargs)
-        invite = Invite(self._bot, **inv)
-
-        return invite
+        return Invite(self._bot, **inv)
 
     async def send_typing(self) -> None:
         """
@@ -981,9 +975,11 @@ class Channel(Dataclass):
         if not self.type.has_messages():
             raise CuriousError("Cannot send messages to this channel")
 
-        if self.guild:
-            if not self.effective_permissions(self.guild.me).send_messages:
-                raise PermissionsError("send_message")
+        if (
+            self.guild
+            and not self.effective_permissions(self.guild.me).send_messages
+        ):
+            raise PermissionsError("send_message")
 
         await self._bot.http.send_typing(self.id)
 
@@ -1045,11 +1041,7 @@ class Channel(Dataclass):
             coro = self._bot.http.remove_overwrite(channel_id=self.id, target_id=target.id)
 
             async def _listener(before, after):
-                if after.id != self.id:
-                    return False
-
-                # probably right /shrug
-                return True
+                return after.id == self.id
 
         else:
             coro = self._bot.http.edit_overwrite(

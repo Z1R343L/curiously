@@ -72,21 +72,17 @@ class Chunker(object):
 
         :param shard_id: The shard ID to fire, or None if all shards need to be checked.
         """
-        if shard_id is None:
-            shard_ids = self._pending.keys()
-        else:
-            shard_ids = [shard_id]
-
+        shard_ids = self._pending.keys() if shard_id is None else [shard_id]
         for shard in shard_ids:
             guilds = self._pending[shard]
             if not guilds:
                 # wtf
                 continue
 
-            if len(guilds) < self.batch_size:
-                # if all are available, skip the exit check
-                if any(guild.unavailable for guild in self.client.guilds_for(shard)):
-                    continue
+            if len(guilds) < self.batch_size and any(
+                guild.unavailable for guild in self.client.guilds_for(shard)
+            ):
+                continue
 
             # pray for the gil
             self._pending[shard] = []
@@ -156,8 +152,7 @@ class Chunker(object):
         # clear ready
         self._ready[ctx.shard_id] = False
 
-        guilds = self._pending[ctx.shard_id]
-        if guilds:
+        if guilds := self._pending[ctx.shard_id]:
             await self.fire_chunks(ctx.shard_id, guilds)
 
         self._connected[ctx.shard_id] = True

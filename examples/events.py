@@ -21,18 +21,19 @@ from curious.dataclasses.message import Message
 class BasicPlugin(Plugin):
     # We use the decorator to designate what event we wish to listen to.
     @event("message_create")
-    # Events take at least one param - the EventContext. This contains our shard ID, as well as the
-    # bot instance.
     async def log_message(self, ctx: EventContext, message: Message):
         # `log_message` takes a Message as its second argument, because it's a `message_create`
         # event.
         # Let's log the message content and author:
-        print("Message recieved: `{}` from `{}`".format(message.content, message.author.user.name))
+        print(
+            f"Message recieved: `{message.content}` from `{message.author.user.name}`"
+        )
+
         # Let's also log the guild, if there is a guild.
         if message.guild is not None:
-            print("Guild: {}".format(message.guild.name))
+            print(f"Guild: {message.guild.name}")
         # Finally, log the shard ID.
-        print("Shard: {}".format(ctx.shard_id))
+        print(f"Shard: {ctx.shard_id}")
 
 
 # Create the commands bot instance.
@@ -50,7 +51,7 @@ async def ready(ctx: EventContext):
 @bot.event("member_ban")
 async def announce_ban(ctx: EventContext, guild: Guild, member: Member):
     # Send the ban message to the system channel.
-    await guild.system_channel.messages.send("{} got bent".format(member.user.name))
+    await guild.system_channel.messages.send(f"{member.user.name} got bent")
 
 
 # Now, all that is left is to run the bot.

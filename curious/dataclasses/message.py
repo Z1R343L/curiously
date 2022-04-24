@@ -153,15 +153,16 @@ class Message(Dataclass):
             self.edited_at = None
 
         #: The list of :class:`.Embed` objects this message contains.
-        self.embeds: List[Embed] = []
-        for embed in kwargs.get("embeds", []):
-            self.embeds.append(Embed(**embed))
+        self.embeds: List[Embed] = [
+            Embed(**embed) for embed in kwargs.get("embeds", [])
+        ]
 
         #: The list of :class:`.Attachment` this message contains.
-        self.attachments: List[Attachment] = []
+        self.attachments: List[Attachment] = [
+            Attachment(bot=self._bot, **attachment)
+            for attachment in kwargs.get("attachments", [])
+        ]
 
-        for attachment in kwargs.get("attachments", []):
-            self.attachments.append(Attachment(bot=self._bot, **attachment))
 
         #: The mentions for this message.
         #: This is UNORDERED.
@@ -243,8 +244,7 @@ class Message(Dataclass):
         emojis = []
 
         for (name, i) in matches:
-            e = self.guild.emojis.get(int(i))
-            if e:
+            if e := self.guild.emojis.get(int(i)):
                 emojis.append(e)
 
         return emojis
@@ -262,11 +262,7 @@ class Message(Dataclass):
         invites = INVITE_REGEX.findall(self.content)
         obbs = []
         for match in invites:
-            if match[0]:
-                code = match[0]
-            else:
-                code = match[1]
-
+            code = match[0] or match[1]
             try:
                 obbs.append(await self._bot.get_invite(code))
             except HTTPException as e:
@@ -332,11 +328,7 @@ class Message(Dataclass):
 
         :param emoji: The emoji to check.
         """
-        for reaction in self.reactions:
-            if reaction.emoji == emoji:
-                return True
-
-        return False
+        return any(reaction.emoji == emoji for reaction in self.reactions)
 
     # Message methods
     async def delete(self) -> None:
@@ -393,9 +385,13 @@ class Message(Dataclass):
 
         You must have MANAGE_MESSAGES in the channel to pin the message.
         """
-        if self.guild is not None:
-            if not self.channel.effective_permissions(self.guild.me).manage_messages:
-                raise PermissionsError("manage_messages")
+        if (
+            self.guild is not None
+            and not self.channel.effective_permissions(
+                self.guild.me
+            ).manage_messages
+        ):
+            raise PermissionsError("manage_messages")
 
         await self._bot.http.pin_message(self.channel.id, self.id)
         return self
@@ -407,9 +403,13 @@ class Message(Dataclass):
         You must have MANAGE_MESSAGES in this channel to unpin the message.
         Additionally, the message must already be pinned.
         """
-        if self.guild is not None:
-            if not self.channel.effective_permissions(self.guild.me).manage_messages:
-                raise PermissionsError("manage_messages")
+        if (
+            self.guild is not None
+            and not self.channel.effective_permissions(
+                self.guild.me
+            ).manage_messages
+        ):
+            raise PermissionsError("manage_messages")
 
         await self._bot.http.unpin_message(self.channel.id, self.id)
         return self
@@ -425,7 +425,7 @@ class Message(Dataclass):
         :return: A list of either :class:`.Member` or :class:`.User` that reacted to this message.
         """
         if not isinstance(emoji, str):
-            emoji = "{}:{}".format(emoji.name, emoji.id)
+            emoji = f"{emoji.name}:{emoji.id}"
 
         reactions = await self._bot.http.get_reaction_users(self.channel.id, self.id, emoji)
         result = []
@@ -434,13 +434,11 @@ class Message(Dataclass):
             member_id = int(user.get("id"))
             if self.guild is None:
                 result.append(User(self._bot, **user))
-            else:
-                member = self.guild.members.get(member_id)
-                if not member:
-                    result.append(User(self._bot, **user))
-                else:
-                    result.append(member)
+            elif member := self.guild.members.get(member_id):
+                result.append(member)
 
+            else:
+                result.append(User(self._bot, **user))
         return result
 
     async def react(self, emoji: Union[Emoji, str]):
@@ -452,16 +450,16 @@ class Message(Dataclass):
 
         :param emoji: The emoji to react with.
         """
-        if self.guild:
-            if not self.channel.effective_permissions(self.guild.me).add_reactions:
-                # we can still add already reacted emojis
-                # so make sure to check for that
-                if not self.reacted(emoji):
-                    raise PermissionsError("add_reactions")
+        if (
+            self.guild
+            and not self.channel.effective_permissions(self.guild.me).add_reactions
+            and not self.reacted(emoji)
+        ):
+            raise PermissionsError("add_reactions")
 
         if not isinstance(emoji, str):
             # undocumented!
-            emoji = "{}:{}".format(emoji.name, emoji.id)
+            emoji = f"{emoji.name}:{emoji.id}"
 
         await self._bot.http.add_reaction(self.channel.id, self.id, emoji)
 
@@ -472,18 +470,23 @@ class Message(Dataclass):
         :param reaction: The reaction to remove.
         :param victim: The victim to remove the reaction of. Can be None to signify ourselves.
         """
-        if not self.guild:
-            if victim and victim != self:
-                raise CuriousError("Cannot delete other reactions in a DM")
+        if not self.guild and victim and victim != self:
+            raise CuriousError("Cannot delete other reactions in a DM")
 
-        if victim and victim != self:
-            if not self.channel.effective_permissions(self.guild.me).manage_messages:
-                raise PermissionsError("manage_messages")
+        if (
+            victim
+            and victim != self
+            and not self.channel.effective_permissions(
+                self.guild.me
+            ).manage_messages
+        ):
+            raise PermissionsError("manage_messages")
 
-        if not isinstance(reaction, str):
-            emoji = "{}:{}".format(reaction.name, reaction.id)
-        else:
-            emoji = reaction
+        emoji = (
+            reaction
+            if isinstance(reaction, str)
+            else f"{reaction.name}:{reaction.id}"
+        )
 
         await self._bot.http.delete_reaction(
             self.channel.id, self.id, emoji, victim=victim.id if victim else None

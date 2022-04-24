@@ -61,8 +61,7 @@ def parse_date_header(header: str) -> datetime.datetime:
     :param header: The contents of the header to parse.
     :return: A :class:`datetime.datetime` that corresponds to the date header.
     """
-    dt = datetime.datetime(*parsedate(header)[:6], tzinfo=pytz.UTC)
-    return dt
+    return datetime.datetime(*parsedate(header)[:6], tzinfo=pytz.UTC)
 
 
 def encode_multipart(fields, files, boundary=None):
@@ -353,10 +352,10 @@ class HTTPClient(object):
                     # We need to sleep for a bit before we can start making another request.
                     sleep_time = ceil(reset_time - time.time())
                     if sleep_time >= 0:
-                        logger.debug("Sleeping with lock open for {} seconds.".format(sleep_time))
+                        logger.debug(f"Sleeping with lock open for {sleep_time} seconds.")
                         await trio.sleep(sleep_time)
 
-            for tries in range(0, 5):
+            for tries in range(5):
                 method = kwargs.get("method", "???")
                 path = kwargs.get("path", "???")
                 logger.debug(f"{method} {path} => (pending) (try {tries + 1})")
@@ -384,7 +383,7 @@ class HTTPClient(object):
                 if response.status_code == 429:
                     # This is bad!
                     # But it's okay, we can handle it.
-                    logger.warning("Hit a 429 in bucket {}. Check your clock!".format(bucket))
+                    logger.warning(f"Hit a 429 in bucket {bucket}. Check your clock!")
                     sleep_time = ceil(int(response.headers["Retry-After"]) / 1000)
                     await trio.sleep(sleep_time)
                     continue
@@ -463,8 +462,7 @@ class HTTPClient(object):
                         raise NotFound(response, result)
 
                     raise HTTPException(response, result)
-            else:
-                raise RuntimeError("Failed to get response after 5 tries.")
+            raise RuntimeError("Failed to get response after 5 tries.")
 
         finally:
             lock.release()
@@ -561,7 +559,7 @@ class HTTPClient(object):
         """
         url = Endpoints.GUILD_BASE.format(guild_id=guild_id)
 
-        data = await self.get(url, bucket="guild:{}".format(guild_id))
+        data = await self.get(url, bucket=f"guild:{guild_id}")
         return data
 
     async def get_guild_channels(self, guild_id: int):
@@ -573,7 +571,7 @@ class HTTPClient(object):
         """
         url = Endpoints.GUILD_CHANNELS.format(guild_id=guild_id)
 
-        data = await self.get(url, bucket="guild:{}".format(guild_id))
+        data = await self.get(url, bucket=f"guild:{guild_id}")
         return data
 
     async def get_guild_members(self, guild_id: int, *, limit: int = None, after: int = None):
@@ -593,7 +591,7 @@ class HTTPClient(object):
         if after is not None:
             params["after"] = after
 
-        data = await self.get(url, bucket="guild:{}".format(guild_id), params=params)
+        data = await self.get(url, bucket=f"guild:{guild_id}", params=params)
         return data
 
     async def get_guild_member(self, guild_id: int, member_id: int):
@@ -605,7 +603,7 @@ class HTTPClient(object):
         """
         url = Endpoints.GUILD_MEMBER.format(guild_id=guild_id, member_id=member_id)
 
-        data = await self.get(url, bucket="guild:{}".format(guild_id))
+        data = await self.get(url, bucket=f"guild:{guild_id}")
         return data
 
     async def get_channel(self, channel_id: int):
@@ -616,7 +614,7 @@ class HTTPClient(object):
         """
         url = Endpoints.CHANNEL_BASE.format(channel_id=channel_id)
 
-        data = await self.get(url, bucket="channel:{}".format(channel_id))
+        data = await self.get(url, bucket=f"channel:{channel_id}")
         return data
 
     async def get_vanity_url(self, guild_id: int):
@@ -625,7 +623,7 @@ class HTTPClient(object):
 
         :param guild_id: The guild ID to get the vanity URL of.
         """
-        data = await self.get(Endpoints.GUILD_VANITY_URL, bucket="guild:{}".format(guild_id))
+        data = await self.get(Endpoints.GUILD_VANITY_URL, bucket=f"guild:{guild_id}")
         return data
 
     async def edit_vanity_url(self, guild_id: int, code: str):
@@ -640,8 +638,9 @@ class HTTPClient(object):
         }
 
         data = await self.patch(
-            Endpoints.GUILD_VANITY_URL, bucket="guild:{}".format(guild_id), json=payload
+            Endpoints.GUILD_VANITY_URL, bucket=f"guild:{guild_id}", json=payload
         )
+
         return data
 
     async def send_typing(self, channel_id: int):
@@ -652,7 +651,7 @@ class HTTPClient(object):
         """
         url = Endpoints.CHANNEL_TYPING.format(channel_id=channel_id)
 
-        data = await self.post(url, bucket="typing:{}".format(channel_id))
+        data = await self.post(url, bucket=f"typing:{channel_id}")
         return data
 
     async def send_message(
@@ -677,7 +676,7 @@ class HTTPClient(object):
         if embed is not None:
             payload["embed"] = embed
 
-        data = await self.post(url, "messages:{}".format(channel_id), json=payload)
+        data = await self.post(url, f"messages:{channel_id}", json=payload)
         return data
 
     async def send_file(
@@ -717,7 +716,10 @@ class HTTPClient(object):
         }
 
         body, headers = encode_multipart(payload, files)
-        data = await self.post(url, "messages:{}".format(channel_id), data=body, headers=headers)
+        data = await self.post(
+            url, f"messages:{channel_id}", data=body, headers=headers
+        )
+
         return data
 
     async def delete_message(self, channel_id: int, message_id: int):
@@ -731,7 +733,7 @@ class HTTPClient(object):
         """
         url = Endpoints.CHANNEL_MESSAGE.format(channel_id=channel_id, message_id=message_id)
 
-        data = await self.delete(url, "messages:{}".format(channel_id))
+        data = await self.delete(url, f"messages:{channel_id}")
         return data
 
     async def edit_message(
@@ -756,7 +758,7 @@ class HTTPClient(object):
         if embed is not None:
             payload["embed"] = embed
 
-        data = await self.patch(url, "messages:{}".format(channel_id), json=payload)
+        data = await self.patch(url, f"messages:{channel_id}", json=payload)
         return data
 
     async def add_reaction(self, channel_id: int, message_id: int, emoji: str):
@@ -771,7 +773,7 @@ class HTTPClient(object):
             channel_id=channel_id, message_id=message_id, emoji=emoji
         )
 
-        data = await self.put(url, "reactions:{}".format(channel_id))
+        data = await self.put(url, f"reactions:{channel_id}")
         return data
 
     async def delete_reaction(
@@ -786,13 +788,15 @@ class HTTPClient(object):
         :param victim: The victim to remove. \
             If this is None, our own reaction is removed.
         """
-        if not victim:
-            ep = Endpoints.CHANNEL_MESSAGE_REACTION_ME
-        else:
-            ep = Endpoints.CHANNEL_MESSAGE_REACTION_OTHER
+        ep = (
+            Endpoints.CHANNEL_MESSAGE_REACTION_OTHER
+            if victim
+            else Endpoints.CHANNEL_MESSAGE_REACTION_ME
+        )
+
         url = ep.format(channel_id=channel_id, message_id=message_id, emoji=emoji, victim=victim)
 
-        data = await self.delete(url, bucket="reactions:{}".format(channel_id))
+        data = await self.delete(url, bucket=f"reactions:{channel_id}")
         return data
 
     async def delete_all_reactions(self, channel_id: int, message_id: int):
@@ -806,7 +810,7 @@ class HTTPClient(object):
             channel_id=channel_id, message_id=message_id
         )
 
-        data = await self.delete(url, bucket="reactions:{}".format(channel_id))
+        data = await self.delete(url, bucket=f"reactions:{channel_id}")
         return data
 
     async def get_reaction_users(self, channel_id: int, message_id: int, emoji: str):
@@ -821,7 +825,7 @@ class HTTPClient(object):
             channel_id=channel_id, message_id=message_id, emoji=emoji
         )
 
-        data = await self.get(url, bucket="reactions:{}".format(channel_id))
+        data = await self.get(url, bucket=f"reactions:{channel_id}")
         return data
 
     async def pin_message(self, channel_id: int, message_id: int):
@@ -833,7 +837,7 @@ class HTTPClient(object):
         """
         url = Endpoints.CHANNEL_PIN_MESSAGE.format(channel_id=channel_id, message_id=message_id)
 
-        data = await self.put(url, "pins:{}".format(channel_id), json={})
+        data = await self.put(url, f"pins:{channel_id}", json={})
         return data
 
     async def unpin_message(self, channel_id: int, message_id: int):
@@ -845,7 +849,7 @@ class HTTPClient(object):
         """
         url = Endpoints.CHANNEL_PIN_MESSAGE.format(channel_id=channel_id, message_id=message_id)
 
-        data = await self.delete(url, "pins:{}".format(channel_id))
+        data = await self.delete(url, f"pins:{channel_id}")
         return data
 
     async def get_message(self, channel_id: int, message_id: int):
@@ -858,7 +862,7 @@ class HTTPClient(object):
         """
         url = Endpoints.CHANNEL_MESSAGE.format(channel_id=channel_id, message_id=message_id)
 
-        data = await self.get(url, "messages:{}".format(channel_id))
+        data = await self.get(url, f"messages:{channel_id}")
         return data
 
     async def get_message_history(
@@ -894,7 +898,7 @@ class HTTPClient(object):
         if around:
             payload["around"] = str(around)
 
-        data = await self.get(url, bucket="messages:{}".format(channel_id), params=payload)
+        data = await self.get(url, bucket=f"messages:{channel_id}", params=payload)
         return data
 
     async def get_pins(self, channel_id: int):
@@ -905,7 +909,7 @@ class HTTPClient(object):
         """
         url = Endpoints.CHANNEL_PINS.format(channel_id=channel_id)
 
-        data = await self.get(url, bucket="pins:{}".format(channel_id))
+        data = await self.get(url, bucket=f"pins:{channel_id}")
         return data
 
     async def delete_multiple_messages(self, channel_id: int, message_ids: typing.List[int]):
@@ -923,8 +927,9 @@ class HTTPClient(object):
         payload = {"messages": [str(message_id) for message_id in message_ids]}
 
         data = await self.post(
-            url, bucket="messages:bulk_delete:{}".format(channel_id), json=payload
+            url, bucket=f"messages:bulk_delete:{channel_id}", json=payload
         )
+
         return data
 
     # Profile endpoints
@@ -960,7 +965,7 @@ class HTTPClient(object):
         """
         url = Endpoints.GUILD_BANS.format(guild_id=guild_id)
 
-        data = await self.get(url, bucket="bans:{}".format(guild_id))
+        data = await self.get(url, bucket=f"bans:{guild_id}")
         return data
 
     async def kick_member(self, guild_id: int, member_id: int):
@@ -972,7 +977,7 @@ class HTTPClient(object):
         """
         url = Endpoints.GUILD_MEMBER.format(guild_id=guild_id, member_id=member_id)
 
-        data = await self.delete(url, bucket="members:{}".format(guild_id))
+        data = await self.delete(url, bucket=f"members:{guild_id}")
         return data
 
     async def ban_user(
@@ -992,7 +997,7 @@ class HTTPClient(object):
         if delete_message_days:
             payload["delete-message-days"] = delete_message_days
 
-        data = await self.put(url, bucket="bans:{}".format(guild_id), json=payload)
+        data = await self.put(url, bucket=f"bans:{guild_id}", json=payload)
         return data
 
     async def unban_user(self, guild_id: int, user_id: int, reason: str = None):
@@ -1006,7 +1011,7 @@ class HTTPClient(object):
         # TODO: Do reasons properly
         url = Endpoints.GUILD_BAN_USER.format(guild_id=guild_id, user_id=user_id)
 
-        data = await self.delete(url, bucket="bans:{}".format(guild_id), reason=reason)
+        data = await self.delete(url, bucket=f"bans:{guild_id}", reason=reason)
         return data
 
     async def create_guild(
@@ -1093,11 +1098,7 @@ class HTTPClient(object):
         if default_message_notifications is not None:
             payload["default_message_notifications"] = str(default_message_notifications)
 
-        if not afk_channel_id:
-            payload["afk_channel_id"] = None
-        elif afk_channel_id:
-            payload["afk_channel_id"] = str(afk_channel_id)
-
+        payload["afk_channel_id"] = str(afk_channel_id) if afk_channel_id else None
         if afk_timeout:
             payload["afk_timeout"] = str(afk_timeout)
 
@@ -1110,7 +1111,7 @@ class HTTPClient(object):
         if system_channel_id is not None:
             payload["system_channel_id"] = str(system_channel_id)
 
-        data = await self.patch(url, bucket="guild_edit:{}".format(guild_id), json=payload)
+        data = await self.patch(url, bucket=f"guild_edit:{guild_id}", json=payload)
         return data
 
     async def create_role(self, guild_id: int) -> dict:
@@ -1121,7 +1122,7 @@ class HTTPClient(object):
         """
         url = Endpoints.GUILD_ROLES.format(guild_id=guild_id)
 
-        data = await self.post(url, bucket="guild_roles:{}".format(guild_id))
+        data = await self.post(url, bucket=f"guild_roles:{guild_id}")
         return data
 
     async def edit_role(
@@ -1168,7 +1169,7 @@ class HTTPClient(object):
         if mentionable is not None:
             payload["mentionable"] = mentionable
 
-        data = await self.patch(url, bucket="guild_roles:{}".format(guild_id), json=payload)
+        data = await self.patch(url, bucket=f"guild_roles:{guild_id}", json=payload)
         return data
 
     async def delete_role(self, guild_id: int, role_id: int):
@@ -1180,7 +1181,7 @@ class HTTPClient(object):
         """
         url = Endpoints.GUILD_ROLE.format(guild_id=guild_id, role_id=role_id)
 
-        data = await self.delete(url, bucket="guild_roles:{}".format(guild_id))
+        data = await self.delete(url, bucket=f"guild_roles:{guild_id}")
         return data
 
     async def create_channel(
@@ -1221,7 +1222,7 @@ class HTTPClient(object):
         if permission_overwrites is not None:
             payload["permission_overwrites"] = permission_overwrites
 
-        data = await self.post(url, bucket="guild_channels:{}".format(guild_id), json=payload)
+        data = await self.post(url, bucket=f"guild_channels:{guild_id}", json=payload)
         return data
 
     async def edit_channel(
@@ -1262,7 +1263,7 @@ class HTTPClient(object):
         if user_limit != -1:
             payload["user_limit"] = user_limit
 
-        data = await self.patch(url, bucket="channels:{}".format(channel_id), json=payload)
+        data = await self.patch(url, bucket=f"channels:{channel_id}", json=payload)
         return data
 
     async def update_channel_positions(
@@ -1283,7 +1284,7 @@ class HTTPClient(object):
             {"id": str(id), "position": position} for id, position in channel_ids_and_positions
         ]
 
-        data = await self.patch(url, bucket="guild:{}".format(guild_id), json=payload)
+        data = await self.patch(url, bucket=f"guild:{guild_id}", json=payload)
         return data
 
     async def delete_channel(self, channel_id: int):
@@ -1294,7 +1295,7 @@ class HTTPClient(object):
         """
         url = Endpoints.CHANNEL_BASE.format(channel_id=channel_id)
 
-        data = await self.delete(url, bucket="channels:{}".format(channel_id))
+        data = await self.delete(url, bucket=f"channels:{channel_id}")
         return data
 
     async def add_member_role(self, guild_id: int, member_id: int, role_id: int):
@@ -1311,7 +1312,7 @@ class HTTPClient(object):
             guild_id=guild_id, member_id=member_id, role_id=role_id
         )
 
-        data = await self.put(url, bucket="member_edit:{}".format(guild_id))
+        data = await self.put(url, bucket=f"member_edit:{guild_id}")
         return data
 
     async def edit_member_roles(
@@ -1327,7 +1328,7 @@ class HTTPClient(object):
         url = Endpoints.GUILD_MEMBER.format(guild_id=guild_id, member_id=member_id)
         payload = {"roles": [str(id) for id in role_ids]}
 
-        data = await self.patch(url, bucket="member_edit:{}".format(guild_id), json=payload)
+        data = await self.patch(url, bucket=f"member_edit:{guild_id}", json=payload)
         return data
 
     async def edit_role_positions(
@@ -1364,7 +1365,7 @@ class HTTPClient(object):
             url = Endpoints.GUILD_MEMBER.format(guild_id=guild_id, member_id=member_id)
         payload = {"nick": nickname}
 
-        data = await self.patch(url, bucket="member_edit:{}".format(guild_id), json=payload)
+        data = await self.patch(url, bucket=f"member_edit:{guild_id}", json=payload)
         return data
 
     async def edit_member_voice_state(
@@ -1397,7 +1398,7 @@ class HTTPClient(object):
         if channel_id is not None:
             payload["channel_id"] = channel_id
 
-        data = await self.patch(url, bucket="member_edit:{}".format(guild_id), json=payload)
+        data = await self.patch(url, bucket=f"member_edit:{guild_id}", json=payload)
         return data
 
     async def edit_overwrite(
@@ -1417,8 +1418,9 @@ class HTTPClient(object):
         payload = {"allow": allow, "deny": deny, "type": type_}
 
         data = await self.put(
-            url, bucket="channels:permissions:{}".format(channel_id), json=payload
+            url, bucket=f"channels:permissions:{channel_id}", json=payload
         )
+
         return data
 
     async def remove_overwrite(self, channel_id: int, target_id: int):
@@ -1430,7 +1432,7 @@ class HTTPClient(object):
         """
         url = Endpoints.CHANNEL_PERMISSION.format(channel_id=channel_id, target_id=target_id)
 
-        data = await self.delete(url, bucket="channels:permissions:{}".format(channel_id))
+        data = await self.delete(url, bucket=f"channels:permissions:{channel_id}")
         return data
 
     async def get_widget_status(self, guild_id: int):
@@ -1441,7 +1443,7 @@ class HTTPClient(object):
         """
         url = Endpoints.GUILD_EMBED.format(guild_id=guild_id)
 
-        data = await self.get(url, bucket="widget:{}".format(guild_id))
+        data = await self.get(url, bucket=f"widget:{guild_id}")
         return data
 
     async def get_widget_data(self, guild_id: int):
@@ -1452,7 +1454,7 @@ class HTTPClient(object):
         """
         url = Endpoints.GUILD_WIDGET.format(guild_id=guild_id)
 
-        data = await self.get(url, bucket="widget:{}".format(guild_id))
+        data = await self.get(url, bucket=f"widget:{guild_id}")
         return data
 
     async def edit_widget(self, guild_id: int, enabled: bool = None, channel_id: int = 0):
@@ -1472,7 +1474,7 @@ class HTTPClient(object):
         if channel_id != 0:
             payload["channel_id"] = channel_id
 
-        data = await self.patch(url, bucket="widget:{}".format(guild_id), json=payload)
+        data = await self.patch(url, bucket=f"widget:{guild_id}", json=payload)
         return data
 
     async def get_audit_logs(
@@ -1498,7 +1500,10 @@ class HTTPClient(object):
         if action_type is not None:
             payload["action_type"] = action_type
 
-        data = await self.get(url, bucket="guild:{}:audit-logs".format(guild_id), params=payload)
+        data = await self.get(
+            url, bucket=f"guild:{guild_id}:audit-logs", params=payload
+        )
+
         return data
 
     # Emojis
@@ -1602,7 +1607,7 @@ class HTTPClient(object):
         """
         url = Endpoints.GUILD_WEBHOOKS.format(guild_id=guild_id)
 
-        data = await self.get(url, bucket="webhooks:{}".format(guild_id))
+        data = await self.get(url, bucket=f"webhooks:{guild_id}")
         return data
 
     async def get_webhooks_for_channel(self, channel_id: int):
@@ -1613,7 +1618,7 @@ class HTTPClient(object):
         """
         url = Endpoints.CHANNEL_WEBHOOKS.format(channel_id=channel_id)
 
-        data = await self.get(url, bucket="webhooks:{}".format(channel_id))
+        data = await self.get(url, bucket=f"webhooks:{channel_id}")
         return data
 
     async def create_webhook(self, channel_id: int, *, name: str = None, avatar: str = None):
@@ -1630,7 +1635,7 @@ class HTTPClient(object):
         if avatar is not None:
             payload["avatar"] = avatar
 
-        data = await self.post(url, bucket="webhooks:{}".format(channel_id), json=payload)
+        data = await self.post(url, bucket=f"webhooks:{channel_id}", json=payload)
         return data
 
     async def edit_webhook(self, webhook_id: int, *, name: str = None, avatar: str = None):
@@ -1764,7 +1769,7 @@ class HTTPClient(object):
         """
         url = Endpoints.GUILD_INVITES.format(guild_id=guild_id)
 
-        data = await self.get(url, bucket="invites:{}".format(guild_id))
+        data = await self.get(url, bucket=f"invites:{guild_id}")
         return data
 
     async def create_invite(
@@ -1800,7 +1805,7 @@ class HTTPClient(object):
         if unique is not None:
             payload["unique"] = unique
 
-        data = await self.post(url, bucket="invites:{}".format(channel_id), json=payload)
+        data = await self.post(url, bucket=f"invites:{channel_id}", json=payload)
         return data
 
     async def delete_invite(self, invite_code: str):
@@ -1823,7 +1828,7 @@ class HTTPClient(object):
         """
         url = Endpoints.CHANNEL_MESSAGES_SEARCH.format(channel_id=channel_id)
 
-        data = await self.get(url, bucket="search:{}".format(channel_id), params=params)
+        data = await self.get(url, bucket=f"search:{channel_id}", params=params)
         return data
 
     async def search_guild(self, guild_id: int, params: dict):
@@ -1833,9 +1838,9 @@ class HTTPClient(object):
         :param guild_id: The guild ID of the guild to search.
         :param params: Params to search with.
         """
-        url = (self.GUILD_BASE + "/messages/search").format(guild_id=guild_id)
+        url = f"{self.GUILD_BASE}/messages/search".format(guild_id=guild_id)
 
-        data = await self.get(url, bucket="search:{}".format(guild_id), params=params)
+        data = await self.get(url, bucket=f"search:{guild_id}", params=params)
         return data
 
     # User only
@@ -1850,7 +1855,7 @@ class HTTPClient(object):
 
         :param settings: The dict of settings to update.
         """
-        url = Endpoints.USER_ME + "/settings"
+        url = f"{Endpoints.USER_ME}/settings"
 
         data = await self.patch(url, bucket="user", json=settings)
         return data
@@ -1891,12 +1896,10 @@ class HTTPClient(object):
         # httpclient is meant to be a "pure" wrapper, but add this anyway.
         me = await self.get_this_user()
 
-        final = {
+        return {
             "application": data,
             "bot": me,
         }
-
-        return final
 
     async def get_user_applications(self):
         """
@@ -1913,7 +1916,7 @@ class HTTPClient(object):
 
         :param application_id: The ID of the application to get.
         """
-        url = "/oauth2/applications/{}".format(application_id)
+        url = f"/oauth2/applications/{application_id}"
 
         data = await self.get(url, "oauth2")
         return data
@@ -2036,5 +2039,4 @@ async def open_http_client(
     Opens a new HTTP client using the specified token and the optional set of endpoints.
     """
     async with httpx.AsyncClient() as session:
-        client = HTTPClient(token, endpoints, session)
-        yield client
+        yield HTTPClient(token, endpoints, session)

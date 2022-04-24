@@ -110,7 +110,7 @@ class Game(object):
         return d
 
     def __repr__(self) -> str:
-        return "<Game name='{}' type={} url={}>".format(self.name, self.type, self.url)
+        return f"<Game name='{self.name}' type={self.type} url={self.url}>"
 
 
 class Presence(object):
@@ -138,7 +138,7 @@ class Presence(object):
         self.game = game
 
     def __repr__(self):
-        return "<Presence status={} game='{}'>".format(self.status, self.game)
+        return f"<Presence status={self.status} game='{self.game}'>"
 
     @property
     def status(self) -> Status:
@@ -189,8 +189,10 @@ def _make_property(field: str, doc: str = None, max_size: int = None) -> propert
 
     def _setter(self, value: str):
         if max_size is not None and len(value) > max_size:
-            raise ValueError("Field '{}' cannot be longer than {} characters"
-                             .format(field, max_size))
+            raise ValueError(
+                f"Field '{field}' cannot be longer than {max_size} characters"
+            )
+
 
         self._rich_fields[field] = value
 
@@ -239,9 +241,9 @@ class RichPresence(object):
 
     @assets.setter
     def assets(self, value: dict):
-        for key in value.keys():
+        for key in value:
             if key not in ('large_image', 'large_text', 'small_image', 'small_text'):
-                raise ValueError("Bad asset key: {}".format(key))
+                raise ValueError(f"Bad asset key: {key}")
 
         self._rich_fields["assets"] = value
 

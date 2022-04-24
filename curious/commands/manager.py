@@ -279,10 +279,9 @@ class CommandsManager(object):
         """
         if isinstance(command, str):
             return self.commands.pop(command)
-        else:
-            for k, p in self.commands.copy().items():
-                if p == command:
-                    return self.commands.pop(k)
+        for k, p in self.commands.copy().items():
+            if p == command:
+                return self.commands.pop(k)
 
     async def load_plugins_from(self, import_path: str):
         """

@@ -70,16 +70,13 @@ class Emoji(Dataclass):
         self.available: bool = kwargs.get("available", False)
 
     def __eq__(self, other) -> bool:
-        if isinstance(other, str):
-            return False
-
-        return self.id == other.id
+        return False if isinstance(other, str) else self.id == other.id
 
     def __hash__(self) -> int:
         return hash(self.id)
 
     def __str__(self) -> str:
-        return "<{}:{}:{}>".format("a" if self.animated else "", self.name, self.id)
+        return f'<{"a" if self.animated else ""}:{self.name}:{self.id}>'
 
     def __repr__(self) -> str:
         return "<Emoji guild={!r} id={!r} name={!r}>".format(self.guild, self.id, self.name)
